@@ -69,25 +69,45 @@ fun BorderedRoundedCornerButton(
     backgroundColor: Color,
     text: String,
     textColor: Color,
-    onClick: () -> Unit
+    onClick: (() -> Unit)? = null
 ) {
-    Box(
-        modifier = modifier
-            .clip(shape = Shapes.large)
-            .border(
-                shape = Shapes.large,
-                width = 1.dp,
-                color = borderColor
+    if (onClick != null) {
+        Box(
+            modifier = modifier
+                .clip(shape = Shapes.large)
+                .border(
+                    shape = Shapes.large,
+                    width = 1.dp,
+                    color = borderColor
+                )
+                .background(backgroundColor)
+                .clickable { onClick() }
+        ) {
+            Text(
+                modifier = Modifier.align(Center),
+                text = text,
+                style = Typography.body1,
+                color = textColor
             )
-            .background(backgroundColor)
-            .clickable { onClick() }
-    ) {
-        Text(
-            modifier = Modifier.align(Center),
-            text = text,
-            style = Typography.body1,
-            color = textColor
-        )
+        }
+    } else {
+        Box(
+            modifier = modifier
+                .clip(shape = Shapes.large)
+                .border(
+                    shape = Shapes.large,
+                    width = 1.dp,
+                    color = borderColor
+                )
+                .background(backgroundColor)
+        ) {
+            Text(
+                modifier = Modifier.align(Center),
+                text = text,
+                style = Typography.body1,
+                color = textColor
+            )
+        }
     }
 }
 
