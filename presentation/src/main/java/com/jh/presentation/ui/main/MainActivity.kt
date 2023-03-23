@@ -12,15 +12,13 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.LocalTextSelectionColors
 import androidx.compose.foundation.text.selection.TextSelectionColors
-import androidx.compose.material.Icon
-import androidx.compose.material.Text
-import androidx.compose.material.TextField
-import androidx.compose.material.TextFieldDefaults
+import androidx.compose.material.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment.Companion.BottomCenter
+import androidx.compose.ui.Alignment.Companion.BottomEnd
 import androidx.compose.ui.Alignment.Companion.Center
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
@@ -37,6 +35,7 @@ import com.jh.presentation.base.BaseActivity
 import com.jh.presentation.base.BaseViewModel
 import com.jh.presentation.ui.BorderedRoundedCornerButton
 import com.jh.presentation.ui.clickableWithoutRipple
+import com.jh.presentation.ui.main.favorite.FavoriteActivity
 import com.jh.presentation.ui.theme.*
 
 class MainActivity : BaseActivity() {
@@ -50,7 +49,10 @@ class MainActivity : BaseActivity() {
 
         initComposeUi {
             MainActivityContent(
-                cadenceTextFieldState = cadenceTextFieldState
+                cadenceTextFieldState = cadenceTextFieldState,
+                onClickFavorite = {
+                    startActivity(FavoriteActivity.newIntent(this@MainActivity))
+                }
             )
         }
     }
@@ -68,7 +70,8 @@ class MainActivity : BaseActivity() {
 
 @Composable
 private inline fun MainActivityContent(
-    cadenceTextFieldState: MutableState<String>
+    cadenceTextFieldState: MutableState<String>,
+    crossinline onClickFavorite: () -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         Box(
@@ -309,6 +312,25 @@ private inline fun MainActivityContent(
                 onClick = {
 
                 }
+            )
+        }
+
+        FloatingActionButton(
+            modifier = Modifier
+                .padding(
+                    end = 24.dp,
+                    bottom = 48.dp
+                )
+                .size(48.dp)
+                .align(BottomEnd),
+            onClick = { onClickFavorite() }) {
+            Icon(
+                modifier = Modifier
+                    .size(24.dp)
+                    .align(Center),
+                painter = painterResource(id = R.drawable.ic_favorite),
+                contentDescription = "favoriteIcon",
+                tint = MainColor
             )
         }
     }
