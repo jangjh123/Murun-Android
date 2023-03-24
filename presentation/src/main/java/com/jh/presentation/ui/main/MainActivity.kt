@@ -3,6 +3,7 @@ package com.jh.presentation.ui.main
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import androidx.activity.viewModels
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -46,8 +47,12 @@ import com.jh.presentation.ui.BorderedRoundedCornerButton
 import com.jh.presentation.ui.clickableWithoutRipple
 import com.jh.presentation.ui.main.favorite.FavoriteActivity
 import com.jh.presentation.ui.theme.*
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : BaseActivity() {
+    override val viewModel: MainViewModel by viewModels()
+
     private val cadenceTextFieldState = mutableStateOf("")
     private val imageState = mutableStateOf<ImageBitmap?>(null)
     private val titleTextState = mutableStateOf("")
@@ -58,9 +63,6 @@ class MainActivity : BaseActivity() {
     private val runningState = mutableStateOf(false)
     private val playingState = mutableStateOf(false)
     private val isRepeatingOneState = mutableStateOf(false)
-
-    override val viewModel: BaseViewModel
-        get() = TODO("Not yet implemented")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
