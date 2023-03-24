@@ -30,24 +30,33 @@ class FavoriteViewModel @Inject constructor(
     @OptIn(ExperimentalMaterialApi::class)
     private fun reduceState(state: FavoriteState, event: FavoriteUiEvent): FavoriteState {
         return when (event) {
-            is FavoriteUiEvent.OpenBottomSheet -> {
+            is FavoriteUiEvent.ShowMusicOption -> {
                 state.copy(bottomSheetStateValue = ModalBottomSheetValue.Expanded)
             }
-            is FavoriteUiEvent.CloseBottomSheet -> {
+            is FavoriteUiEvent.HideMusicOption -> {
                 state.copy(bottomSheetStateValue = ModalBottomSheetValue.Hidden)
+            }
+            is FavoriteUiEvent.InitBottomSheetState -> {
+                state.copy(bottomSheetStateValue = null)
             }
         }
     }
 
-    fun onClickMusicOption() {
+    fun onClickShowMusicOption() {
         viewModelScope.launch(mainDispatcher) {
-            eventChannel.send(FavoriteUiEvent.OpenBottomSheet)
+            eventChannel.send(FavoriteUiEvent.ShowMusicOption)
         }
     }
 
-    fun onCloseMusicOption() {
+    fun onClickHideMusicOption() {
         viewModelScope.launch(mainDispatcher) {
-            eventChannel.send(FavoriteUiEvent.CloseBottomSheet)
+            eventChannel.send(FavoriteUiEvent.HideMusicOption)
+        }
+    }
+
+    fun onInitBottomSheetState() {
+        viewModelScope.launch(mainDispatcher) {
+            eventChannel.send(FavoriteUiEvent.InitBottomSheetState)
         }
     }
 
@@ -56,6 +65,4 @@ class FavoriteViewModel @Inject constructor(
             _sideEffectChannel.send(FavoriteSideEffect.StartRunning)
         }
     }
-
-
 }

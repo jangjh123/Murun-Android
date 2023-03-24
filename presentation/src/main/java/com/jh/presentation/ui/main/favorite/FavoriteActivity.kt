@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement.SpaceBetween
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.*
+import androidx.compose.material.ModalBottomSheetValue.Expanded
 import androidx.compose.material.ModalBottomSheetValue.Hidden
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
@@ -79,10 +80,12 @@ private fun FavoriteActivityContent(
         coroutineScope.launch {
             if (bottomSheetStateValue == Hidden) {
                 bottomSheetState.hide()
-            } else {
+            } else if (bottomSheetStateValue == Expanded) {
                 bottomSheetState.show()
             }
         }
+
+        viewModel.onInitBottomSheetState()
 
         ModalBottomSheetLayout(
             sheetState = bottomSheetState,
@@ -114,7 +117,7 @@ private fun FavoriteActivityContent(
                         }
 
                         Icon(
-                            modifier = Modifier.clickableWithoutRipple { viewModel.onCloseMusicOption() },
+                            modifier = Modifier.clickableWithoutRipple { viewModel.onClickHideMusicOption() },
                             painter = painterResource(id = R.drawable.ic_close),
                             contentDescription = "closeIcon",
                             tint = Gray1
@@ -208,7 +211,7 @@ private fun FavoriteActivityContent(
                                 Icon(
                                     modifier = Modifier
                                         .padding(end = 12.dp)
-                                        .clickableWithoutRipple { viewModel.onClickMusicOption() },
+                                        .clickableWithoutRipple { viewModel.onClickShowMusicOption() },
                                     painter = painterResource(id = R.drawable.ic_option),
                                     contentDescription = "optionIcon",
                                     tint = Gray1
