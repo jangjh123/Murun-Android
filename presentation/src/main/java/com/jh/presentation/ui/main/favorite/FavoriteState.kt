@@ -5,5 +5,5 @@ import androidx.compose.material.ModalBottomSheetValue
 
 @OptIn(ExperimentalMaterialApi::class)
 data class FavoriteState(
-    val bottomSheetStateValue: ModalBottomSheetValue = ModalBottomSheetValue.Hidden
+    val bottomSheetStateValue: ModalBottomSheetValue? = null
 )
