@@ -29,7 +29,10 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.compose.ui.layout.ContentScale.Companion.Crop
+import androidx.compose.ui.layout.ContentScale.Companion.FillBounds
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -37,6 +40,8 @@ import androidx.compose.ui.unit.dp
 import com.jh.murun.R
 import com.jh.presentation.base.BaseActivity
 import com.jh.presentation.base.BaseViewModel
+import com.jh.presentation.enums.CadenceType
+import com.jh.presentation.enums.CadenceType.*
 import com.jh.presentation.ui.BorderedRoundedCornerButton
 import com.jh.presentation.ui.clickableWithoutRipple
 import com.jh.presentation.ui.main.favorite.FavoriteActivity
@@ -44,7 +49,15 @@ import com.jh.presentation.ui.theme.*
 
 class MainActivity : BaseActivity() {
     private val cadenceTextFieldState = mutableStateOf("")
+    private val imageState = mutableStateOf<ImageBitmap?>(null)
+    private val titleTextState = mutableStateOf("")
+    private val artistTextState = mutableStateOf("")
+    private val bpmState = mutableStateOf(0)
+    private val cadenceState = mutableStateOf(0)
+    private val cadenceTypeState = mutableStateOf(NONE)
     private val runningState = mutableStateOf(false)
+    private val playingState = mutableStateOf(false)
+    private val isRepeatingOneState = mutableStateOf(false)
 
     override val viewModel: BaseViewModel
         get() = TODO("Not yet implemented")
@@ -54,8 +67,16 @@ class MainActivity : BaseActivity() {
 
         initComposeUi {
             MainActivityContent(
+                imageState = imageState,
+                titleTextState = titleTextState,
+                artistTextState = artistTextState,
+                bpmState = bpmState,
+                cadenceState = cadenceState,
                 cadenceTextFieldState = cadenceTextFieldState,
+                cadenceTypeState = cadenceTypeState,
                 runningState = runningState,
+                playingState = playingState,
+                isRepeatingOneState = isRepeatingOneState,
                 onClickFavorite = {
                     startActivity(FavoriteActivity.newIntent(this@MainActivity))
                 }
@@ -77,8 +98,16 @@ class MainActivity : BaseActivity() {
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private inline fun MainActivityContent(
+    imageState: MutableState<ImageBitmap?>,
+    titleTextState: MutableState<String>,
+    artistTextState: MutableState<String>,
+    bpmState: MutableState<Int>,
+    cadenceState: MutableState<Int>,
     cadenceTextFieldState: MutableState<String>,
+    cadenceTypeState: MutableState<CadenceType>,
     runningState: MutableState<Boolean>,
+    playingState: MutableState<Boolean>,
+    isRepeatingOneState: MutableState<Boolean>,
     crossinline onClickFavorite: () -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
@@ -95,9 +124,9 @@ private inline fun MainActivityContent(
                         radiusX = 2.dp,
                         radiusY = 2.dp
                     ),
-                painter = painterResource(id = R.drawable.dummy_cover),
+                painter = if (imageState.value != null) BitmapPainter(imageState.value!!) else painterResource(id = R.drawable.music_default),
                 contentDescription = "songInfoBackground",
-                contentScale = ContentScale.Crop,
+                contentScale = Crop,
             )
 
             Box(
@@ -117,14 +146,24 @@ private inline fun MainActivityContent(
                     )
                     .fillMaxWidth()
             ) {
-                Image(
-                    modifier = Modifier
-                        .clip(shape = Shapes.large)
-                        .size(120.dp),
-                    painter = painterResource(id = R.drawable.dummy_cover),
-                    contentDescription = "albumCover",
-                    contentScale = ContentScale.FillBounds
-                )
+                Box {
+                    Image(
+                        modifier = Modifier
+                            .clip(shape = Shapes.large)
+                            .size(120.dp),
+                        painter = if (imageState.value != null) BitmapPainter(imageState.value!!) else painterResource(id = R.drawable.music_default),
+                        contentDescription = "albumCover",
+                        contentScale = if (imageState.value != null) FillBounds else Crop
+                    )
+
+                    Text(
+                        modifier = Modifier.align(Center),
+                        text = "No Music",
+                        style = Typography.body1,
+                        color = Gray0
+                    )
+                }
+
 
                 Column(
                     modifier = Modifier
@@ -134,20 +173,20 @@ private inline fun MainActivityContent(
                 ) {
                     Column {
                         Text(
-                            text = "Higher",
+                            text = titleTextState.value,
                             style = Typography.h3,
                             color = Color.White
                         )
 
                         Text(
-                            text = "Tobu",
+                            text = artistTextState.value,
                             style = Typography.body1,
                             color = Gray0
                         )
                     }
 
                     Text(
-                        text = "130 BPM",
+                        text = "${bpmState.value} BPM",
                         style = Typography.h4,
                         color = MainColor
                     )
@@ -178,22 +217,31 @@ private inline fun MainActivityContent(
                 Icon(
                     modifier = Modifier.clickableWithoutRipple { },
                     painter = painterResource(id = R.drawable.ic_skip_prev),
-                    contentDescription = "playIcon",
+                    contentDescription = "skipToPrevIcon",
                     tint = Color.LightGray
                 )
 
                 Icon(
-                    modifier = Modifier.clickableWithoutRipple { },
-                    painter = painterResource(id = R.drawable.ic_play),
-                    contentDescription = "playIcon",
+                    modifier = Modifier.clickableWithoutRipple { playingState.value = !playingState.value },
+                    painter = painterResource(id = if (playingState.value) R.drawable.ic_pause else R.drawable.ic_play),
+                    contentDescription = "playOrPauseIcon",
                     tint = MainColor
                 )
 
                 Icon(
                     modifier = Modifier.clickableWithoutRipple { },
                     painter = painterResource(id = R.drawable.ic_skip_next),
-                    contentDescription = "playIcon",
+                    contentDescription = "skipToNextIcon",
                     tint = Color.LightGray
+                )
+
+                Icon(
+                    modifier = Modifier.clickableWithoutRipple {
+                        isRepeatingOneState.value = !isRepeatingOneState.value
+                    },
+                    painter = painterResource(id = R.drawable.ic_repeat_one),
+                    contentDescription = "repeatIcon",
+                    tint = if (isRepeatingOneState.value) MainColor else Color.LightGray
                 )
             }
 
@@ -209,6 +257,9 @@ private inline fun MainActivityContent(
                 Column(
                     modifier = Modifier.alpha(cadenceSettingAlphaState.value),
                 ) {
+                    val cadenceTrackingColorState = animateColorAsState(targetValue = if (cadenceTypeState.value == TRACKING) MainColor else Color.LightGray)
+                    val cadenceAssignColorState = animateColorAsState(targetValue = if (cadenceTypeState.value == ASSIGN) MainColor else Color.LightGray)
+
                     Row(
                         modifier = Modifier
                             .padding(horizontal = 12.dp)
@@ -219,25 +270,23 @@ private inline fun MainActivityContent(
                             modifier = Modifier
                                 .weight(1f)
                                 .height(48.dp),
-                            borderColor = MainColor,
+                            borderColor = cadenceTrackingColorState.value,
                             backgroundColor = Color.White,
                             text = "케이던스 트래킹",
-                            textColor = MainColor
-                        ) {
-
-                        }
+                            textColor = cadenceTrackingColorState.value,
+                            onClick = { cadenceTypeState.value = TRACKING }
+                        )
 
                         BorderedRoundedCornerButton(
                             modifier = Modifier
                                 .weight(1f)
                                 .height(48.dp),
-                            borderColor = Color.LightGray,
+                            borderColor = cadenceAssignColorState.value,
                             backgroundColor = Color.White,
                             text = "케이던스 입력",
-                            textColor = Color.LightGray
-                        ) {
-
-                        }
+                            textColor = cadenceAssignColorState.value,
+                            onClick = { cadenceTypeState.value = ASSIGN }
+                        )
                     }
 
                     Row(
@@ -254,16 +303,16 @@ private inline fun MainActivityContent(
                                 .border(
                                     shape = Shapes.large,
                                     width = 1.dp,
-                                    color = MainColor
+                                    color = cadenceTrackingColorState.value,
                                 )
                                 .weight(1f)
                                 .height(200.dp)
                         ) {
                             Text(
                                 modifier = Modifier.align(Center),
-                                text = "130", // cadence
+                                text = "${cadenceState.value}",
                                 style = Typography.h5,
-                                color = MainColor
+                                color = cadenceTrackingColorState.value,
                             )
                         }
 
@@ -272,7 +321,7 @@ private inline fun MainActivityContent(
                                 .border(
                                     shape = Shapes.large,
                                     width = 1.dp,
-                                    color = Color.LightGray
+                                    color = cadenceAssignColorState.value,
                                 )
                                 .weight(1f)
                                 .height(200.dp)
@@ -296,7 +345,7 @@ private inline fun MainActivityContent(
                                             modifier = Modifier.fillMaxWidth(),
                                             text = "입력",
                                             style = Typography.h6,
-                                            color = Color.LightGray
+                                            color = cadenceAssignColorState.value,
                                         )
                                     },
                                     textStyle = Typography.h6,
@@ -310,7 +359,8 @@ private inline fun MainActivityContent(
                                         focusedIndicatorColor = Color.Transparent,
                                         unfocusedIndicatorColor = Color.Transparent,
                                         disabledIndicatorColor = Color.Transparent,
-                                    )
+                                    ),
+                                    enabled = cadenceTypeState.value == ASSIGN
                                 )
                             }
                         }
