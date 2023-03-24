@@ -40,6 +40,11 @@ val Typography = Typography(
         fontWeight = Bold,
         textAlign = TextAlign.Center
     ),
+    subtitle1 = TextStyle(
+        fontSize = 16.sp,
+        letterSpacing = 0.sp,
+        fontWeight = Medium
+    ),
     body1 = TextStyle(
         fontSize = 14.sp,
         letterSpacing = 0.sp,
