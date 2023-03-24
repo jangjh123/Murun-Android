@@ -63,8 +63,12 @@ class MainActivity : BaseActivity() {
         }
 
         repeatOnStarted {
-            viewModel.sideEffectChannelFlow.collectLatest {
-                startActivity(FavoriteActivity.newIntent(this@MainActivity))
+            viewModel.sideEffectChannelFlow.collectLatest { sideEffect ->
+                when(sideEffect) {
+                    is MainSideEffect.GoToFavorite -> {
+                        startActivity(FavoriteActivity.newIntent(this@MainActivity))
+                    }
+                }
             }
         }
     }
