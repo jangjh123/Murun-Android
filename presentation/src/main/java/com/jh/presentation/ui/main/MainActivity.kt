@@ -19,8 +19,8 @@ import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.material.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment.Companion.BottomCenter
 import androidx.compose.ui.Alignment.Companion.BottomEnd
 import androidx.compose.ui.Alignment.Companion.Center
@@ -30,7 +30,6 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.layout.ContentScale.Companion.Crop
 import androidx.compose.ui.layout.ContentScale.Companion.FillBounds
@@ -38,56 +37,36 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jh.murun.R
 import com.jh.presentation.base.BaseActivity
-import com.jh.presentation.base.BaseViewModel
-import com.jh.presentation.enums.CadenceType
 import com.jh.presentation.enums.CadenceType.*
 import com.jh.presentation.ui.BorderedRoundedCornerButton
+import com.jh.presentation.ui.LoadingScreen
 import com.jh.presentation.ui.clickableWithoutRipple
+import com.jh.presentation.ui.main.MainUiEvent.*
 import com.jh.presentation.ui.main.favorite.FavoriteActivity
+import com.jh.presentation.ui.repeatOnStarted
 import com.jh.presentation.ui.theme.*
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.collectLatest
 
 @AndroidEntryPoint
 class MainActivity : BaseActivity() {
     override val viewModel: MainViewModel by viewModels()
 
-    private val cadenceTextFieldState = mutableStateOf("")
-    private val imageState = mutableStateOf<ImageBitmap?>(null)
-    private val titleTextState = mutableStateOf("")
-    private val artistTextState = mutableStateOf("")
-    private val bpmState = mutableStateOf(0)
-    private val cadenceState = mutableStateOf(0)
-    private val cadenceTypeState = mutableStateOf(NONE)
-    private val runningState = mutableStateOf(false)
-    private val playingState = mutableStateOf(false)
-    private val isRepeatingOneState = mutableStateOf(false)
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         initComposeUi {
-            MainActivityContent(
-                imageState = imageState,
-                titleTextState = titleTextState,
-                artistTextState = artistTextState,
-                bpmState = bpmState,
-                cadenceState = cadenceState,
-                cadenceTextFieldState = cadenceTextFieldState,
-                cadenceTypeState = cadenceTypeState,
-                runningState = runningState,
-                playingState = playingState,
-                isRepeatingOneState = isRepeatingOneState,
-                onClickFavorite = {
-                    startActivity(FavoriteActivity.newIntent(this@MainActivity))
-                }
-            )
+            MainActivityContent(viewModel = viewModel)
         }
-    }
 
-    override fun setupCollect() {
-
+        repeatOnStarted {
+            viewModel.sideEffectChannelFlow.collectLatest {
+                startActivity(FavoriteActivity.newIntent(this@MainActivity))
+            }
+        }
     }
 
     companion object {
@@ -99,328 +78,323 @@ class MainActivity : BaseActivity() {
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private inline fun MainActivityContent(
-    imageState: MutableState<ImageBitmap?>,
-    titleTextState: MutableState<String>,
-    artistTextState: MutableState<String>,
-    bpmState: MutableState<Int>,
-    cadenceState: MutableState<Int>,
-    cadenceTextFieldState: MutableState<String>,
-    cadenceTypeState: MutableState<CadenceType>,
-    runningState: MutableState<Boolean>,
-    playingState: MutableState<Boolean>,
-    isRepeatingOneState: MutableState<Boolean>,
-    crossinline onClickFavorite: () -> Unit
+private fun MainActivityContent(
+    viewModel: MainViewModel
 ) {
-    Box(modifier = Modifier.fillMaxSize()) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(200.dp)
-        ) {
-            Image(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp)
-                    .blur(
-                        radiusX = 2.dp,
-                        radiusY = 2.dp
-                    ),
-                painter = if (imageState.value != null) BitmapPainter(imageState.value!!) else painterResource(id = R.drawable.music_default),
-                contentDescription = "songInfoBackground",
-                contentScale = Crop,
-            )
-
+    with(viewModel.state.collectAsStateWithLifecycle().value) {
+        Box(modifier = Modifier.fillMaxSize()) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(200.dp)
-                    .background(color = DarkFilter1)
-            )
-        }
-
-        Box(modifier = Modifier.fillMaxWidth()) {
-            Row(
-                modifier = Modifier
-                    .padding(
-                        vertical = 24.dp,
-                        horizontal = 24.dp
-                    )
-                    .fillMaxWidth()
             ) {
-                Box {
-                    Image(
-                        modifier = Modifier
-                            .clip(shape = Shapes.large)
-                            .size(120.dp),
-                        painter = if (imageState.value != null) BitmapPainter(imageState.value!!) else painterResource(id = R.drawable.music_default),
-                        contentDescription = "albumCover",
-                        contentScale = if (imageState.value != null) FillBounds else Crop
-                    )
-
-                    Text(
-                        modifier = Modifier.align(Center),
-                        text = "No Music",
-                        style = Typography.body1,
-                        color = Gray0
-                    )
-                }
-
-
-                Column(
+                Image(
                     modifier = Modifier
-                        .padding(start = 12.dp)
-                        .height(120.dp),
-                    verticalArrangement = SpaceBetween
+                        .fillMaxWidth()
+                        .height(200.dp)
+                        .blur(
+                            radiusX = 2.dp,
+                            radiusY = 2.dp
+                        ),
+                    painter = if (image != null) BitmapPainter(image) else painterResource(id = R.drawable.music_default),
+                    contentDescription = "songInfoBackground",
+                    contentScale = Crop,
+                )
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                        .background(color = DarkFilter1)
+                )
+            }
+
+            Box(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier
+                        .padding(
+                            vertical = 24.dp,
+                            horizontal = 24.dp
+                        )
+                        .fillMaxWidth()
                 ) {
-                    Column {
-                        Text(
-                            text = titleTextState.value,
-                            style = Typography.h3,
-                            color = Color.White
+                    Box {
+                        Image(
+                            modifier = Modifier
+                                .clip(shape = Shapes.large)
+                                .size(120.dp),
+                            painter = if (image != null) BitmapPainter(image) else painterResource(id = R.drawable.music_default),
+                            contentDescription = "albumCover",
+                            contentScale = if (image != null) FillBounds else Crop
                         )
 
                         Text(
-                            text = artistTextState.value,
+                            modifier = Modifier.align(Center),
+                            text = "No Music",
                             style = Typography.body1,
                             color = Gray0
                         )
                     }
 
-                    Text(
-                        text = "${bpmState.value} BPM",
-                        style = Typography.h4,
-                        color = MainColor
-                    )
-                }
-            }
-        }
 
-        Column(
-            modifier = Modifier
-                .padding(top = 168.dp)
-                .align(BottomCenter)
-                .clip(
-                    shape = RoundedCornerShape(
-                        topStart = 24.dp,
-                        topEnd = 24.dp
-                    )
-                )
-                .fillMaxSize()
-                .background(color = Color.White)
-        ) {
-            Row(
-                modifier = Modifier
-                    .padding(vertical = 36.dp)
-                    .height(48.dp)
-                    .align(CenterHorizontally),
-                horizontalArrangement = Arrangement.spacedBy(36.dp)
-            ) {
-                Icon(
-                    modifier = Modifier.clickableWithoutRipple { },
-                    painter = painterResource(id = R.drawable.ic_skip_prev),
-                    contentDescription = "skipToPrevIcon",
-                    tint = Color.LightGray
-                )
-
-                Icon(
-                    modifier = Modifier.clickableWithoutRipple { playingState.value = !playingState.value },
-                    painter = painterResource(id = if (playingState.value) R.drawable.ic_pause else R.drawable.ic_play),
-                    contentDescription = "playOrPauseIcon",
-                    tint = MainColor
-                )
-
-                Icon(
-                    modifier = Modifier.clickableWithoutRipple { },
-                    painter = painterResource(id = R.drawable.ic_skip_next),
-                    contentDescription = "skipToNextIcon",
-                    tint = Color.LightGray
-                )
-
-                Icon(
-                    modifier = Modifier.clickableWithoutRipple {
-                        isRepeatingOneState.value = !isRepeatingOneState.value
-                    },
-                    painter = painterResource(id = R.drawable.ic_repeat_one),
-                    contentDescription = "repeatIcon",
-                    tint = if (isRepeatingOneState.value) MainColor else Color.LightGray
-                )
-            }
-
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = SpaceBetween
-            ) {
-                val cadenceSettingAlphaState = animateFloatAsState(
-                    targetValue = if (runningState.value) 0.3f else 1f,
-                    animationSpec = tween(durationMillis = 500)
-                )
-
-                Column(
-                    modifier = Modifier.alpha(cadenceSettingAlphaState.value),
-                ) {
-                    val cadenceTrackingColorState = animateColorAsState(targetValue = if (cadenceTypeState.value == TRACKING) MainColor else Color.LightGray)
-                    val cadenceAssignColorState = animateColorAsState(targetValue = if (cadenceTypeState.value == ASSIGN) MainColor else Color.LightGray)
-
-                    Row(
+                    Column(
                         modifier = Modifier
-                            .padding(horizontal = 12.dp)
-                            .fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            .padding(start = 12.dp)
+                            .height(120.dp),
+                        verticalArrangement = SpaceBetween
                     ) {
-                        BorderedRoundedCornerButton(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(48.dp),
-                            borderColor = cadenceTrackingColorState.value,
-                            backgroundColor = Color.White,
-                            text = "케이던스 트래킹",
-                            textColor = cadenceTrackingColorState.value,
-                            onClick = { cadenceTypeState.value = TRACKING }
-                        )
-
-                        BorderedRoundedCornerButton(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(48.dp),
-                            borderColor = cadenceAssignColorState.value,
-                            backgroundColor = Color.White,
-                            text = "케이던스 입력",
-                            textColor = cadenceAssignColorState.value,
-                            onClick = { cadenceTypeState.value = ASSIGN }
-                        )
-                    }
-
-                    Row(
-                        modifier = Modifier
-                            .padding(
-                                horizontal = 12.dp,
-                                vertical = 12.dp
-                            )
-                            .fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .border(
-                                    shape = Shapes.large,
-                                    width = 1.dp,
-                                    color = cadenceTrackingColorState.value,
-                                )
-                                .weight(1f)
-                                .height(200.dp)
-                        ) {
+                        Column {
                             Text(
-                                modifier = Modifier.align(Center),
-                                text = "${cadenceState.value}",
-                                style = Typography.h5,
-                                color = cadenceTrackingColorState.value,
+                                text = title,
+                                style = Typography.h3,
+                                color = Color.White
+                            )
+
+                            Text(
+                                text = artist,
+                                style = Typography.body1,
+                                color = Gray0
                             )
                         }
 
-                        Box(
-                            modifier = Modifier
-                                .border(
-                                    shape = Shapes.large,
-                                    width = 1.dp,
-                                    color = cadenceAssignColorState.value,
-                                )
-                                .weight(1f)
-                                .height(200.dp)
-                        ) {
-                            val focusManager = LocalFocusManager.current
+                        Text(
+                            text = "$bpm BPM",
+                            style = Typography.h4,
+                            color = MainColor
+                        )
+                    }
+                }
+            }
 
-                            CompositionLocalProvider(
-                                LocalTextSelectionColors.provides(
-                                    TextSelectionColors(
-                                        handleColor = MainColor,
-                                        backgroundColor = Gray0
-                                    )
+            Column(
+                modifier = Modifier
+                    .padding(top = 168.dp)
+                    .align(BottomCenter)
+                    .clip(
+                        shape = RoundedCornerShape(
+                            topStart = 24.dp,
+                            topEnd = 24.dp
+                        )
+                    )
+                    .fillMaxSize()
+                    .background(color = Color.White)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .padding(vertical = 36.dp)
+                        .height(48.dp)
+                        .align(CenterHorizontally),
+                    horizontalArrangement = Arrangement.spacedBy(36.dp)
+                ) {
+                    Icon(
+                        modifier = Modifier.clickableWithoutRipple { viewModel.onClickSkipToPrev() },
+                        painter = painterResource(id = R.drawable.ic_skip_prev),
+                        contentDescription = "skipToPrevIcon",
+                        tint = Color.LightGray
+                    )
+
+                    Icon(
+                        modifier = Modifier.clickableWithoutRipple { viewModel.onClickPlayOrPause() },
+                        painter = painterResource(id = if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play),
+                        contentDescription = "playOrPauseIcon",
+                        tint = MainColor
+                    )
+
+                    Icon(
+                        modifier = Modifier.clickableWithoutRipple { viewModel.onClickSkipToNext() },
+                        painter = painterResource(id = R.drawable.ic_skip_next),
+                        contentDescription = "skipToNextIcon",
+                        tint = Color.LightGray
+                    )
+
+                    Icon(
+                        modifier = Modifier.clickableWithoutRipple { viewModel.onClickRepeatOne() },
+                        painter = painterResource(id = R.drawable.ic_repeat_one),
+                        contentDescription = "repeatIcon",
+                        tint = if (isRepeatingOne) MainColor else Color.LightGray
+                    )
+                }
+
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = SpaceBetween
+                ) {
+                    val cadenceSettingAlphaState = animateFloatAsState(
+                        targetValue = if (isRunning) 0.3f else 1f,
+                        animationSpec = tween(durationMillis = 500)
+                    )
+
+                    Column(
+                        modifier = Modifier.alpha(cadenceSettingAlphaState.value),
+                    ) {
+                        val cadenceTrackingColorState = animateColorAsState(targetValue = if (cadenceType == TRACKING) MainColor else Color.LightGray)
+                        val cadenceAssignColorState = animateColorAsState(targetValue = if (cadenceType == ASSIGN) MainColor else Color.LightGray)
+
+                        Row(
+                            modifier = Modifier
+                                .padding(horizontal = 12.dp)
+                                .fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            BorderedRoundedCornerButton(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(48.dp),
+                                borderColor = cadenceTrackingColorState.value,
+                                backgroundColor = Color.White,
+                                text = "케이던스 트래킹",
+                                textColor = cadenceTrackingColorState.value,
+                                onClick = { viewModel.onClickTrackCadence() }
+                            )
+
+                            BorderedRoundedCornerButton(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(48.dp),
+                                borderColor = cadenceAssignColorState.value,
+                                backgroundColor = Color.White,
+                                text = "케이던스 입력",
+                                textColor = cadenceAssignColorState.value,
+                                onClick = { viewModel.onClickAssignCadence() }
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier
+                                .padding(
+                                    horizontal = 12.dp,
+                                    vertical = 12.dp
                                 )
+                                .fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .border(
+                                        shape = Shapes.large,
+                                        width = 1.dp,
+                                        color = cadenceTrackingColorState.value,
+                                    )
+                                    .weight(1f)
+                                    .height(200.dp)
                             ) {
-                                TextField(
+                                Text(
                                     modifier = Modifier.align(Center),
-                                    value = cadenceTextFieldState.value,
-                                    onValueChange = { cadenceTextFieldState.value = it },
-                                    placeholder = {
-                                        Text(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            text = "입력",
-                                            style = Typography.h6,
-                                            color = cadenceAssignColorState.value,
+                                    text = "$cadence",
+                                    style = Typography.h5,
+                                    color = cadenceTrackingColorState.value,
+                                )
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .border(
+                                        shape = Shapes.large,
+                                        width = 1.dp,
+                                        color = cadenceAssignColorState.value,
+                                    )
+                                    .weight(1f)
+                                    .height(200.dp)
+                            ) {
+                                val focusManager = LocalFocusManager.current
+                                val cadenceAssignTextState = remember { mutableStateOf("") }
+
+                                CompositionLocalProvider(
+                                    LocalTextSelectionColors.provides(
+                                        TextSelectionColors(
+                                            handleColor = MainColor,
+                                            backgroundColor = Gray0
                                         )
+                                    )
+                                ) {
+                                    TextField(
+                                        modifier = Modifier.align(Center),
+                                        value = cadenceAssignTextState.value,
+                                        onValueChange = { cadenceAssignTextState.value = it },
+                                        placeholder = {
+                                            Text(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                text = "입력",
+                                                style = Typography.h6,
+                                                color = cadenceAssignColorState.value,
+                                            )
+                                        },
+                                        textStyle = Typography.h6,
+                                        keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Decimal),
+                                        keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+                                        singleLine = true,
+                                        colors = TextFieldDefaults.textFieldColors(
+                                            textColor = MainColor,
+                                            backgroundColor = Color.White,
+                                            cursorColor = MainColor,
+                                            focusedIndicatorColor = Color.Transparent,
+                                            unfocusedIndicatorColor = Color.Transparent,
+                                            disabledIndicatorColor = Color.Transparent,
+                                        ),
+                                        enabled = cadenceType == ASSIGN
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    val buttonTextColorState = animateColorAsState(targetValue = if (isRunning) Red else Color.White)
+                    val buttonBackgroundColorState = animateColorAsState(targetValue = if (isRunning) Color.White else MainColor)
+                    val buttonBorderColorState = animateColorAsState(targetValue = if (isRunning) Red else MainColor)
+
+                    Box {
+                        BorderedRoundedCornerButton(
+                            modifier = Modifier
+                                .padding(all = 12.dp)
+                                .fillMaxWidth()
+                                .height(48.dp)
+                                .align(BottomCenter)
+                                .combinedClickable(
+                                    interactionSource = MutableInteractionSource(),
+                                    indication = null,
+                                    onClick = {
+                                        if (!isRunning) {
+                                            viewModel.onClickStartOrStopRunning()
+                                        }
                                     },
-                                    textStyle = Typography.h6,
-                                    keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Decimal),
-                                    keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
-                                    singleLine = true,
-                                    colors = TextFieldDefaults.textFieldColors(
-                                        textColor = MainColor,
-                                        backgroundColor = Color.White,
-                                        cursorColor = MainColor,
-                                        focusedIndicatorColor = Color.Transparent,
-                                        unfocusedIndicatorColor = Color.Transparent,
-                                        disabledIndicatorColor = Color.Transparent,
-                                    ),
-                                    enabled = cadenceTypeState.value == ASSIGN
+                                    onLongClick = {
+                                        if (isRunning) {
+                                            viewModel.onClickStartOrStopRunning()
+                                        }
+                                    }
+                                ),
+                            borderColor = buttonBorderColorState.value,
+                            backgroundColor = buttonBackgroundColorState.value,
+                            text = if (isRunning) "길게 눌러 러닝 종료" else "러닝 시작",
+                            textColor = buttonTextColorState.value
+                        )
+
+                        if (!isRunning) {
+                            FloatingActionButton(
+                                modifier = Modifier
+                                    .padding(
+                                        end = 24.dp,
+                                        bottom = 48.dp
+                                    )
+                                    .size(48.dp)
+                                    .align(BottomEnd),
+                                onClick = { viewModel.onClickFavorite() }) {
+                                Icon(
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .align(Center),
+                                    painter = painterResource(id = R.drawable.ic_favorite),
+                                    contentDescription = "favoriteIcon",
+                                    tint = MainColor
                                 )
                             }
                         }
                     }
                 }
+            }
 
-                val buttonTextColorState = animateColorAsState(targetValue = if (runningState.value) Red else Color.White)
-                val buttonBackgroundColorState = animateColorAsState(targetValue = if (runningState.value) Color.White else MainColor)
-                val buttonBorderColorState = animateColorAsState(targetValue = if (runningState.value) Red else MainColor)
-
-                Box {
-                    BorderedRoundedCornerButton(
-                        modifier = Modifier
-                            .padding(all = 12.dp)
-                            .fillMaxWidth()
-                            .height(48.dp)
-                            .align(BottomCenter)
-                            .combinedClickable(
-                                interactionSource = MutableInteractionSource(),
-                                indication = null,
-                                onClick = {
-                                    if (!runningState.value) {
-                                        runningState.value = true
-                                    }
-                                },
-                                onLongClick = {
-                                    if (runningState.value) {
-                                        runningState.value = false
-                                    }
-                                }
-                            ),
-                        borderColor = buttonBorderColorState.value,
-                        backgroundColor = buttonBackgroundColorState.value,
-                        text = if (runningState.value) "길게 눌러 러닝 종료" else "러닝 시작",
-                        textColor = buttonTextColorState.value
-                    )
-
-                    if (!runningState.value) {
-                        FloatingActionButton(
-                            modifier = Modifier
-                                .padding(
-                                    end = 24.dp,
-                                    bottom = 48.dp
-                                )
-                                .size(48.dp)
-                                .align(BottomEnd),
-                            onClick = { onClickFavorite() }) {
-                            Icon(
-                                modifier = Modifier
-                                    .size(24.dp)
-                                    .align(Center),
-                                painter = painterResource(id = R.drawable.ic_favorite),
-                                contentDescription = "favoriteIcon",
-                                tint = MainColor
-                            )
-                        }
-                    }
-                }
+            if (isLoading) {
+                LoadingScreen()
             }
         }
     }

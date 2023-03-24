@@ -42,10 +42,6 @@ class OnBoardingActivity : BaseActivity() {
         }
     }
 
-    override fun setupCollect() {
-
-    }
-
     companion object {
         fun newIntent(context: Context): Intent {
             return Intent(context, OnBoardingActivity::class.java)

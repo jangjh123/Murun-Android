@@ -7,7 +7,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.Center
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
@@ -43,10 +42,6 @@ class SplashActivity : BaseActivity() {
         initComposeUi {
             SplashActivityContent()
         }
-    }
-
-    override fun setupCollect() {
-
     }
 }
 

@@ -33,10 +33,6 @@ class FavoriteActivity : BaseActivity() {
         }
     }
 
-    override fun setupCollect() {
-
-    }
-
     companion object {
         fun newIntent(context: Context): Intent {
             return Intent(context, FavoriteActivity::class.java)

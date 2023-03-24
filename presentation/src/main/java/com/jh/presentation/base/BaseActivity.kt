@@ -11,32 +11,12 @@ import com.jh.presentation.ui.theme.MurunTheme
 abstract class BaseActivity : ComponentActivity() {
 
     protected abstract val viewModel: BaseViewModel
-    private val loadingVisibilityState = mutableStateOf(false)
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setupCollect()
-    }
 
     protected fun initComposeUi(block: @Composable () -> Unit) {
         setContent {
             MurunTheme {
                 block()
-
-                if (loadingVisibilityState.value) {
-                    LoadingScreen()
-                }
             }
         }
     }
-
-    protected fun showLoadingScreen() {
-        loadingVisibilityState.value = true
-    }
-
-    protected fun dismissLoadingScreen() {
-        loadingVisibilityState.value = false
-    }
-
-    protected abstract fun setupCollect()
 }
