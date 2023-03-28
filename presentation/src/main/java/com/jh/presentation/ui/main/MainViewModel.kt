@@ -19,7 +19,7 @@ class MainViewModel @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : BaseViewModel() {
 
-    private val eventChannel = Channel<MainUiEvent>()
+    private val eventChannel = Channel<MainEvent>()
     private val _sideEffectChannel = Channel<MainSideEffect>()
     val sideEffectChannelFlow = _sideEffectChannel.receiveAsFlow()
 
@@ -27,77 +27,97 @@ class MainViewModel @Inject constructor(
         .runningFold(MainState(), ::reduceState)
         .stateIn(viewModelScope, SharingStarted.Eagerly, MainState())
 
-    private fun reduceState(state: MainState, event: MainUiEvent): MainState {
+    private fun reduceState(state: MainState, event: MainEvent): MainState {
         return when (event) {
-            is MainUiEvent.SkipToPrev -> {
+            is MainEvent.SkipToPrev -> {
                 state.copy(isLoading = true)
             }
-            is MainUiEvent.PlayOrPause -> {
+            is MainEvent.PlayOrPause -> {
                 state.copy(isPlaying = !state.isPlaying)
             }
-            is MainUiEvent.SkipToNext -> {
+            is MainEvent.SkipToNext -> {
                 state.copy()
             }
-            is MainUiEvent.RepeatOne -> {
+            is MainEvent.RepeatOne -> {
                 state.copy(isRepeatingOne = !state.isRepeatingOne)
             }
-            is MainUiEvent.TrackCadence -> {
+            is MainEvent.TrackCadence -> {
                 state.copy(cadenceType = TRACKING)
             }
-            is MainUiEvent.AssignCadence -> {
+            is MainEvent.AssignCadence -> {
                 state.copy(cadenceType = ASSIGN)
             }
-            is MainUiEvent.StartOrStopRunning -> {
-                state.copy(isRunning = !state.isRunning)
+            is MainEvent.StartRunning -> {
+                state.copy(isRunning = true)
+            }
+            is MainEvent.StopRunning -> {
+                state.copy(isRunning = false)
+            }
+            is MainEvent.OnCadenceMeasured -> {
+                state.copy(cadence = event.cadence)
             }
         }
     }
 
     fun onClickSkipToPrev() {
         viewModelScope.launch(mainDispatcher) {
-            eventChannel.send(MainUiEvent.SkipToPrev)
+            eventChannel.send(MainEvent.SkipToPrev)
         }
     }
 
     fun onClickPlayOrPause() {
         viewModelScope.launch(mainDispatcher) {
-            eventChannel.send(MainUiEvent.PlayOrPause)
+            eventChannel.send(MainEvent.PlayOrPause)
         }
     }
 
     fun onClickSkipToNext() {
         viewModelScope.launch(mainDispatcher) {
-            eventChannel.send(MainUiEvent.SkipToNext)
+            eventChannel.send(MainEvent.SkipToNext)
         }
     }
 
     fun onClickRepeatOne() {
         viewModelScope.launch(mainDispatcher) {
-            eventChannel.send(MainUiEvent.RepeatOne)
+            eventChannel.send(MainEvent.RepeatOne)
         }
     }
 
     fun onClickTrackCadence() {
         viewModelScope.launch(mainDispatcher) {
-            eventChannel.send(MainUiEvent.TrackCadence)
+            eventChannel.send(MainEvent.TrackCadence)
         }
     }
 
     fun onClickAssignCadence() {
         viewModelScope.launch(mainDispatcher) {
-            eventChannel.send(MainUiEvent.AssignCadence)
+            eventChannel.send(MainEvent.AssignCadence)
         }
     }
 
-    fun onClickStartOrStopRunning() {
+    fun onClickStartRunning() {
         viewModelScope.launch(mainDispatcher) {
-            eventChannel.send(MainUiEvent.StartOrStopRunning)
+            eventChannel.send(MainEvent.StartRunning)
+            _sideEffectChannel.send(MainSideEffect.TrackCadence)
+        }
+    }
+
+    fun onClickStopRunning() {
+        viewModelScope.launch(mainDispatcher) {
+            eventChannel.send(MainEvent.StopRunning)
+            _sideEffectChannel.send(MainSideEffect.StopTrackingCadence)
         }
     }
 
     fun onClickFavorite() {
         viewModelScope.launch(mainDispatcher) {
             _sideEffectChannel.send(MainSideEffect.GoToFavorite)
+        }
+    }
+
+    fun onCadenceMeasured(cadence: Int) {
+        viewModelScope.launch(mainDispatcher) {
+            eventChannel.send(MainEvent.OnCadenceMeasured(cadence))
         }
     }
 }

@@ -19,7 +19,7 @@ class FavoriteViewModel @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : BaseViewModel() {
 
-    private val eventChannel = Channel<FavoriteUiEvent>()
+    private val eventChannel = Channel<FavoriteEvent>()
     private val _sideEffectChannel = Channel<FavoriteSideEffect>()
     val sideEffectChannelFlow = _sideEffectChannel.receiveAsFlow()
 
@@ -28,15 +28,15 @@ class FavoriteViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.Eagerly, FavoriteState())
 
     @OptIn(ExperimentalMaterialApi::class)
-    private fun reduceState(state: FavoriteState, event: FavoriteUiEvent): FavoriteState {
+    private fun reduceState(state: FavoriteState, event: FavoriteEvent): FavoriteState {
         return when (event) {
-            is FavoriteUiEvent.ShowMusicOption -> {
+            is FavoriteEvent.ShowMusicOption -> {
                 state.copy(bottomSheetStateValue = ModalBottomSheetValue.Expanded)
             }
-            is FavoriteUiEvent.HideMusicOption -> {
+            is FavoriteEvent.HideMusicOption -> {
                 state.copy(bottomSheetStateValue = ModalBottomSheetValue.Hidden)
             }
-            is FavoriteUiEvent.InitBottomSheetState -> {
+            is FavoriteEvent.InitBottomSheetState -> {
                 state.copy(bottomSheetStateValue = null)
             }
         }
@@ -44,19 +44,19 @@ class FavoriteViewModel @Inject constructor(
 
     fun onClickShowMusicOption() {
         viewModelScope.launch(mainDispatcher) {
-            eventChannel.send(FavoriteUiEvent.ShowMusicOption)
+            eventChannel.send(FavoriteEvent.ShowMusicOption)
         }
     }
 
     fun onClickHideMusicOption() {
         viewModelScope.launch(mainDispatcher) {
-            eventChannel.send(FavoriteUiEvent.HideMusicOption)
+            eventChannel.send(FavoriteEvent.HideMusicOption)
         }
     }
 
     fun onInitBottomSheetState() {
         viewModelScope.launch(mainDispatcher) {
-            eventChannel.send(FavoriteUiEvent.InitBottomSheetState)
+            eventChannel.send(FavoriteEvent.InitBottomSheetState)
         }
     }
 

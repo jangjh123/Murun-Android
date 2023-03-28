@@ -1,8 +1,14 @@
 package com.jh.presentation.ui.main
 
+import android.Manifest
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.ServiceConnection
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
+import android.os.IBinder
 import androidx.activity.viewModels
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -37,6 +43,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jh.murun.R
 import com.jh.presentation.base.BaseActivity
@@ -44,9 +51,11 @@ import com.jh.presentation.enums.CadenceType.*
 import com.jh.presentation.ui.BorderedRoundedCornerButton
 import com.jh.presentation.ui.LoadingScreen
 import com.jh.presentation.ui.clickableWithoutRipple
-import com.jh.presentation.ui.main.MainUiEvent.*
+import com.jh.presentation.ui.main.MainEvent.*
 import com.jh.presentation.ui.main.favorite.FavoriteActivity
 import com.jh.presentation.ui.repeatOnStarted
+import com.jh.presentation.ui.service.CadenceTrackingService
+import com.jh.presentation.ui.service.CadenceTrackingService.CadenceTrackingServiceBinder
 import com.jh.presentation.ui.theme.*
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
@@ -54,6 +63,21 @@ import kotlinx.coroutines.flow.collectLatest
 @AndroidEntryPoint
 class MainActivity : BaseActivity() {
     override val viewModel: MainViewModel by viewModels()
+
+    private lateinit var cadenceTrackingService: CadenceTrackingService
+    private var isCadenceTrackingServiceBinding = false
+    private val cadenceTrackingServiceConnection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+            val binder: CadenceTrackingServiceBinder = service as CadenceTrackingServiceBinder
+            cadenceTrackingService = binder.getServiceInstance()
+            isCadenceTrackingServiceBinding = true
+            trackCadence()
+        }
+
+        override fun onServiceDisconnected(name: ComponentName?) {
+            isCadenceTrackingServiceBinding = false
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -64,13 +88,46 @@ class MainActivity : BaseActivity() {
 
         repeatOnStarted {
             viewModel.sideEffectChannelFlow.collectLatest { sideEffect ->
-                when(sideEffect) {
+                when (sideEffect) {
                     is MainSideEffect.GoToFavorite -> {
                         startActivity(FavoriteActivity.newIntent(this@MainActivity))
+                    }
+                    is MainSideEffect.TrackCadence -> {
+                        bindService(Intent(this@MainActivity, CadenceTrackingService::class.java), cadenceTrackingServiceConnection, Context.BIND_AUTO_CREATE)
+                    }
+                    is MainSideEffect.StopTrackingCadence -> {
+                        cadenceTrackingService.stop()
+                        unbindService(cadenceTrackingServiceConnection)
                     }
                 }
             }
         }
+    }
+
+    private fun trackCadence() {
+        if (ContextCompat.checkSelfPermission(
+                this@MainActivity,
+                Manifest.permission.ACTIVITY_RECOGNITION
+            )
+            == PackageManager.PERMISSION_GRANTED
+        ) {
+            cadenceTrackingService.start(this@MainActivity)
+            cadenceTrackingService.cadenceLiveData.observe(this@MainActivity) { cadence ->
+                viewModel.onCadenceMeasured(cadence)
+            }
+        } else {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                requestPermissions(arrayOf(Manifest.permission.ACTIVITY_RECOGNITION), PackageManager.PERMISSION_GRANTED)
+            }
+        }
+    }
+
+    override fun onStop() {
+        if (::cadenceTrackingService.isInitialized && isCadenceTrackingServiceBinding) {
+            unbindService(cadenceTrackingServiceConnection)
+        }
+
+        super.onStop()
     }
 
     companion object {
@@ -139,7 +196,6 @@ private fun MainActivityContent(
                             color = Gray0
                         )
                     }
-
 
                     Column(
                         modifier = Modifier
@@ -358,12 +414,12 @@ private fun MainActivityContent(
                                     indication = null,
                                     onClick = {
                                         if (!isRunning) {
-                                            viewModel.onClickStartOrStopRunning()
+                                            viewModel.onClickStartRunning()
                                         }
                                     },
                                     onLongClick = {
                                         if (isRunning) {
-                                            viewModel.onClickStartOrStopRunning()
+                                            viewModel.onClickStopRunning()
                                         }
                                     }
                                 ),
