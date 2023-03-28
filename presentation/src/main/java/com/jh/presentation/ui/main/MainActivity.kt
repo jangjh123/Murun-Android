@@ -414,12 +414,12 @@ private fun MainActivityContent(
                                     indication = null,
                                     onClick = {
                                         if (!isRunning) {
-                                            viewModel.onClickStartOrStopRunning()
+                                            viewModel.onClickStartRunning()
                                         }
                                     },
                                     onLongClick = {
                                         if (isRunning) {
-                                            viewModel.onClickStartOrStopRunning()
+                                            viewModel.onClickStopRunning()
                                         }
                                     }
                                 ),

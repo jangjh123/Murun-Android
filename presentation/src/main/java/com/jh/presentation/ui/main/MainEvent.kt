@@ -7,6 +7,7 @@ sealed interface MainEvent {
     object RepeatOne : MainEvent
     object TrackCadence : MainEvent
     object AssignCadence : MainEvent
-    object StartOrStopRunning : MainEvent
+    object StartRunning : MainEvent
+    object StopRunning : MainEvent
     data class OnCadenceMeasured(val cadence: Int) : MainEvent
 }

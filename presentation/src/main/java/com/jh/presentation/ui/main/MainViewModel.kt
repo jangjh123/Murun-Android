@@ -47,8 +47,11 @@ class MainViewModel @Inject constructor(
             is MainEvent.AssignCadence -> {
                 state.copy(cadenceType = ASSIGN)
             }
-            is MainEvent.StartOrStopRunning -> {
-                state.copy(isRunning = !state.isRunning)
+            is MainEvent.StartRunning -> {
+                state.copy(isRunning = true)
+            }
+            is MainEvent.StopRunning -> {
+                state.copy(isRunning = false)
             }
             is MainEvent.OnCadenceMeasured -> {
                 state.copy(cadence = event.cadence)
@@ -92,17 +95,17 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    fun onClickStartOrStopRunning() {
+    fun onClickStartRunning() {
         viewModelScope.launch(mainDispatcher) {
-            eventChannel.send(MainEvent.StartOrStopRunning)
+            eventChannel.send(MainEvent.StartRunning)
+            _sideEffectChannel.send(MainSideEffect.TrackCadence)
+        }
+    }
 
-            if (state.value.cadenceType == TRACKING) {
-                if (state.value.isRunning) {
-                    _sideEffectChannel.send(MainSideEffect.StopTrackingCadence)
-                } else {
-                    _sideEffectChannel.send(MainSideEffect.TrackCadence)
-                }
-            }
+    fun onClickStopRunning() {
+        viewModelScope.launch(mainDispatcher) {
+            eventChannel.send(MainEvent.StopRunning)
+            _sideEffectChannel.send(MainSideEffect.StopTrackingCadence)
         }
     }
 

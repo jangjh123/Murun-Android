@@ -9,7 +9,6 @@ import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.Binder
 import android.os.IBinder
-import android.widget.Toast
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import kotlinx.coroutines.*
@@ -56,7 +55,6 @@ class CadenceTrackingService : Service(), SensorEventListener {
         sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
         val sensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
         sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL)
-        Toast.makeText(this, "$stepCount", Toast.LENGTH_SHORT).show()
     }
 
     fun stop() {
