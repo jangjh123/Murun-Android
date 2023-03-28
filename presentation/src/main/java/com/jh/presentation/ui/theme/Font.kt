@@ -4,7 +4,7 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import com.jh.murun.R
+import com.jh.murun.presentation.R
 
 val pretendard = FontFamily(
     Font(

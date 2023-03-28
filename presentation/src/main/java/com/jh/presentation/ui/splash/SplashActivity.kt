@@ -1,7 +1,9 @@
 package com.jh.presentation.ui.splash
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.os.Bundle
+import androidx.activity.viewModels
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -16,29 +18,47 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import com.jh.murun.R
+import com.jh.murun.presentation.R
 import com.jh.presentation.base.BaseActivity
-import com.jh.presentation.base.BaseViewModel
+import com.jh.presentation.ui.main.MainActivity
 import com.jh.presentation.ui.on_boarding.OnBoardingActivity
 import com.jh.presentation.ui.theme.*
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 @SuppressLint("CustomSplashScreen")
+@AndroidEntryPoint
 class SplashActivity : BaseActivity() {
-    override val viewModel: BaseViewModel
-        get() = TODO("Not yet implemented")
+    override val viewModel: SplashViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
         lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.RESUMED) {
-                delay(1500L)
-                startActivity(OnBoardingActivity.newIntent(this@SplashActivity))
-                finish()
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.sideEffectChannelFlow.collectLatest { sideEffect ->
+                    when (sideEffect) {
+                        is SplashSideEffect.SkipOnBoarding -> {
+                            startActivity(Intent(MainActivity.newIntent(this@SplashActivity)))
+                        }
+                        is SplashSideEffect.NoSkipOnBoarding -> {
+                            startActivity(Intent(OnBoardingActivity.newIntent(this@SplashActivity)))
+                        }
+                    }
+                    finish()
+                }
             }
         }
 
-        super.onCreate(savedInstanceState)
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                delay(1500L)
+                viewModel.checkToSkipOnBoarding()
+            }
+        }
+
         initComposeUi {
             SplashActivityContent()
         }
