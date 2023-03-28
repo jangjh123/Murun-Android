@@ -24,7 +24,7 @@ import androidx.compose.ui.layout.ContentScale.Companion.FillBounds
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.jh.murun.R
+import com.jh.murun.presentation.R
 import com.jh.presentation.base.BaseActivity
 import com.jh.presentation.ui.MurunSpacer
 import com.jh.presentation.ui.RoundedCornerButton

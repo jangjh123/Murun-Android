@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace 'com.jh.murun'
+    namespace 'com.jh.murun.presentation'
     compileSdk 33
 
     defaultConfig {
@@ -28,6 +28,7 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
@@ -49,8 +50,8 @@ android {
 }
 
 dependencies {
-    implementation project(path: ':data')
-    implementation project(path: ':domain')
+    implementation project(':data')
+    implementation project(':domain')
 
     // Hilt
     implementation "com.google.dagger:hilt-android:$hilt_version"
@@ -68,6 +69,10 @@ dependencies {
     // Compose Library
     implementation "com.google.accompanist:accompanist-pager:0.20.1"
     implementation "androidx.lifecycle:lifecycle-runtime-compose:2.6.0"
+
+    // DataStore
+    implementation "androidx.datastore:datastore-preferences:${data_store_version}"
+    implementation "androidx.datastore:datastore-preferences-core:${data_store_version}"
 
     implementation 'androidx.core:core-ktx:1.9.0'
     implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.6.0'

@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace 'com.jh.domain'
+    namespace 'com.jh.murun.domain'
     compileSdk 33
 
     defaultConfig {
@@ -23,6 +23,7 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
@@ -45,6 +46,10 @@ dependencies {
     implementation "com.squareup.okhttp3:okhttp:$okhttp_version"
     implementation "com.squareup.okhttp3:logging-interceptor:$okhttp_version"
     implementation "com.squareup.okhttp3:okhttp-urlconnection:$okhttp_version"
+
+    // DataStore
+    implementation "androidx.datastore:datastore-preferences:${data_store_version}"
+    implementation "androidx.datastore:datastore-preferences-core:${data_store_version}"
 
     implementation 'androidx.core:core-ktx:1.9.0'
     implementation 'androidx.appcompat:appcompat:1.6.1'

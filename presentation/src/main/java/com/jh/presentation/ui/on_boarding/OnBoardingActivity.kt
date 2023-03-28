@@ -19,7 +19,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.google.accompanist.pager.ExperimentalPagerApi
 import com.google.accompanist.pager.HorizontalPager
-import com.jh.murun.R
+import com.jh.murun.presentation.R
 import com.jh.presentation.base.BaseActivity
 import com.jh.presentation.ui.MurunSpacer
 import com.jh.presentation.ui.RoundedCornerButton
