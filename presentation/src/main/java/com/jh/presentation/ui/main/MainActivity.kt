@@ -23,10 +23,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.LocalTextSelectionColors
 import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.material.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment.Companion.BottomCenter
 import androidx.compose.ui.Alignment.Companion.BottomEnd
 import androidx.compose.ui.Alignment.Companion.Center
@@ -36,6 +33,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.layout.ContentScale.Companion.Crop
 import androidx.compose.ui.layout.ContentScale.Companion.FillBounds
@@ -48,17 +46,16 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jh.murun.presentation.R
 import com.jh.presentation.base.BaseActivity
 import com.jh.presentation.enums.CadenceType.*
-import com.jh.presentation.ui.BorderedRoundedCornerButton
-import com.jh.presentation.ui.LoadingScreen
-import com.jh.presentation.ui.clickableWithoutRipple
+import com.jh.presentation.ui.*
 import com.jh.presentation.ui.main.MainEvent.*
 import com.jh.presentation.ui.main.favorite.FavoriteActivity
-import com.jh.presentation.ui.repeatOnStarted
 import com.jh.presentation.ui.service.CadenceTrackingService
 import com.jh.presentation.ui.service.CadenceTrackingService.CadenceTrackingServiceBinder
 import com.jh.presentation.ui.theme.*
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : BaseActivity() {
@@ -142,6 +139,8 @@ class MainActivity : BaseActivity() {
 private fun MainActivityContent(
     viewModel: MainViewModel
 ) {
+    val scope = rememberCoroutineScope()
+
     with(viewModel.state.collectAsStateWithLifecycle().value) {
         Box(modifier = Modifier.fillMaxSize()) {
             Box(
@@ -414,7 +413,15 @@ private fun MainActivityContent(
                                     indication = null,
                                     onClick = {
                                         if (!isRunning) {
-                                            viewModel.onClickStartRunning()
+                                            if (cadenceType == NONE) {
+                                                viewModel.showSnackBar()
+                                                scope.launch {
+                                                    delay(3000L)
+                                                    viewModel.hideSnackBar()
+                                                }
+                                            } else {
+                                                viewModel.onClickStartRunning()
+                                            }
                                         }
                                     },
                                     onLongClick = {
@@ -455,6 +462,20 @@ private fun MainActivityContent(
 
             if (isLoading) {
                 LoadingScreen()
+            }
+
+            if (isSnackBarVisible) {
+                Snackbar(
+                    backgroundColor = MainColor,
+                    shape = RectangleShape
+                ) {
+                    Text(
+                        modifier = Modifier.padding(all = 12.dp),
+                        text = "케이던스 타입을 지정해 주세요.",
+                        style = Typography.body1,
+                        color = Color.White
+                    )
+                }
             }
         }
     }

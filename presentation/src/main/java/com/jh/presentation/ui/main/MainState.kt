@@ -15,5 +15,6 @@ data class MainState(
     val isRepeatingOne: Boolean = false,
     val musics: ArrayList<String> = ArrayList(),
     val isLoading: Boolean = false,
+    val isSnackBarVisible: Boolean = false,
     val error: String? = null
 )
