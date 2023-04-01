@@ -122,12 +122,12 @@ class MainActivity : BaseActivity() {
         }
     }
 
-    override fun onStop() {
+    override fun onDestroy() {
         if (::cadenceTrackingService.isInitialized && isCadenceTrackingServiceBinding) {
             unbindService(cadenceTrackingServiceConnection)
         }
 
-        super.onStop()
+        super.onDestroy()
     }
 
     companion object {
