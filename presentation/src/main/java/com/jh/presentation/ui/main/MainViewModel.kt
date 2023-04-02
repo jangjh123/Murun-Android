@@ -47,6 +47,12 @@ class MainViewModel @Inject constructor(
             is MainEvent.AssignCadence -> {
                 state.copy(cadenceType = ASSIGN)
             }
+            is MainEvent.ShowSnackBar -> {
+                state.copy(isSnackBarVisible = true)
+            }
+            is MainEvent.HideSnackBar -> {
+                state.copy(isSnackBarVisible = false)
+            }
             is MainEvent.StartRunning -> {
                 state.copy(isRunning = true)
             }
@@ -92,6 +98,18 @@ class MainViewModel @Inject constructor(
     fun onClickAssignCadence() {
         viewModelScope.launch(mainDispatcher) {
             eventChannel.send(MainEvent.AssignCadence)
+        }
+    }
+
+    fun showSnackBar() {
+        viewModelScope.launch(mainDispatcher) {
+            eventChannel.send(MainEvent.ShowSnackBar)
+        }
+    }
+
+    fun hideSnackBar() {
+        viewModelScope.launch(mainDispatcher) {
+            eventChannel.send(MainEvent.HideSnackBar)
         }
     }
 

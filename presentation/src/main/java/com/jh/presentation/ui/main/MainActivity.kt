@@ -12,7 +12,6 @@ import android.os.IBinder
 import androidx.activity.viewModels
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -23,10 +22,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.LocalTextSelectionColors
 import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.material.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment.Companion.BottomCenter
 import androidx.compose.ui.Alignment.Companion.BottomEnd
 import androidx.compose.ui.Alignment.Companion.Center
@@ -36,6 +32,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.layout.ContentScale.Companion.Crop
 import androidx.compose.ui.layout.ContentScale.Companion.FillBounds
@@ -48,17 +45,16 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jh.murun.presentation.R
 import com.jh.presentation.base.BaseActivity
 import com.jh.presentation.enums.CadenceType.*
-import com.jh.presentation.ui.BorderedRoundedCornerButton
-import com.jh.presentation.ui.LoadingScreen
-import com.jh.presentation.ui.clickableWithoutRipple
+import com.jh.presentation.ui.*
 import com.jh.presentation.ui.main.MainEvent.*
 import com.jh.presentation.ui.main.favorite.FavoriteActivity
-import com.jh.presentation.ui.repeatOnStarted
 import com.jh.presentation.ui.service.CadenceTrackingService
 import com.jh.presentation.ui.service.CadenceTrackingService.CadenceTrackingServiceBinder
 import com.jh.presentation.ui.theme.*
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : BaseActivity() {
@@ -122,12 +118,12 @@ class MainActivity : BaseActivity() {
         }
     }
 
-    override fun onStop() {
+    override fun onDestroy() {
         if (::cadenceTrackingService.isInitialized && isCadenceTrackingServiceBinding) {
             unbindService(cadenceTrackingServiceConnection)
         }
 
-        super.onStop()
+        super.onDestroy()
     }
 
     companion object {
@@ -142,6 +138,8 @@ class MainActivity : BaseActivity() {
 private fun MainActivityContent(
     viewModel: MainViewModel
 ) {
+    val scope = rememberCoroutineScope()
+
     with(viewModel.state.collectAsStateWithLifecycle().value) {
         Box(modifier = Modifier.fillMaxSize()) {
             Box(
@@ -279,16 +277,11 @@ private fun MainActivityContent(
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = SpaceBetween
                 ) {
-                    val cadenceSettingAlphaState = animateFloatAsState(
-                        targetValue = if (isRunning) 0.3f else 1f,
-                        animationSpec = tween(durationMillis = 500)
-                    )
-
-                    Column(
-                        modifier = Modifier.alpha(cadenceSettingAlphaState.value),
-                    ) {
+                    Column {
                         val cadenceTrackingColorState = animateColorAsState(targetValue = if (cadenceType == TRACKING) MainColor else Color.LightGray)
+                        val cadenceTrackingAlphaState = animateFloatAsState(targetValue = if (cadenceType == ASSIGN && isRunning) 0.3f else 1f)
                         val cadenceAssignColorState = animateColorAsState(targetValue = if (cadenceType == ASSIGN) MainColor else Color.LightGray)
+                        val cadenceAssignAlphaState = animateFloatAsState(targetValue = if (cadenceType == TRACKING && isRunning) 0.3f else 1f)
 
                         Row(
                             modifier = Modifier
@@ -296,103 +289,108 @@ private fun MainActivityContent(
                                 .fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            BorderedRoundedCornerButton(
+
+                            Column(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(48.dp),
-                                borderColor = cadenceTrackingColorState.value,
-                                backgroundColor = Color.White,
-                                text = "케이던스 트래킹",
-                                textColor = cadenceTrackingColorState.value,
-                                onClick = { viewModel.onClickTrackCadence() }
-                            )
-
-                            BorderedRoundedCornerButton(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(48.dp),
-                                borderColor = cadenceAssignColorState.value,
-                                backgroundColor = Color.White,
-                                text = "케이던스 입력",
-                                textColor = cadenceAssignColorState.value,
-                                onClick = { viewModel.onClickAssignCadence() }
-                            )
-                        }
-
-                        Row(
-                            modifier = Modifier
-                                .padding(
-                                    horizontal = 12.dp,
-                                    vertical = 12.dp
+                                    .alpha(cadenceTrackingAlphaState.value)
+                            ) {
+                                BorderedRoundedCornerButton(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(48.dp),
+                                    borderColor = cadenceTrackingColorState.value,
+                                    backgroundColor = Color.White,
+                                    text = "케이던스 트래킹",
+                                    textColor = cadenceTrackingColorState.value,
+                                    onClick = { if (!isRunning) viewModel.onClickTrackCadence() }
                                 )
-                                .fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .border(
-                                        shape = Shapes.large,
-                                        width = 1.dp,
+
+                                Box(
+                                    modifier = Modifier
+                                        .padding(top = 12.dp)
+                                        .border(
+                                            shape = Shapes.large,
+                                            width = 1.dp,
+                                            color = cadenceTrackingColorState.value,
+                                        )
+                                        .fillMaxWidth()
+                                        .height(200.dp)
+                                ) {
+                                    Text(
+                                        modifier = Modifier.align(Center),
+                                        text = "$cadence",
+                                        style = Typography.h5,
                                         color = cadenceTrackingColorState.value,
                                     )
-                                    .weight(1f)
-                                    .height(200.dp)
-                            ) {
-                                Text(
-                                    modifier = Modifier.align(Center),
-                                    text = "$cadence",
-                                    style = Typography.h5,
-                                    color = cadenceTrackingColorState.value,
-                                )
+                                }
                             }
 
-                            Box(
+                            Column(
                                 modifier = Modifier
-                                    .border(
-                                        shape = Shapes.large,
-                                        width = 1.dp,
-                                        color = cadenceAssignColorState.value,
-                                    )
                                     .weight(1f)
-                                    .height(200.dp)
+                                    .alpha(cadenceAssignAlphaState.value)
                             ) {
-                                val focusManager = LocalFocusManager.current
-                                val cadenceAssignTextState = remember { mutableStateOf("") }
+                                BorderedRoundedCornerButton(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(48.dp),
+                                    borderColor = cadenceAssignColorState.value,
+                                    backgroundColor = Color.White,
+                                    text = "케이던스 입력",
+                                    textColor = cadenceAssignColorState.value,
+                                    onClick = { if (!isRunning) viewModel.onClickAssignCadence() }
+                                )
 
-                                CompositionLocalProvider(
-                                    LocalTextSelectionColors.provides(
-                                        TextSelectionColors(
-                                            handleColor = MainColor,
-                                            backgroundColor = Gray0
+                                Box(
+                                    modifier = Modifier
+                                        .padding(top = 12.dp)
+                                        .border(
+                                            shape = Shapes.large,
+                                            width = 1.dp,
+                                            color = cadenceAssignColorState.value,
                                         )
-                                    )
+                                        .fillMaxWidth()
+                                        .height(200.dp)
                                 ) {
-                                    TextField(
-                                        modifier = Modifier.align(Center),
-                                        value = cadenceAssignTextState.value,
-                                        onValueChange = { cadenceAssignTextState.value = it },
-                                        placeholder = {
-                                            Text(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                text = "입력",
-                                                style = Typography.h6,
-                                                color = cadenceAssignColorState.value,
+                                    val focusManager = LocalFocusManager.current
+                                    val cadenceAssignTextState = remember { mutableStateOf("") }
+
+                                    CompositionLocalProvider(
+                                        LocalTextSelectionColors.provides(
+                                            TextSelectionColors(
+                                                handleColor = MainColor,
+                                                backgroundColor = Gray0
                                             )
-                                        },
-                                        textStyle = Typography.h6,
-                                        keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Decimal),
-                                        keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
-                                        singleLine = true,
-                                        colors = TextFieldDefaults.textFieldColors(
-                                            textColor = MainColor,
-                                            backgroundColor = Color.White,
-                                            cursorColor = MainColor,
-                                            focusedIndicatorColor = Color.Transparent,
-                                            unfocusedIndicatorColor = Color.Transparent,
-                                            disabledIndicatorColor = Color.Transparent,
-                                        ),
-                                        enabled = cadenceType == ASSIGN
-                                    )
+                                        )
+                                    ) {
+                                        TextField(
+                                            modifier = Modifier.align(Center),
+                                            value = cadenceAssignTextState.value,
+                                            onValueChange = { cadenceAssignTextState.value = it },
+                                            placeholder = {
+                                                Text(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    text = "입력",
+                                                    style = Typography.h6,
+                                                    color = cadenceAssignColorState.value,
+                                                )
+                                            },
+                                            textStyle = Typography.h6,
+                                            keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Decimal),
+                                            keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+                                            singleLine = true,
+                                            colors = TextFieldDefaults.textFieldColors(
+                                                textColor = MainColor,
+                                                backgroundColor = Color.White,
+                                                cursorColor = MainColor,
+                                                focusedIndicatorColor = Color.Transparent,
+                                                unfocusedIndicatorColor = Color.Transparent,
+                                                disabledIndicatorColor = Color.Transparent,
+                                            ),
+                                            enabled = cadenceType == ASSIGN
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -414,7 +412,15 @@ private fun MainActivityContent(
                                     indication = null,
                                     onClick = {
                                         if (!isRunning) {
-                                            viewModel.onClickStartRunning()
+                                            if (cadenceType == NONE) {
+                                                viewModel.showSnackBar()
+                                                scope.launch {
+                                                    delay(3000L)
+                                                    viewModel.hideSnackBar()
+                                                }
+                                            } else {
+                                                viewModel.onClickStartRunning()
+                                            }
                                         }
                                     },
                                     onLongClick = {
@@ -455,6 +461,20 @@ private fun MainActivityContent(
 
             if (isLoading) {
                 LoadingScreen()
+            }
+
+            if (isSnackBarVisible) {
+                Snackbar(
+                    backgroundColor = MainColor,
+                    shape = RectangleShape
+                ) {
+                    Text(
+                        modifier = Modifier.padding(all = 12.dp),
+                        text = "케이던스 타입을 지정해 주세요.",
+                        style = Typography.body1,
+                        color = Color.White
+                    )
+                }
             }
         }
     }
