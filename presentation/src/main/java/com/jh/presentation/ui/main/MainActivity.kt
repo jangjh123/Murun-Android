@@ -12,7 +12,6 @@ import android.os.IBinder
 import androidx.activity.viewModels
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -278,16 +277,11 @@ private fun MainActivityContent(
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = SpaceBetween
                 ) {
-                    val cadenceSettingAlphaState = animateFloatAsState(
-                        targetValue = if (isRunning) 0.3f else 1f,
-                        animationSpec = tween(durationMillis = 500)
-                    )
-
-                    Column(
-                        modifier = Modifier.alpha(cadenceSettingAlphaState.value),
-                    ) {
+                    Column {
                         val cadenceTrackingColorState = animateColorAsState(targetValue = if (cadenceType == TRACKING) MainColor else Color.LightGray)
+                        val cadenceTrackingAlphaState = animateFloatAsState(targetValue = if (cadenceType == ASSIGN && isRunning) 0.3f else 1f)
                         val cadenceAssignColorState = animateColorAsState(targetValue = if (cadenceType == ASSIGN) MainColor else Color.LightGray)
+                        val cadenceAssignAlphaState = animateFloatAsState(targetValue = if (cadenceType == TRACKING && isRunning) 0.3f else 1f)
 
                         Row(
                             modifier = Modifier
@@ -295,103 +289,108 @@ private fun MainActivityContent(
                                 .fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            BorderedRoundedCornerButton(
+
+                            Column(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(48.dp),
-                                borderColor = cadenceTrackingColorState.value,
-                                backgroundColor = Color.White,
-                                text = "케이던스 트래킹",
-                                textColor = cadenceTrackingColorState.value,
-                                onClick = { viewModel.onClickTrackCadence() }
-                            )
-
-                            BorderedRoundedCornerButton(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(48.dp),
-                                borderColor = cadenceAssignColorState.value,
-                                backgroundColor = Color.White,
-                                text = "케이던스 입력",
-                                textColor = cadenceAssignColorState.value,
-                                onClick = { viewModel.onClickAssignCadence() }
-                            )
-                        }
-
-                        Row(
-                            modifier = Modifier
-                                .padding(
-                                    horizontal = 12.dp,
-                                    vertical = 12.dp
+                                    .alpha(cadenceTrackingAlphaState.value)
+                            ) {
+                                BorderedRoundedCornerButton(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(48.dp),
+                                    borderColor = cadenceTrackingColorState.value,
+                                    backgroundColor = Color.White,
+                                    text = "케이던스 트래킹",
+                                    textColor = cadenceTrackingColorState.value,
+                                    onClick = { if (!isRunning) viewModel.onClickTrackCadence() }
                                 )
-                                .fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .border(
-                                        shape = Shapes.large,
-                                        width = 1.dp,
+
+                                Box(
+                                    modifier = Modifier
+                                        .padding(top = 12.dp)
+                                        .border(
+                                            shape = Shapes.large,
+                                            width = 1.dp,
+                                            color = cadenceTrackingColorState.value,
+                                        )
+                                        .fillMaxWidth()
+                                        .height(200.dp)
+                                ) {
+                                    Text(
+                                        modifier = Modifier.align(Center),
+                                        text = "$cadence",
+                                        style = Typography.h5,
                                         color = cadenceTrackingColorState.value,
                                     )
-                                    .weight(1f)
-                                    .height(200.dp)
-                            ) {
-                                Text(
-                                    modifier = Modifier.align(Center),
-                                    text = "$cadence",
-                                    style = Typography.h5,
-                                    color = cadenceTrackingColorState.value,
-                                )
+                                }
                             }
 
-                            Box(
+                            Column(
                                 modifier = Modifier
-                                    .border(
-                                        shape = Shapes.large,
-                                        width = 1.dp,
-                                        color = cadenceAssignColorState.value,
-                                    )
                                     .weight(1f)
-                                    .height(200.dp)
+                                    .alpha(cadenceAssignAlphaState.value)
                             ) {
-                                val focusManager = LocalFocusManager.current
-                                val cadenceAssignTextState = remember { mutableStateOf("") }
+                                BorderedRoundedCornerButton(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(48.dp),
+                                    borderColor = cadenceAssignColorState.value,
+                                    backgroundColor = Color.White,
+                                    text = "케이던스 입력",
+                                    textColor = cadenceAssignColorState.value,
+                                    onClick = { if (!isRunning) viewModel.onClickAssignCadence() }
+                                )
 
-                                CompositionLocalProvider(
-                                    LocalTextSelectionColors.provides(
-                                        TextSelectionColors(
-                                            handleColor = MainColor,
-                                            backgroundColor = Gray0
+                                Box(
+                                    modifier = Modifier
+                                        .padding(top = 12.dp)
+                                        .border(
+                                            shape = Shapes.large,
+                                            width = 1.dp,
+                                            color = cadenceAssignColorState.value,
                                         )
-                                    )
+                                        .fillMaxWidth()
+                                        .height(200.dp)
                                 ) {
-                                    TextField(
-                                        modifier = Modifier.align(Center),
-                                        value = cadenceAssignTextState.value,
-                                        onValueChange = { cadenceAssignTextState.value = it },
-                                        placeholder = {
-                                            Text(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                text = "입력",
-                                                style = Typography.h6,
-                                                color = cadenceAssignColorState.value,
+                                    val focusManager = LocalFocusManager.current
+                                    val cadenceAssignTextState = remember { mutableStateOf("") }
+
+                                    CompositionLocalProvider(
+                                        LocalTextSelectionColors.provides(
+                                            TextSelectionColors(
+                                                handleColor = MainColor,
+                                                backgroundColor = Gray0
                                             )
-                                        },
-                                        textStyle = Typography.h6,
-                                        keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Decimal),
-                                        keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
-                                        singleLine = true,
-                                        colors = TextFieldDefaults.textFieldColors(
-                                            textColor = MainColor,
-                                            backgroundColor = Color.White,
-                                            cursorColor = MainColor,
-                                            focusedIndicatorColor = Color.Transparent,
-                                            unfocusedIndicatorColor = Color.Transparent,
-                                            disabledIndicatorColor = Color.Transparent,
-                                        ),
-                                        enabled = cadenceType == ASSIGN
-                                    )
+                                        )
+                                    ) {
+                                        TextField(
+                                            modifier = Modifier.align(Center),
+                                            value = cadenceAssignTextState.value,
+                                            onValueChange = { cadenceAssignTextState.value = it },
+                                            placeholder = {
+                                                Text(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    text = "입력",
+                                                    style = Typography.h6,
+                                                    color = cadenceAssignColorState.value,
+                                                )
+                                            },
+                                            textStyle = Typography.h6,
+                                            keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Decimal),
+                                            keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+                                            singleLine = true,
+                                            colors = TextFieldDefaults.textFieldColors(
+                                                textColor = MainColor,
+                                                backgroundColor = Color.White,
+                                                cursorColor = MainColor,
+                                                focusedIndicatorColor = Color.Transparent,
+                                                unfocusedIndicatorColor = Color.Transparent,
+                                                disabledIndicatorColor = Color.Transparent,
+                                            ),
+                                            enabled = cadenceType == ASSIGN
+                                        )
+                                    }
                                 }
                             }
                         }
