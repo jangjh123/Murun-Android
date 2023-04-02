@@ -16,6 +16,7 @@ import kotlinx.coroutines.*
 class CadenceTrackingService : Service(), SensorEventListener {
     private lateinit var sensorManager: SensorManager
     private var stepCount = 0
+    private lateinit var cadenceUpdatingJob: Job
 
     private val _cadenceLiveData =  MutableLiveData<Int>()
     val cadenceLiveData: LiveData<Int>
@@ -44,7 +45,7 @@ class CadenceTrackingService : Service(), SensorEventListener {
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
 
     private fun calculateCadence() {
-        CoroutineScope(Dispatchers.Default).launch {
+        cadenceUpdatingJob = CoroutineScope(Dispatchers.Default).launch {
             delay(60000L)
             _cadenceLiveData.postValue(stepCount)
             stepCount = 0
@@ -59,5 +60,8 @@ class CadenceTrackingService : Service(), SensorEventListener {
 
     fun stop() {
         sensorManager.unregisterListener(this)
+        cadenceUpdatingJob.cancel()
+        stepCount = 0
+        _cadenceLiveData.postValue(0)
     }
 }
