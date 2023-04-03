@@ -1,6 +1,8 @@
 package com.jh.presentation.di
 
+import com.jh.murun.domain.repository.GetMusicRepository
 import com.jh.murun.domain.repository.SplashRepository
+import com.jh.murun.domain.use_case.music.GetMusicUseCase
 import com.jh.murun.domain.use_case.splash.GetToSkipOnBoardingUseCase
 import com.jh.murun.domain.use_case.splash.SetToSkipOnBoardingUseCase
 import dagger.Module
@@ -20,4 +22,8 @@ object UseCaseModule {
     @ViewModelScoped
     @Provides
     fun provideSetToSkipOnBoardingUseCase(splashRepository: SplashRepository) = SetToSkipOnBoardingUseCase(splashRepository)
+
+    @ViewModelScoped
+    @Provides
+    fun provideGetMusicUseCase(getMusicRepository: GetMusicRepository) = GetMusicUseCase(getMusicRepository)
 }
