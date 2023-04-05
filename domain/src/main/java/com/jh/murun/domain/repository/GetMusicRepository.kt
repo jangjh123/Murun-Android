@@ -6,4 +6,6 @@ import kotlinx.coroutines.flow.Flow
 
 interface GetMusicRepository {
     suspend fun getMusicList(bpm: Int): Flow<ResponseState<List<Music>>>
+
+    suspend fun getMusicById(id: String): Flow<ResponseState<Music>>
 }

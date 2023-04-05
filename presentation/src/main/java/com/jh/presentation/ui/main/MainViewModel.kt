@@ -1,8 +1,8 @@
 package com.jh.presentation.ui.main
 
 import androidx.lifecycle.viewModelScope
-import com.jh.murun.domain.model.ResponseState
-import com.jh.murun.domain.use_case.music.GetMusicUseCase
+import com.jh.murun.domain.use_case.music.GetMusicByIdUseCase
+import com.jh.murun.domain.use_case.music.GetMusicListUseCase
 import com.jh.presentation.base.BaseViewModel
 import com.jh.presentation.di.IoDispatcher
 import com.jh.presentation.di.MainDispatcher
@@ -10,7 +10,6 @@ import com.jh.presentation.enums.CadenceType.ASSIGN
 import com.jh.presentation.enums.CadenceType.TRACKING
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -20,7 +19,8 @@ import javax.inject.Inject
 class MainViewModel @Inject constructor(
     @MainDispatcher private val mainDispatcher: CoroutineDispatcher,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
-    private val getMusicUseCase: GetMusicUseCase
+    private val getMusicListUseCase: GetMusicListUseCase,
+    private val getMusicByIdUseCase: GetMusicByIdUseCase
 ) : BaseViewModel() {
 
     private val eventChannel = Channel<MainEvent>()

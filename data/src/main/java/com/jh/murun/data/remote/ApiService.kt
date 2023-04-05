@@ -6,8 +6,13 @@ import retrofit2.http.GET
 import retrofit2.http.Query
 
 interface ApiService {
-    @GET("song/bpm")
+    @GET("song")
     suspend fun fetchMusicList(
         @Query("bpm") bpm: Int
     ): Response<List<MusicResponse>>
+
+    @GET("song")
+    suspend fun fetchMusicById(
+        @Query("uuid") id: String
+    ) : Response<MusicResponse>
 }

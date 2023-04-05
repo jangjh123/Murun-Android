@@ -7,6 +7,7 @@ import kotlinx.android.parcel.Parcelize
 
 @Parcelize
 data class MusicResponse(
+    val uuid: String?,
     val musicUrl: String?,
     val bpm: Int?,
     val title: String?,
@@ -16,6 +17,7 @@ data class MusicResponse(
     companion object : DataMapper<MusicResponse, Music> {
         override fun MusicResponse.toDataModel(): Music {
             return Music(
+                uuid = uuid ?: "",
                 title = title ?: "No Title",
                 artist = artist ?: "No Artist",
                 bpm = bpm ?: 0,
