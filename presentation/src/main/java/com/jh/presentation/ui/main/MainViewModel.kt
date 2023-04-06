@@ -2,7 +2,7 @@ package com.jh.presentation.ui.main
 
 import androidx.lifecycle.viewModelScope
 import com.jh.murun.domain.use_case.music.GetMusicByIdUseCase
-import com.jh.murun.domain.use_case.music.GetMusicListUseCase
+import com.jh.murun.domain.use_case.music.GetMusicListByCadence
 import com.jh.presentation.base.BaseViewModel
 import com.jh.presentation.di.IoDispatcher
 import com.jh.presentation.di.MainDispatcher
@@ -19,7 +19,7 @@ import javax.inject.Inject
 class MainViewModel @Inject constructor(
     @MainDispatcher private val mainDispatcher: CoroutineDispatcher,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
-    private val getMusicListUseCase: GetMusicListUseCase,
+    private val getMusicListByCadenceUseCase: GetMusicListByCadence,
     private val getMusicByIdUseCase: GetMusicByIdUseCase
 ) : BaseViewModel() {
 
@@ -63,8 +63,11 @@ class MainViewModel @Inject constructor(
             is MainEvent.StopRunning -> {
                 state.copy(isRunning = false)
             }
-            is MainEvent.OnCadenceMeasured -> {
-                state.copy(cadence = event.cadence)
+            is MainEvent.SetAssignedCadence -> {
+                state.copy(assignedCadence = event.cadence)
+            }
+            is MainEvent.SetMeasuredCadence -> {
+                state.copy(measuredCadence = event.cadence)
             }
         }
     }
@@ -111,23 +114,30 @@ class MainViewModel @Inject constructor(
         }
     }
 
+
     fun hideSnackBar() {
         viewModelScope.launch(mainDispatcher) {
             eventChannel.send(MainEvent.HideSnackBar)
         }
     }
 
-    fun onClickStartRunning() {
+    fun onClickStartRunning(cadence: Int?) {
         viewModelScope.launch(mainDispatcher) {
             eventChannel.send(MainEvent.StartRunning)
-            _sideEffectChannel.send(MainSideEffect.TrackCadence)
+            if (state.value.cadenceType == TRACKING) {
+                _sideEffectChannel.send(MainSideEffect.TrackCadence)
+            } else if (state.value.cadenceType == ASSIGN) {
+                eventChannel.send(MainEvent.SetAssignedCadence(cadence!!))
+            }
         }
     }
 
     fun onClickStopRunning() {
         viewModelScope.launch(mainDispatcher) {
             eventChannel.send(MainEvent.StopRunning)
-            _sideEffectChannel.send(MainSideEffect.StopTrackingCadence)
+            if (state.value.cadenceType == TRACKING) {
+                _sideEffectChannel.send(MainSideEffect.StopTrackingCadence)
+            }
         }
     }
 
@@ -139,7 +149,7 @@ class MainViewModel @Inject constructor(
 
     fun onCadenceMeasured(cadence: Int) {
         viewModelScope.launch(mainDispatcher) {
-            eventChannel.send(MainEvent.OnCadenceMeasured(cadence))
+            eventChannel.send(MainEvent.SetMeasuredCadence(cadence))
         }
     }
 }

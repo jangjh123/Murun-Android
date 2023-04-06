@@ -139,6 +139,8 @@ private fun MainActivityContent(
     viewModel: MainViewModel
 ) {
     val scope = rememberCoroutineScope()
+    val focusManager = LocalFocusManager.current
+    val cadenceAssignTextState = remember { mutableStateOf("") }
 
     with(viewModel.state.collectAsStateWithLifecycle().value) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -319,7 +321,7 @@ private fun MainActivityContent(
                                 ) {
                                     Text(
                                         modifier = Modifier.align(Center),
-                                        text = "$cadence",
+                                        text = "$measuredCadence",
                                         style = Typography.h5,
                                         color = cadenceTrackingColorState.value,
                                     )
@@ -353,43 +355,54 @@ private fun MainActivityContent(
                                         .fillMaxWidth()
                                         .height(200.dp)
                                 ) {
-                                    val focusManager = LocalFocusManager.current
-                                    val cadenceAssignTextState = remember { mutableStateOf("") }
+                                    if (cadenceAssignTextState.value.length >= 3 && cadenceAssignTextState.value.toInt() > 180) {
+                                        cadenceAssignTextState.value = ""
+                                    }
 
-                                    CompositionLocalProvider(
-                                        LocalTextSelectionColors.provides(
-                                            TextSelectionColors(
-                                                handleColor = MainColor,
-                                                backgroundColor = Gray0
-                                            )
-                                        )
+                                    Column(
+                                        modifier = Modifier.align(Center),
+                                        horizontalAlignment = CenterHorizontally
                                     ) {
-                                        TextField(
-                                            modifier = Modifier.align(Center),
-                                            value = cadenceAssignTextState.value,
-                                            onValueChange = { cadenceAssignTextState.value = it },
-                                            placeholder = {
-                                                Text(
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    text = "입력",
-                                                    style = Typography.h6,
-                                                    color = cadenceAssignColorState.value,
-                                                )
-                                            },
-                                            textStyle = Typography.h6,
-                                            keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Decimal),
-                                            keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
-                                            singleLine = true,
-                                            colors = TextFieldDefaults.textFieldColors(
-                                                textColor = MainColor,
-                                                backgroundColor = Color.White,
-                                                cursorColor = MainColor,
-                                                focusedIndicatorColor = Color.Transparent,
-                                                unfocusedIndicatorColor = Color.Transparent,
-                                                disabledIndicatorColor = Color.Transparent,
-                                            ),
-                                            enabled = cadenceType == ASSIGN
+                                        Text(
+                                            text = "60 이상 180 이하",
+                                            style = Typography.body1,
+                                            color = Gray3
                                         )
+
+                                        CompositionLocalProvider(
+                                            LocalTextSelectionColors.provides(
+                                                TextSelectionColors(
+                                                    handleColor = MainColor,
+                                                    backgroundColor = Gray0
+                                                )
+                                            )
+                                        ) {
+                                            TextField(
+                                                value = cadenceAssignTextState.value,
+                                                onValueChange = { cadenceAssignTextState.value = it },
+                                                placeholder = {
+                                                    Text(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        text = "입력",
+                                                        style = Typography.h6,
+                                                        color = cadenceAssignColorState.value,
+                                                    )
+                                                },
+                                                textStyle = Typography.h6,
+                                                keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Decimal),
+                                                keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+                                                singleLine = true,
+                                                colors = TextFieldDefaults.textFieldColors(
+                                                    textColor = MainColor,
+                                                    backgroundColor = Color.White,
+                                                    cursorColor = MainColor,
+                                                    focusedIndicatorColor = Color.Transparent,
+                                                    unfocusedIndicatorColor = Color.Transparent,
+                                                    disabledIndicatorColor = Color.Transparent,
+                                                ),
+                                                enabled = cadenceType == ASSIGN
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -412,14 +425,23 @@ private fun MainActivityContent(
                                     indication = null,
                                     onClick = {
                                         if (!isRunning) {
-                                            if (cadenceType == NONE) {
-                                                viewModel.showSnackBar()
-                                                scope.launch {
-                                                    delay(3000L)
-                                                    viewModel.hideSnackBar()
+                                            when (cadenceType) {
+                                                TRACKING -> {
+                                                    viewModel.onClickStartRunning(null)
                                                 }
-                                            } else {
-                                                viewModel.onClickStartRunning()
+                                                ASSIGN -> {
+                                                    if (cadenceAssignTextState.value.isNotEmpty() &&
+                                                        cadenceAssignTextState.value.toInt() in 60..180) {
+                                                        viewModel.onClickStartRunning(cadenceAssignTextState.value.toInt())
+                                                    }
+                                                }
+                                                NONE -> {
+                                                    viewModel.showSnackBar()
+                                                    scope.launch {
+                                                        delay(3000L)
+                                                        viewModel.hideSnackBar()
+                                                    }
+                                                }
                                             }
                                         }
                                     },
