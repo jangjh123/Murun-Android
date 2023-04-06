@@ -1,5 +1,5 @@
 package com.jh.presentation.ui.on_boarding
 
-sealed interface OnBoardingSideEffect {
-    object GoToMainActivity : OnBoardingSideEffect
+sealed class OnBoardingSideEffect {
+    object GoToMainActivity : OnBoardingSideEffect()
 }
