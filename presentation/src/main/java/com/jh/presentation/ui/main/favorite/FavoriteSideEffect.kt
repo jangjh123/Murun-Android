@@ -1,5 +1,5 @@
 package com.jh.presentation.ui.main.favorite
 
-sealed interface FavoriteSideEffect {
-    object StartRunning : FavoriteSideEffect
+sealed class FavoriteSideEffect {
+    object StartRunning : FavoriteSideEffect()
 }
