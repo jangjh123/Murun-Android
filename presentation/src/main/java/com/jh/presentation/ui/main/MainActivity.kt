@@ -48,8 +48,8 @@ import com.jh.presentation.enums.CadenceType.*
 import com.jh.presentation.ui.*
 import com.jh.presentation.ui.main.MainEvent.*
 import com.jh.presentation.ui.main.favorite.FavoriteActivity
-import com.jh.presentation.ui.service.CadenceTrackingService
-import com.jh.presentation.ui.service.CadenceTrackingService.CadenceTrackingServiceBinder
+import com.jh.presentation.service.CadenceTrackingService
+import com.jh.presentation.service.CadenceTrackingService.CadenceTrackingServiceBinder
 import com.jh.presentation.ui.theme.*
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay

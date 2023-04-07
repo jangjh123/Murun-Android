@@ -3,7 +3,7 @@ package com.jh.presentation.di
 import com.jh.murun.domain.repository.GetMusicRepository
 import com.jh.murun.domain.repository.SplashRepository
 import com.jh.murun.domain.use_case.music.GetMusicByIdUseCase
-import com.jh.murun.domain.use_case.music.GetMusicListByCadence
+import com.jh.murun.domain.use_case.music.GetMusicListByCadenceUseCase
 import com.jh.murun.domain.use_case.splash.GetToSkipOnBoardingUseCase
 import com.jh.murun.domain.use_case.splash.SetToSkipOnBoardingUseCase
 import dagger.Module
@@ -26,7 +26,7 @@ object UseCaseModule {
 
     @ViewModelScoped
     @Provides
-    fun provideGetMusicListUseCase(getMusicRepository: GetMusicRepository) = GetMusicListByCadence(getMusicRepository)
+    fun provideGetMusicListUseCase(getMusicRepository: GetMusicRepository) = GetMusicListByCadenceUseCase(getMusicRepository)
 
     @ViewModelScoped
     @Provides

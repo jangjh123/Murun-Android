@@ -2,7 +2,7 @@ package com.jh.presentation.ui.main
 
 import androidx.lifecycle.viewModelScope
 import com.jh.murun.domain.use_case.music.GetMusicByIdUseCase
-import com.jh.murun.domain.use_case.music.GetMusicListByCadence
+import com.jh.murun.domain.use_case.music.GetMusicListByCadenceUseCase
 import com.jh.presentation.base.BaseViewModel
 import com.jh.presentation.di.IoDispatcher
 import com.jh.presentation.di.MainDispatcher
@@ -19,7 +19,7 @@ import javax.inject.Inject
 class MainViewModel @Inject constructor(
     @MainDispatcher private val mainDispatcher: CoroutineDispatcher,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
-    private val getMusicListByCadenceUseCase: GetMusicListByCadence,
+    private val getMusicListByCadenceUseCase: GetMusicListByCadenceUseCase,
     private val getMusicByIdUseCase: GetMusicByIdUseCase
 ) : BaseViewModel() {
 
