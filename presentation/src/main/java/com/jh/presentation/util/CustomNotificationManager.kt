@@ -9,6 +9,7 @@ import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import androidx.core.app.NotificationCompat
 import com.google.android.exoplayer2.ExoPlayer
+import com.jh.murun.presentation.R
 import com.jh.presentation.service.MusicPlayerService
 
 class CustomNotificationManager(
@@ -69,6 +70,7 @@ class CustomNotificationManager(
         notificationBuilder = NotificationCompat.Builder(service, CHANNEL_ID).apply {
             setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             setOngoing(true)
+            setSmallIcon(R.drawable.icon)
             setStyle(
                 androidx.media.app.NotificationCompat.MediaStyle()
                     .setMediaSession(mediaSession.sessionToken)

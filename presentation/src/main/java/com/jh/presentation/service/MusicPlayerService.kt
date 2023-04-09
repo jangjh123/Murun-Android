@@ -1,7 +1,10 @@
 package com.jh.presentation.service
 
 import android.app.Service
+import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
+import android.content.ServiceConnection
 import android.graphics.BitmapFactory
 import android.media.MediaMetadata
 import android.media.MediaMetadataRetriever
@@ -11,33 +14,93 @@ import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.source.ProgressiveMediaSource
 import com.google.android.exoplayer2.upstream.DefaultDataSource
-import com.jh.murun.domain.use_case.music.GetMusicListByCadenceUseCase
+import com.jh.murun.domain.model.MusicInfo
+import com.jh.presentation.di.MainDispatcher
+import com.jh.presentation.enums.CadenceType.ASSIGN
+import com.jh.presentation.enums.CadenceType.TRACKING
+import com.jh.presentation.service.MusicLoaderService.MusicLoaderServiceBinder
+import com.jh.presentation.ui.main.MainState
 import com.jh.presentation.util.CustomNotificationManager
-import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.withContext
+import java.util.*
 import javax.inject.Inject
 
-@AndroidEntryPoint
-class MusicPlayerService @Inject constructor(
-    private val exoPlayer: ExoPlayer
-) : Service() {
-    private val notificationManager = CustomNotificationManager(this@MusicPlayerService, exoPlayer)
+class MusicPlayerService : Service() {
+    private val exoPlayer: ExoPlayer by lazy { ExoPlayer.Builder(this@MusicPlayerService).build() }
+    private val notificationManager by lazy { CustomNotificationManager(this@MusicPlayerService, exoPlayer) }
+    private lateinit var state: MainState
     private lateinit var metadata: MediaMetadata
+    private lateinit var musicLoaderService: MusicLoaderService
+    private var isMusicLoaderServiceBinding = false
+    private val musicLoaderServiceConnection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+            val binder: MusicLoaderServiceBinder = service as MusicLoaderServiceBinder
+            musicLoaderService = binder.getServiceInstance()
+            isMusicLoaderServiceBinding = true
+            setMusicWithCadence()
+        }
 
-    inner class MusicServiceBinder : Binder() {
+        override fun onServiceDisconnected(name: ComponentName?) {
+            isMusicLoaderServiceBinding = false
+        }
+    }
+
+    inner class MusicPlayerServiceBinder : Binder() {
         fun getServiceInstance(): MusicPlayerService {
             return this@MusicPlayerService
         }
     }
 
     override fun onBind(intent: Intent?): IBinder {
-        return MusicServiceBinder()
+        if (!isMusicLoaderServiceBinding) {
+            bindService(Intent(this@MusicPlayerService, MusicLoaderService::class.java), musicLoaderServiceConnection, Context.BIND_AUTO_CREATE)
+        }
+
+        return MusicPlayerServiceBinder()
     }
 
-    fun setMusic(uri: String) {
+    fun setState(mainState: MainState) {
+        state = mainState
+    }
+
+    private fun setMusicWithCadence() {
+        if (state.cadenceType == TRACKING) {
+            // TODO : 곡 끝날 때쯤 리스트 갱신
+        } else if (state.cadenceType == ASSIGN) {
+            musicLoaderService.loadMusicWithCadence(
+                cadence = state.assignedCadence,
+                onSuccess = { queue ->
+                    if (queue.isNotEmpty()) {
+                        setMusic(queue)
+                    }
+                }
+            )
+        }
+    }
+
+    private fun setMusic(queue: Queue<MusicInfo>) {
+        val polled = queue.poll()!!
+        queue.offer(polled)
+
+        if (polled.musicPath != null) {
+            startMusic(polled.musicPath!!)
+        } else {
+            musicLoaderService.loadMusicFile(
+                musicInfo = polled,
+                onWrittenToDisk = { path ->
+                    polled.musicPath = path
+                    startMusic(path)
+                }
+            )
+        }
+    }
+
+    private fun startMusic(musicPath: String) {
         val factory = ProgressiveMediaSource.Factory(DefaultDataSource.Factory(this@MusicPlayerService))
-        val source = factory.createMediaSource(MediaItem.fromUri(uri))
+        val source = factory.createMediaSource(MediaItem.fromUri(musicPath))
         val mediaMetadataRetriever = MediaMetadataRetriever()
-        mediaMetadataRetriever.setDataSource(uri)
+        mediaMetadataRetriever.setDataSource(musicPath);
         setMusicMetadata(mediaMetadataRetriever)
 
         exoPlayer.setMediaSource(source)
