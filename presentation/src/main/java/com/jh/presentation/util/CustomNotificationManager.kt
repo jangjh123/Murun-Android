@@ -1,6 +1,5 @@
 package com.jh.presentation.util
 
-import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
@@ -13,10 +12,10 @@ import com.jh.murun.presentation.R
 import com.jh.presentation.service.MusicPlayerService
 
 class CustomNotificationManager(
-    private val service: MusicPlayerService,
+    private val musicPlayerService: MusicPlayerService,
     private val player: ExoPlayer
 ) {
-    private val notificationManager by lazy { service.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager }
+    private val notificationManager by lazy { musicPlayerService.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager }
     private lateinit var notificationBuilder: NotificationCompat.Builder
     private lateinit var stateBuilder: PlaybackStateCompat.Builder
     private lateinit var mediaSession: MediaSessionCompat
@@ -25,30 +24,36 @@ class CustomNotificationManager(
     inner class MurunMediaSessionCallback : MediaSessionCompat.Callback() {
         override fun onPlay() {
             super.onPlay()
-            service.playMusic()
+            musicPlayerService.play()
             mediaSession.setPlaybackState(stateBuilder.setState(PlaybackStateCompat.STATE_PLAYING, player.currentPosition, 1f).build())
             currentState = PlaybackStateCompat.STATE_PLAYING
         }
 
         override fun onPause() {
             super.onPause()
-            service.pauseMusic()
+            musicPlayerService.pause()
             mediaSession.setPlaybackState(stateBuilder.setState(PlaybackStateCompat.STATE_PAUSED, player.currentPosition, 1f).build())
             currentState = PlaybackStateCompat.STATE_PAUSED
         }
 
+        override fun onSkipToPrevious() {
+            super.onSkipToPrevious()
+            musicPlayerService.skipToPrev()
+        }
+
+        override fun onSkipToNext() {
+            super.onSkipToNext()
+            musicPlayerService.skipToNext()
+        }
+
         override fun onSeekTo(pos: Long) {
             super.onSeekTo(pos)
-            service.seekTo(pos)
+            musicPlayerService.seekTo(pos)
             mediaSession.setPlaybackState(stateBuilder.setState(currentState, pos, 1f).build())
         }
     }
 
-    fun showNotification() {
-        service.startForeground(NOTIFICATION_ID, createNotification())
-    }
-
-    private fun createNotification(): Notification {
+    fun showNotification(metadata: android.media.MediaMetadata) {
         stateBuilder = PlaybackStateCompat.Builder().apply {
             setActions(
                 PlaybackStateCompat.ACTION_PLAY_PAUSE
@@ -60,14 +65,14 @@ class CustomNotificationManager(
             currentState = PlaybackStateCompat.STATE_PLAYING
         }
 
-        mediaSession = MediaSessionCompat(service, "tag").apply {
+        mediaSession = MediaSessionCompat(musicPlayerService, "tag").apply {
             setPlaybackState(stateBuilder.build())
-            setMetadata(MediaMetadataCompat.fromMediaMetadata(service.getMusicMetadata()))
+            setMetadata(MediaMetadataCompat.fromMediaMetadata(metadata))
             setCallback(MurunMediaSessionCallback())
             isActive = true
         }
 
-        notificationBuilder = NotificationCompat.Builder(service, CHANNEL_ID).apply {
+        notificationBuilder = NotificationCompat.Builder(musicPlayerService, CHANNEL_ID).apply {
             setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             setOngoing(true)
             setSmallIcon(R.drawable.icon)
@@ -80,8 +85,7 @@ class CustomNotificationManager(
 
         createNotificationChannel()
         notificationManager.notify(NOTIFICATION_ID, notificationBuilder.build())
-
-        return notificationBuilder.build()
+        musicPlayerService.startForeground(NOTIFICATION_ID, notificationBuilder.build())
     }
 
     private fun createNotificationChannel() {

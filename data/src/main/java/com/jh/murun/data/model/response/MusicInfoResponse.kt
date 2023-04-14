@@ -21,8 +21,8 @@ data class MusicInfoResponse(
                 title = title ?: "No Title",
                 artist = artist ?: "No Artist",
                 bpm = bpm ?: 0,
-                musicUrl = url ?: "",
-                musicPath = null, // TODO : 디스크에 쓰기 기능 구현 후 수정
+                url = url ?: "",
+                diskPath = null,
                 albumImage = albumImage ?: ""
             )
         }

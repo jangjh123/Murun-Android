@@ -5,13 +5,12 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
-import android.graphics.BitmapFactory
 import android.media.MediaMetadata
-import android.media.MediaMetadataRetriever
 import android.os.Binder
 import android.os.IBinder
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.MediaItem
+import com.google.android.exoplayer2.Player.*
 import com.google.android.exoplayer2.source.ProgressiveMediaSource
 import com.google.android.exoplayer2.upstream.DefaultDataSource
 import com.jh.murun.domain.model.MusicInfo
@@ -21,16 +20,23 @@ import com.jh.presentation.enums.CadenceType.TRACKING
 import com.jh.presentation.service.MusicLoaderService.MusicLoaderServiceBinder
 import com.jh.presentation.ui.main.MainState
 import com.jh.presentation.util.CustomNotificationManager
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.withContext
-import java.util.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import javax.inject.Inject
 
+@AndroidEntryPoint
 class MusicPlayerService : Service() {
-    private val exoPlayer: ExoPlayer by lazy { ExoPlayer.Builder(this@MusicPlayerService).build() }
+    @Inject
+    @MainDispatcher
+    lateinit var mainDispatcher: CoroutineDispatcher
+
+    private val exoPlayer: ExoPlayer by lazy { ExoPlayer.Builder(this@MusicPlayerService).build().apply { addListener(playerListener) } }
+    private val mediaSourceFactory = ProgressiveMediaSource.Factory(DefaultDataSource.Factory(this@MusicPlayerService))
     private val notificationManager by lazy { CustomNotificationManager(this@MusicPlayerService, exoPlayer) }
     private lateinit var state: MainState
-    private lateinit var metadata: MediaMetadata
     private lateinit var musicLoaderService: MusicLoaderService
     private var isMusicLoaderServiceBinding = false
     private val musicLoaderServiceConnection = object : ServiceConnection {
@@ -38,7 +44,7 @@ class MusicPlayerService : Service() {
             val binder: MusicLoaderServiceBinder = service as MusicLoaderServiceBinder
             musicLoaderService = binder.getServiceInstance()
             isMusicLoaderServiceBinding = true
-            setMusicWithCadence()
+            initPlayer()
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
@@ -64,79 +70,86 @@ class MusicPlayerService : Service() {
         state = mainState
     }
 
-    private fun setMusicWithCadence() {
+    private fun initPlayer() {
         if (state.cadenceType == TRACKING) {
-            // TODO : 곡 끝날 때쯤 리스트 갱신
+            // 케이던스 변경시 갱신
         } else if (state.cadenceType == ASSIGN) {
-            musicLoaderService.loadMusicWithCadence(
-                cadence = state.assignedCadence,
-                onSuccess = { queue ->
-                    if (queue.isNotEmpty()) {
-                        setMusic(queue)
-                    }
-                }
-            )
+            musicLoaderService.loadMusicInfoListByCadence(cadence = state.assignedCadence)
         }
+
+        collectMusicFile()
     }
 
-    private fun setMusic(queue: Queue<MusicInfo>) {
-        val polled = queue.poll()!!
-        queue.offer(polled)
-
-        if (polled.musicPath != null) {
-            startMusic(polled.musicPath!!)
-        } else {
-            musicLoaderService.loadMusicFile(
-                musicInfo = polled,
-                onWrittenToDisk = { path ->
-                    polled.musicPath = path
-                    startMusic(path)
-                }
-            )
-        }
+    private fun collectMusicFile() {
+        musicLoaderService.completeMusicFlow.onEach { musicInfo ->
+            addMusicToPlayer(musicInfo)
+        }.launchIn(CoroutineScope(mainDispatcher))
     }
 
-    private fun startMusic(musicPath: String) {
-        val factory = ProgressiveMediaSource.Factory(DefaultDataSource.Factory(this@MusicPlayerService))
-        val source = factory.createMediaSource(MediaItem.fromUri(musicPath))
-        val mediaMetadataRetriever = MediaMetadataRetriever()
-        mediaMetadataRetriever.setDataSource(musicPath);
-        setMusicMetadata(mediaMetadataRetriever)
+    private fun addMusicToPlayer(musicInfo: MusicInfo) {
+        val source = mediaSourceFactory.createMediaSource(MediaItem.fromUri(musicInfo.diskPath!!)).apply {
+            // metadata 교체 로직 추가
+        }
+        exoPlayer.addMediaSource(mediaSourceFactory.createMediaSource(MediaItem.fromUri(musicInfo.diskPath!!)))
+    }
 
-        exoPlayer.setMediaSource(source)
+    private fun launchPlayer() {
         exoPlayer.prepare()
         exoPlayer.play()
-        notificationManager.showNotification()
     }
 
-    private fun setMusicMetadata(retriever: MediaMetadataRetriever) {
-        val title = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)
-        val artist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)
-        val duration = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLong()
-        val albumCover = retriever.embeddedPicture
-        metadata = MediaMetadata.Builder().apply {
-            putString(MediaMetadata.METADATA_KEY_TITLE, title)
-            putString(MediaMetadata.METADATA_KEY_ARTIST, artist)
-            if (duration != null) {
-                putLong(MediaMetadata.METADATA_KEY_DURATION, duration)
-            }
-            if (albumCover != null) {
-                putBitmap(MediaMetadata.METADATA_KEY_ART, BitmapFactory.decodeByteArray(albumCover, 0, albumCover.size))
-            }
-        }.build()
-    }
-
-    fun getMusicMetadata() = metadata
-
-    fun playMusic() {
+    fun play() {
         exoPlayer.play()
     }
 
-    fun pauseMusic() {
+    fun pause() {
         exoPlayer.pause()
+    }
+
+    fun skipToPrev() {
+//        playPreviousMusic()
+    }
+
+    fun skipToNext() {
+//        playNextMusic()
     }
 
     fun seekTo(position: Long) {
         exoPlayer.seekTo(position)
+    }
+
+    private fun convertMetadata(mediaItem: MediaItem): MediaMetadata {
+        return MediaMetadata.Builder().apply {
+            putString(MediaMetadata.METADATA_KEY_TITLE, mediaItem.mediaMetadata.title.toString())
+            putString(MediaMetadata.METADATA_KEY_ARTIST, mediaItem.mediaMetadata.artist.toString())
+//            putBitmap(MediaMetadata.METADATA_KEY_ART, BitmapFactory.decodeByteArray(mediaItem.mediaMetadata.artworkData, 0, mediaItem.mediaMetadata.artworkData?.size ?: 0))
+        }.build()
+    }
+
+    private val playerListener = object : Listener {
+        override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+            super.onMediaItemTransition(mediaItem, reason)
+            when (reason) {
+                MEDIA_ITEM_TRANSITION_REASON_REPEAT -> {
+
+                }
+                MEDIA_ITEM_TRANSITION_REASON_AUTO -> {
+                    if (mediaItem?.mediaMetadata != null) {
+                        notificationManager.showNotification(convertMetadata(mediaItem))
+                    }
+                }
+                MEDIA_ITEM_TRANSITION_REASON_SEEK -> {
+
+                }
+                MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED -> {
+                    if (!exoPlayer.isPlaying) {
+                        if (mediaItem != null) {
+                            launchPlayer()
+                            notificationManager.showNotification(convertMetadata(mediaItem))
+                        }
+                    }
+                }
+            }
+        }
     }
 }

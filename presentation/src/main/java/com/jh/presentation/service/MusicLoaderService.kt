@@ -14,6 +14,8 @@ import com.jh.presentation.di.MainDispatcher
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -43,7 +45,11 @@ class MusicLoaderService : Service() {
     @IoDispatcher
     lateinit var ioDispatcher: CoroutineDispatcher
 
-    private val musicInfoQueue: Queue<MusicInfo> = LinkedList()
+    private val _completeMusicFlow: MutableSharedFlow<MusicInfo> = MutableSharedFlow()
+    val completeMusicFlow: SharedFlow<MusicInfo>
+        get() = _completeMusicFlow
+
+    private val musicQueue: Queue<MusicInfo> = LinkedList()
 
     inner class MusicLoaderServiceBinder : Binder() {
         fun getServiceInstance(): MusicLoaderService {
@@ -55,17 +61,30 @@ class MusicLoaderService : Service() {
         return MusicLoaderServiceBinder()
     }
 
-    fun loadMusicWithCadence(
-        cadence: Int,
-        onSuccess: (Queue<MusicInfo>) -> Unit
-    ) {
+    fun loadMusicInfoListByCadence(cadence: Int) {
         CoroutineScope(ioDispatcher).launch {
             getMusicInfoListByCadenceUseCase(cadence = cadence).onEach { result ->
                 when (result) {
                     is ResponseState.Success -> {
-                        musicInfoQueue.clear()
-                        musicInfoQueue.addAll(result.data)
-                        onSuccess(musicInfoQueue)
+                        musicQueue.clear()
+                        musicQueue.addAll(
+                            listOf(
+                                result.data.first(),
+                                MusicInfo(
+                                    uuid = "",
+                                    artist = "d",
+                                    albumImage = null,
+                                    bpm = 130,
+                                    diskPath = null,
+                                    url = "https://cdn.pixabay.com/download/audio/2023/03/26/audio_87449b1afe.mp3?filename=mortal-gaming-144000.mp3",
+                                    title = "타이틀"
+                                )
+                            )
+                        )
+
+                        if (musicQueue.isNotEmpty()) {
+                            loadMusicFile(musicQueue.poll()!!)
+                        }
                     }
                     is ResponseState.Error -> {} // TODO : Error handling
                 }
@@ -73,16 +92,15 @@ class MusicLoaderService : Service() {
         }
     }
 
-    fun loadMusicFile(
-        musicInfo: MusicInfo,
-        onWrittenToDisk: (String) -> Unit
-    ) {
+    private fun loadMusicFile(musicInfo: MusicInfo) {
         CoroutineScope(ioDispatcher).launch {
-            getMusicFileUseCase(url = musicInfo.musicUrl).onEach { result ->
+            getMusicFileUseCase(url = musicInfo.url).onEach { result ->
                 if (result != null) {
-                    withContext(mainDispatcher) {
-                        onWrittenToDisk(writeFileToDisk(result.byteStream()))
-                    }
+                    _completeMusicFlow.emit(
+                        musicInfo.apply {
+                            diskPath = writeFileToDisk(result.byteStream(), musicInfo.title)
+                        }
+                    )
                 } else {
                     // TODO : Error Handling
                 }
@@ -90,31 +108,41 @@ class MusicLoaderService : Service() {
         }
     }
 
-    private fun writeFileToDisk(byteStream: InputStream): String {
+    private suspend fun writeFileToDisk(byteStream: InputStream, title: String): String {
         var path = ""
         try {
-            val file = File(applicationContext.cacheDir, "music.mp3")
+            val file = File(applicationContext.cacheDir, "$title.mp3")
             val byteArray = ByteArray(4096)
             var fileSizeDownloaded = 0
-            val outputStream = FileOutputStream(file)
+            withContext(ioDispatcher) {
+                val outputStream = FileOutputStream(file)
 
-            while (true) {
-                val read = byteStream.read(byteArray)
+                while (true) {
+                    val read = byteStream.read(byteArray)
 
-                if (read == -1) {
-                    break
+                    if (read == -1) {
+                        break
+                    }
+
+                    outputStream.write(byteArray, 0, read)
+                    fileSizeDownloaded += read
+                    outputStream.flush()
                 }
-
-                outputStream.write(byteArray, 0, read)
-                fileSizeDownloaded += read
-                outputStream.flush()
             }
 
             path = file.absolutePath
-        } catch (e: java.lang.Exception) {
+        } catch (e: Exception) {
             println(e)
         }
 
         return path
+    }
+
+    fun loadNextMusicFile() {
+        if (musicQueue.isNotEmpty()) {
+            loadMusicFile(musicQueue.poll()!!)
+        } else {
+            // TODO : NoSuchException Handling
+        }
     }
 }

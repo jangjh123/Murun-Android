@@ -8,8 +8,8 @@ data class MusicInfo(
     val uuid: String,
     val title: String,
     val artist: String,
-    val musicUrl: String,
-    var musicPath: String?,
     val albumImage: String?,
-    val bpm: Int
+    val bpm: Int,
+    val url: String,
+    var diskPath: String?
 ) : BaseModel
