@@ -169,7 +169,11 @@ class MusicPlayerService : Service() {
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
             mediaItem?.let {
                 super.onMediaItemTransition(mediaItem, reason)
-                notificationManager.showNotification(convertMetadata(it))
+                if (!isStarted) {
+                    notificationManager.showNotification(convertMetadata(it))
+                } else {
+                    notificationManager.setMetadata(convertMetadata(it))
+                }
             }
         }
 

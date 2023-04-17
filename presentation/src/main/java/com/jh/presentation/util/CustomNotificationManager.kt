@@ -3,6 +3,7 @@ package com.jh.presentation.util
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
+import android.media.MediaMetadata
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
@@ -53,7 +54,7 @@ class CustomNotificationManager(
         }
     }
 
-    fun showNotification(metadata: android.media.MediaMetadata) {
+    fun showNotification(metadata: MediaMetadata) {
         stateBuilder = PlaybackStateCompat.Builder().apply {
             setActions(
                 PlaybackStateCompat.ACTION_PLAY_PAUSE
@@ -62,8 +63,8 @@ class CustomNotificationManager(
                         or PlaybackStateCompat.ACTION_SEEK_TO
             )
             setState(PlaybackStateCompat.STATE_PLAYING, 0L, 1f)
-            currentState = PlaybackStateCompat.STATE_PLAYING
         }
+        currentState = PlaybackStateCompat.STATE_PLAYING
 
         mediaSession = MediaSessionCompat(musicPlayerService, "tag").apply {
             setPlaybackState(stateBuilder.build())
@@ -86,6 +87,11 @@ class CustomNotificationManager(
         createNotificationChannel()
         notificationManager.notify(NOTIFICATION_ID, notificationBuilder.build())
         musicPlayerService.startForeground(NOTIFICATION_ID, notificationBuilder.build())
+    }
+
+    fun setMetadata(metadata: MediaMetadata) {
+        mediaSession.setMetadata(MediaMetadataCompat.fromMediaMetadata(metadata))
+        notificationManager.notify(NOTIFICATION_ID, notificationBuilder.build())
     }
 
     private fun createNotificationChannel() {
