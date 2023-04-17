@@ -46,8 +46,8 @@ class MusicLoaderService : Service() {
     @IoDispatcher
     lateinit var ioDispatcher: CoroutineDispatcher
 
-    private val _completeMusicFlow: MutableSharedFlow<Music> = MutableSharedFlow()
-    val completeMusicFlow: SharedFlow<Music>
+    private val _completeMusicFlow: MutableSharedFlow<Music?> = MutableSharedFlow()
+    val completeMusicFlow: SharedFlow<Music?>
         get() = _completeMusicFlow
 
     private val musicQueue: Queue<Music> = LinkedList()
@@ -74,7 +74,8 @@ class MusicLoaderService : Service() {
                                 Music(
                                     id = "",
                                     artist = "d",
-                                    imageUrl = "https://coil-kt.github.io/coil/logo.svg",
+                                    duration = 0L,
+                                    imageUrl = "https://i.stack.imgur.com/kPTSA.jpg?s=256&g=1",
                                     fileUrl = "https://cdn.pixabay.com/download/audio/2023/03/26/audio_87449b1afe.mp3?filename=mortal-gaming-144000.mp3",
                                     title = "타이틀"
                                 )
@@ -144,7 +145,7 @@ class MusicLoaderService : Service() {
 
     fun loadNextMusicFile() {
         if (musicQueue.isNotEmpty()) {
-//            loadMusicFile(musicQueue.poll()!!)
+            loadMusicFileAndImage(musicQueue.poll()!!)
         } else {
             // TODO : NoSuchException Handling
         }

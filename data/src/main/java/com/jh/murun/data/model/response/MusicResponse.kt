@@ -14,6 +14,8 @@ data class MusicResponse(
     val title: String?,
     @SerializedName("artist")
     val artist: String?,
+    @SerializedName("duration")
+    val duration: Long?,
     @SerializedName("albumImage")
     val albumImage: String?,
     @SerializedName("url")
@@ -25,6 +27,7 @@ data class MusicResponse(
                 id = uuid ?: "",
                 title = title ?: "No Title",
                 artist = artist ?: "No Artist",
+                duration = duration ?: 0L,
                 imageUrl = albumImage,
                 fileUrl = url
             )

@@ -8,6 +8,7 @@ import android.content.ServiceConnection
 import android.graphics.BitmapFactory
 import android.os.Binder
 import android.os.IBinder
+import androidx.core.os.bundleOf
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.MediaMetadata
@@ -34,7 +35,12 @@ class MusicPlayerService : Service() {
     @MainDispatcher
     lateinit var mainDispatcher: CoroutineDispatcher
 
-    private val exoPlayer: ExoPlayer by lazy { ExoPlayer.Builder(this@MusicPlayerService).build().apply { addListener(playerListener) } }
+    private val exoPlayer: ExoPlayer by lazy {
+        ExoPlayer.Builder(this@MusicPlayerService).build().apply {
+            addListener(playerListener)
+            repeatMode = REPEAT_MODE_ALL
+        }
+    }
     private val notificationManager by lazy { CustomNotificationManager(this@MusicPlayerService, exoPlayer) }
     private lateinit var state: MainState
     private lateinit var musicLoaderService: MusicLoaderService
@@ -82,7 +88,11 @@ class MusicPlayerService : Service() {
 
     private fun collectMusicFile() {
         musicLoaderService.completeMusicFlow.onEach { music ->
-            addMusicToPlayer(music)
+            if (music != null) {
+                addMusicToPlayer(music)
+            } else {
+                // TODO : Error Handling
+            }
         }.launchIn(CoroutineScope(mainDispatcher))
     }
 
@@ -92,6 +102,7 @@ class MusicPlayerService : Service() {
             .setTitle(music.title)
             .setArtist(music.artist)
             .setArtworkData(music.image, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
+            .setExtras(bundleOf(Pair("duration", music.duration)))
             .build()
         val mediaItem = MediaItem.Builder()
             .setUri(music.diskPath)
@@ -120,7 +131,7 @@ class MusicPlayerService : Service() {
     }
 
     fun skipToNext() {
-
+        musicLoaderService.loadNextMusicFile()
     }
 
     fun seekTo(position: Long) {
@@ -132,32 +143,23 @@ class MusicPlayerService : Service() {
             putString(android.media.MediaMetadata.METADATA_KEY_TITLE, mediaItem.mediaMetadata.title.toString())
             putString(android.media.MediaMetadata.METADATA_KEY_ARTIST, mediaItem.mediaMetadata.artist.toString())
             putBitmap(android.media.MediaMetadata.METADATA_KEY_ALBUM_ART, BitmapFactory.decodeByteArray(mediaItem.mediaMetadata.artworkData, 0, mediaItem.mediaMetadata.artworkData?.size ?: 0))
+            mediaItem.mediaMetadata.extras?.getLong("duration")?.let { putLong(android.media.MediaMetadata.METADATA_KEY_DURATION, it) }
         }.build()
     }
 
     private val playerListener = object : Listener {
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
             super.onMediaItemTransition(mediaItem, reason)
-            when (reason) {
-                MEDIA_ITEM_TRANSITION_REASON_REPEAT -> {
+            mediaItem?.let {
+                launchPlayer()
+                notificationManager.showNotification(convertMetadata(it))
+            }
+        }
 
-                }
-                MEDIA_ITEM_TRANSITION_REASON_AUTO -> {
-                    if (mediaItem?.mediaMetadata != null) {
-                        notificationManager.showNotification(convertMetadata(mediaItem))
-                    }
-                }
-                MEDIA_ITEM_TRANSITION_REASON_SEEK -> {
-
-                }
-                MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED -> {
-                    if (!exoPlayer.isPlaying) {
-                        if (mediaItem != null) {
-                            launchPlayer()
-                            notificationManager.showNotification(convertMetadata(mediaItem))
-                        }
-                    }
-                }
+        override fun onPositionDiscontinuity(oldPosition: PositionInfo, newPosition: PositionInfo, reason: Int) {
+            super.onPositionDiscontinuity(oldPosition, newPosition, reason)
+            if (reason == DISCONTINUITY_REASON_AUTO_TRANSITION) {
+                musicLoaderService.loadNextMusicFile()
             }
         }
     }
