@@ -57,6 +57,8 @@ class MusicPlayerService : Service() {
             isMusicLoaderServiceBinding = false
         }
     }
+    private var isStarted = false
+    private var isIntended = false
 
     inner class MusicPlayerServiceBinder : Binder() {
         fun getServiceInstance(): MusicPlayerService {
@@ -109,8 +111,18 @@ class MusicPlayerService : Service() {
             .setMediaMetadata(metadata)
             .build()
         val source = mediaSourceFactory.createMediaSource(mediaItem)
-
         exoPlayer.addMediaSource(source)
+
+        if (!isStarted) {
+            launchPlayer()
+            isStarted = true
+        }
+
+        if (isIntended) {
+            exoPlayer.seekToNextMediaItem()
+            launchPlayer()
+            isIntended = false
+        }
     }
 
     private fun launchPlayer() {
@@ -127,11 +139,17 @@ class MusicPlayerService : Service() {
     }
 
     fun skipToPrev() {
-
+        exoPlayer.seekToPreviousMediaItem()
     }
 
     fun skipToNext() {
-        musicLoaderService.loadNextMusicFile()
+        if (exoPlayer.hasNextMediaItem() && exoPlayer.mediaItemCount != 1) {
+            exoPlayer.seekToNextMediaItem()
+            launchPlayer()
+        } else {
+            musicLoaderService.loadNextMusicFile()
+            isIntended = true
+        }
     }
 
     fun seekTo(position: Long) {
@@ -149,9 +167,8 @@ class MusicPlayerService : Service() {
 
     private val playerListener = object : Listener {
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-            super.onMediaItemTransition(mediaItem, reason)
             mediaItem?.let {
-                launchPlayer()
+                super.onMediaItemTransition(mediaItem, reason)
                 notificationManager.showNotification(convertMetadata(it))
             }
         }
