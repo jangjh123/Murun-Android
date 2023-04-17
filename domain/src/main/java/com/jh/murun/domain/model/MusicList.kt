@@ -5,5 +5,5 @@ import kotlinx.parcelize.Parcelize
 
 @Parcelize
 data class MusicList(
-    val musicInfoList: List<MusicInfo>
+    val musicList: List<Music>
 ) : BaseModel

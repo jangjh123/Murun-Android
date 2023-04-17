@@ -1,9 +1,10 @@
 package com.jh.presentation.di
 
 import com.jh.murun.domain.repository.GetMusicRepository
+import com.jh.murun.domain.use_case.music.GetMusicByIdUseCase
 import com.jh.murun.domain.use_case.music.GetMusicFileUseCase
-import com.jh.murun.domain.use_case.music.GetMusicInfoByIdUseCase
-import com.jh.murun.domain.use_case.music.GetMusicInfoListByCadenceUseCase
+import com.jh.murun.domain.use_case.music.GetMusicImageUseCase
+import com.jh.murun.domain.use_case.music.GetMusicListByCadenceUseCase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -16,13 +17,17 @@ object ServiceScopedUseCaseModule {
 
     @ServiceScoped
     @Provides
-    fun provideGetMusicListUseCase(getMusicRepository: GetMusicRepository) = GetMusicInfoListByCadenceUseCase(getMusicRepository)
+    fun provideGetMusicListUseCase(getMusicRepository: GetMusicRepository) = GetMusicListByCadenceUseCase(getMusicRepository)
 
     @ServiceScoped
     @Provides
-    fun provideGetMusicByIdUseCase(getMusicRepository: GetMusicRepository) = GetMusicInfoByIdUseCase(getMusicRepository)
+    fun provideGetMusicByIdUseCase(getMusicRepository: GetMusicRepository) = GetMusicByIdUseCase(getMusicRepository)
 
     @ServiceScoped
     @Provides
     fun provideGetMusicFileUseCase(getMusicRepository: GetMusicRepository) = GetMusicFileUseCase(getMusicRepository)
+
+    @ServiceScoped
+    @Provides
+    fun provideGetMusicImageUseCase(getMusicRepository: GetMusicRepository) = GetMusicImageUseCase(getMusicRepository)
 }

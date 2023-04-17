@@ -4,20 +4,18 @@ import android.app.Service
 import android.content.Intent
 import android.os.Binder
 import android.os.IBinder
-import com.jh.murun.domain.model.MusicInfo
+import com.jh.murun.domain.model.Music
 import com.jh.murun.domain.model.ResponseState
+import com.jh.murun.domain.use_case.music.GetMusicByIdUseCase
 import com.jh.murun.domain.use_case.music.GetMusicFileUseCase
-import com.jh.murun.domain.use_case.music.GetMusicInfoByIdUseCase
-import com.jh.murun.domain.use_case.music.GetMusicInfoListByCadenceUseCase
+import com.jh.murun.domain.use_case.music.GetMusicImageUseCase
+import com.jh.murun.domain.use_case.music.GetMusicListByCadenceUseCase
 import com.jh.presentation.di.IoDispatcher
 import com.jh.presentation.di.MainDispatcher
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -29,13 +27,16 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class MusicLoaderService : Service() {
     @Inject
-    lateinit var getMusicInfoByIdUseCase: GetMusicInfoByIdUseCase
+    lateinit var getMusicByIdUseCase: GetMusicByIdUseCase
 
     @Inject
-    lateinit var getMusicInfoListByCadenceUseCase: GetMusicInfoListByCadenceUseCase
+    lateinit var getMusicListByCadenceUseCase: GetMusicListByCadenceUseCase
 
     @Inject
     lateinit var getMusicFileUseCase: GetMusicFileUseCase
+
+    @Inject
+    lateinit var getMusicImageUseCase: GetMusicImageUseCase
 
     @Inject
     @MainDispatcher
@@ -45,11 +46,11 @@ class MusicLoaderService : Service() {
     @IoDispatcher
     lateinit var ioDispatcher: CoroutineDispatcher
 
-    private val _completeMusicFlow: MutableSharedFlow<MusicInfo> = MutableSharedFlow()
-    val completeMusicFlow: SharedFlow<MusicInfo>
+    private val _completeMusicFlow: MutableSharedFlow<Music> = MutableSharedFlow()
+    val completeMusicFlow: SharedFlow<Music>
         get() = _completeMusicFlow
 
-    private val musicQueue: Queue<MusicInfo> = LinkedList()
+    private val musicQueue: Queue<Music> = LinkedList()
 
     inner class MusicLoaderServiceBinder : Binder() {
         fun getServiceInstance(): MusicLoaderService {
@@ -61,29 +62,27 @@ class MusicLoaderService : Service() {
         return MusicLoaderServiceBinder()
     }
 
-    fun loadMusicInfoListByCadence(cadence: Int) {
+    fun loadMusicListByCadence(cadence: Int) {
         CoroutineScope(ioDispatcher).launch {
-            getMusicInfoListByCadenceUseCase(cadence = cadence).onEach { result ->
+            getMusicListByCadenceUseCase(cadence = cadence).onEach { result ->
                 when (result) {
                     is ResponseState.Success -> {
                         musicQueue.clear()
                         musicQueue.addAll(
                             listOf(
                                 result.data.first(),
-                                MusicInfo(
-                                    uuid = "",
+                                Music(
+                                    id = "",
                                     artist = "d",
-                                    albumImage = null,
-                                    bpm = 130,
-                                    diskPath = null,
-                                    url = "https://cdn.pixabay.com/download/audio/2023/03/26/audio_87449b1afe.mp3?filename=mortal-gaming-144000.mp3",
+                                    imageUrl = "https://coil-kt.github.io/coil/logo.svg",
+                                    fileUrl = "https://cdn.pixabay.com/download/audio/2023/03/26/audio_87449b1afe.mp3?filename=mortal-gaming-144000.mp3",
                                     title = "타이틀"
                                 )
                             )
                         )
 
                         if (musicQueue.isNotEmpty()) {
-                            loadMusicFile(musicQueue.poll()!!)
+                            loadMusicFileAndImage(musicQueue.poll()!!)
                         }
                     }
                     is ResponseState.Error -> {} // TODO : Error handling
@@ -92,23 +91,28 @@ class MusicLoaderService : Service() {
         }
     }
 
-    private fun loadMusicFile(musicInfo: MusicInfo) {
-        CoroutineScope(ioDispatcher).launch {
-            getMusicFileUseCase(url = musicInfo.url).onEach { result ->
-                if (result != null) {
+    private fun loadMusicFileAndImage(music: Music) {
+        if (music.fileUrl != null && music.imageUrl != null) {
+            CoroutineScope(ioDispatcher).launch {
+                getMusicFileUseCase(music.fileUrl!!).zip(getMusicImageUseCase(music.imageUrl!!)) { musicFile, musicImage ->
+                    if (musicFile != null && musicImage != null) {
+                        Pair(writeMusicFileToDisk(musicFile.byteStream(), music.title), musicImage.bytes())
+                    } else {
+                        null
+                    }
+                }.onEach { result ->
                     _completeMusicFlow.emit(
-                        musicInfo.apply {
-                            diskPath = writeFileToDisk(result.byteStream(), musicInfo.title)
+                        music.apply {
+                            diskPath = result?.first
+                            image = result?.second
                         }
                     )
-                } else {
-                    // TODO : Error Handling
-                }
-            }.collect()
+                }.collect()
+            }
         }
     }
 
-    private suspend fun writeFileToDisk(byteStream: InputStream, title: String): String {
+    private suspend fun writeMusicFileToDisk(byteStream: InputStream, title: String): String {
         var path = ""
         try {
             val file = File(applicationContext.cacheDir, "$title.mp3")
@@ -140,7 +144,7 @@ class MusicLoaderService : Service() {
 
     fun loadNextMusicFile() {
         if (musicQueue.isNotEmpty()) {
-            loadMusicFile(musicQueue.poll()!!)
+//            loadMusicFile(musicQueue.poll()!!)
         } else {
             // TODO : NoSuchException Handling
         }

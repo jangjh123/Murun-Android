@@ -5,15 +5,16 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
-import android.media.MediaMetadata
+import android.graphics.BitmapFactory
 import android.os.Binder
 import android.os.IBinder
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.MediaItem
+import com.google.android.exoplayer2.MediaMetadata
 import com.google.android.exoplayer2.Player.*
 import com.google.android.exoplayer2.source.ProgressiveMediaSource
 import com.google.android.exoplayer2.upstream.DefaultDataSource
-import com.jh.murun.domain.model.MusicInfo
+import com.jh.murun.domain.model.Music
 import com.jh.presentation.di.MainDispatcher
 import com.jh.presentation.enums.CadenceType.ASSIGN
 import com.jh.presentation.enums.CadenceType.TRACKING
@@ -34,7 +35,6 @@ class MusicPlayerService : Service() {
     lateinit var mainDispatcher: CoroutineDispatcher
 
     private val exoPlayer: ExoPlayer by lazy { ExoPlayer.Builder(this@MusicPlayerService).build().apply { addListener(playerListener) } }
-    private val mediaSourceFactory = ProgressiveMediaSource.Factory(DefaultDataSource.Factory(this@MusicPlayerService))
     private val notificationManager by lazy { CustomNotificationManager(this@MusicPlayerService, exoPlayer) }
     private lateinit var state: MainState
     private lateinit var musicLoaderService: MusicLoaderService
@@ -74,23 +74,32 @@ class MusicPlayerService : Service() {
         if (state.cadenceType == TRACKING) {
             // 케이던스 변경시 갱신
         } else if (state.cadenceType == ASSIGN) {
-            musicLoaderService.loadMusicInfoListByCadence(cadence = state.assignedCadence)
+            musicLoaderService.loadMusicListByCadence(cadence = state.assignedCadence)
         }
 
         collectMusicFile()
     }
 
     private fun collectMusicFile() {
-        musicLoaderService.completeMusicFlow.onEach { musicInfo ->
-            addMusicToPlayer(musicInfo)
+        musicLoaderService.completeMusicFlow.onEach { music ->
+            addMusicToPlayer(music)
         }.launchIn(CoroutineScope(mainDispatcher))
     }
 
-    private fun addMusicToPlayer(musicInfo: MusicInfo) {
-        val source = mediaSourceFactory.createMediaSource(MediaItem.fromUri(musicInfo.diskPath!!)).apply {
-            // metadata 교체 로직 추가
-        }
-        exoPlayer.addMediaSource(mediaSourceFactory.createMediaSource(MediaItem.fromUri(musicInfo.diskPath!!)))
+    private fun addMusicToPlayer(music: Music) {
+        val mediaSourceFactory = ProgressiveMediaSource.Factory(DefaultDataSource.Factory(this@MusicPlayerService))
+        val metadata = MediaMetadata.Builder()
+            .setTitle(music.title)
+            .setArtist(music.artist)
+            .setArtworkData(music.image, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
+            .build()
+        val mediaItem = MediaItem.Builder()
+            .setUri(music.diskPath)
+            .setMediaMetadata(metadata)
+            .build()
+        val source = mediaSourceFactory.createMediaSource(mediaItem)
+
+        exoPlayer.addMediaSource(source)
     }
 
     private fun launchPlayer() {
@@ -107,22 +116,22 @@ class MusicPlayerService : Service() {
     }
 
     fun skipToPrev() {
-//        playPreviousMusic()
+
     }
 
     fun skipToNext() {
-//        playNextMusic()
+
     }
 
     fun seekTo(position: Long) {
         exoPlayer.seekTo(position)
     }
 
-    private fun convertMetadata(mediaItem: MediaItem): MediaMetadata {
-        return MediaMetadata.Builder().apply {
-            putString(MediaMetadata.METADATA_KEY_TITLE, mediaItem.mediaMetadata.title.toString())
-            putString(MediaMetadata.METADATA_KEY_ARTIST, mediaItem.mediaMetadata.artist.toString())
-//            putBitmap(MediaMetadata.METADATA_KEY_ART, BitmapFactory.decodeByteArray(mediaItem.mediaMetadata.artworkData, 0, mediaItem.mediaMetadata.artworkData?.size ?: 0))
+    private fun convertMetadata(mediaItem: MediaItem): android.media.MediaMetadata {
+        return android.media.MediaMetadata.Builder().apply {
+            putString(android.media.MediaMetadata.METADATA_KEY_TITLE, mediaItem.mediaMetadata.title.toString())
+            putString(android.media.MediaMetadata.METADATA_KEY_ARTIST, mediaItem.mediaMetadata.artist.toString())
+            putBitmap(android.media.MediaMetadata.METADATA_KEY_ALBUM_ART, BitmapFactory.decodeByteArray(mediaItem.mediaMetadata.artworkData, 0, mediaItem.mediaMetadata.artworkData?.size ?: 0))
         }.build()
     }
 
