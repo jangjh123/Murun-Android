@@ -36,7 +36,7 @@ class MainViewModel @Inject constructor(
             is MainEvent.SkipToNext -> {
                 state.copy()
             }
-            is MainEvent.RepeatOne -> {
+            is MainEvent.ChangeRepeatMode -> {
                 state.copy(isRepeatingOne = !state.isRepeatingOne)
             }
             is MainEvent.TrackCadence -> {
@@ -84,9 +84,10 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    fun onClickRepeatOne() {
+    fun onClickChangeRepeatMode() {
         viewModelScope.launch(mainDispatcher) {
-            eventChannel.send(MainEvent.RepeatOne)
+            eventChannel.send(MainEvent.ChangeRepeatMode)
+            _sideEffectChannel.send(MainSideEffect.ChangeRepeatMode)
         }
     }
 

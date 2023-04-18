@@ -139,21 +139,37 @@ class MusicPlayerService : Service() {
     }
 
     fun skipToPrev() {
-        exoPlayer.seekToPreviousMediaItem()
+        if (exoPlayer.repeatMode == REPEAT_MODE_ALL) {
+            exoPlayer.seekToPreviousMediaItem()
+        } else {
+            exoPlayer.seekTo(0L)
+        }
     }
 
     fun skipToNext() {
-        if (exoPlayer.hasNextMediaItem() && exoPlayer.mediaItemCount != 1) {
-            exoPlayer.seekToNextMediaItem()
-            launchPlayer()
+        if (exoPlayer.repeatMode == REPEAT_MODE_ALL) {
+            if (exoPlayer.hasNextMediaItem() && exoPlayer.mediaItemCount != 1) {
+                exoPlayer.seekToNextMediaItem()
+                launchPlayer()
+            } else {
+                musicLoaderService.loadNextMusicFile()
+                isIntended = true
+            }
         } else {
-            musicLoaderService.loadNextMusicFile()
-            isIntended = true
+            exoPlayer.seekTo(0L)
         }
     }
 
     fun seekTo(position: Long) {
         exoPlayer.seekTo(position)
+    }
+
+    fun changeRepeatMode() {
+        if (exoPlayer.repeatMode == REPEAT_MODE_ALL) {
+            exoPlayer.repeatMode = REPEAT_MODE_ONE
+        } else {
+            exoPlayer.repeatMode = REPEAT_MODE_ALL
+        }
     }
 
     private fun convertMetadata(mediaItem: MediaItem): android.media.MediaMetadata {
@@ -183,5 +199,13 @@ class MusicPlayerService : Service() {
                 musicLoaderService.loadNextMusicFile()
             }
         }
+    }
+
+    override fun onDestroy() {
+        if (isMusicLoaderServiceBinding) {
+            unbindService(musicLoaderServiceConnection)
+        }
+
+        super.onDestroy()
     }
 }

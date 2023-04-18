@@ -69,6 +69,7 @@ class MainActivity : BaseActivity() {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             val binder: MusicPlayerServiceBinder = service as MusicPlayerServiceBinder
             musicPlayerService = binder.getServiceInstance()
+            isMusicPlayerServiceBinding = true
             musicPlayerService.setState(mainState = viewModel.state.value)
         }
 
@@ -119,6 +120,9 @@ class MainActivity : BaseActivity() {
                             bindService(Intent(this@MainActivity, MusicPlayerService::class.java), musicPlayerServiceConnection, Context.BIND_AUTO_CREATE)
                         }
                     }
+                    is MainSideEffect.ChangeRepeatMode -> {
+                        musicPlayerService.changeRepeatMode()
+                    }
                 }
             }
         }
@@ -138,10 +142,13 @@ class MainActivity : BaseActivity() {
     }
 
     override fun onDestroy() {
-        if (::cadenceTrackingService.isInitialized && isCadenceTrackingServiceBinding) {
+        if (isCadenceTrackingServiceBinding) {
             unbindService(cadenceTrackingServiceConnection)
         }
 
+        if (isMusicPlayerServiceBinding) {
+            unbindService(musicPlayerServiceConnection)
+        }
         super.onDestroy()
     }
 
@@ -287,7 +294,7 @@ private fun MainActivityContent(
                     )
 
                     Icon(
-                        modifier = Modifier.clickableWithoutRipple { viewModel.onClickRepeatOne() },
+                        modifier = Modifier.clickableWithoutRipple { viewModel.onClickChangeRepeatMode() },
                         painter = painterResource(id = R.drawable.ic_repeat_one),
                         contentDescription = "repeatIcon",
                         tint = if (isRepeatingOne) MainColor else Color.LightGray
