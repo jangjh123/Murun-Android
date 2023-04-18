@@ -1,4 +1,4 @@
-package com.jh.presentation.service
+package com.jh.presentation.service.cadence_tracking
 
 import android.app.Service
 import android.content.Context

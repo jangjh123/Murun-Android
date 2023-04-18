@@ -1,4 +1,4 @@
-package com.jh.presentation.service
+package com.jh.presentation.service.music_player
 
 import android.app.Service
 import android.content.ComponentName
@@ -19,14 +19,17 @@ import com.jh.murun.domain.model.Music
 import com.jh.presentation.di.MainDispatcher
 import com.jh.presentation.enums.CadenceType.ASSIGN
 import com.jh.presentation.enums.CadenceType.TRACKING
-import com.jh.presentation.service.MusicLoaderService.MusicLoaderServiceBinder
+import com.jh.presentation.service.music_loader.MusicLoaderService
+import com.jh.presentation.service.music_loader.MusicLoaderService.MusicLoaderServiceBinder
 import com.jh.presentation.ui.main.MainState
 import com.jh.presentation.util.CustomNotificationManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -42,7 +45,6 @@ class MusicPlayerService : Service() {
         }
     }
     private val notificationManager by lazy { CustomNotificationManager(this@MusicPlayerService, exoPlayer) }
-    private lateinit var state: MainState
     private lateinit var musicLoaderService: MusicLoaderService
     private var isMusicLoaderServiceBinding = false
     private val musicLoaderServiceConnection = object : ServiceConnection {
@@ -60,6 +62,27 @@ class MusicPlayerService : Service() {
     private var isStarted = false
     private var isIntended = false
 
+    private lateinit var mainState: MainState
+
+    private val eventChannel = Channel<MusicPlayerEvent>()
+    val state: StateFlow<MusicPlayerState> = eventChannel.receiveAsFlow()
+        .runningFold(MusicPlayerState(), ::reduceState)
+        .stateIn(CoroutineScope(Dispatchers.Main), SharingStarted.Eagerly, MusicPlayerState())
+
+    private fun reduceState(state: MusicPlayerState, event: MusicPlayerEvent): MusicPlayerState {
+        return when (event) {
+            is MusicPlayerEvent.LoadMusic -> {
+                state.copy(isLoading = true)
+            }
+            is MusicPlayerEvent.Play -> {
+                state.copy(isPlaying = true, currentMusic = exoPlayer.currentMediaItem)
+            }
+            is MusicPlayerEvent.Pause -> {
+                state.copy(isPlaying = false)
+            }
+        }
+    }
+
     inner class MusicPlayerServiceBinder : Binder() {
         fun getServiceInstance(): MusicPlayerService {
             return this@MusicPlayerService
@@ -75,14 +98,14 @@ class MusicPlayerService : Service() {
     }
 
     fun setState(mainState: MainState) {
-        state = mainState
+        this.mainState = mainState
     }
 
     private fun initPlayer() {
-        if (state.cadenceType == TRACKING) {
-            // 케이던스 변경시 갱신
-        } else if (state.cadenceType == ASSIGN) {
-            musicLoaderService.loadMusicListByCadence(cadence = state.assignedCadence)
+        if (mainState.cadenceType == TRACKING) {
+
+        } else if (mainState.cadenceType == ASSIGN) {
+            musicLoaderService.loadMusicListByCadence(cadence = mainState.assignedCadence)
         }
 
         collectMusicFile()
@@ -116,6 +139,9 @@ class MusicPlayerService : Service() {
         if (!isStarted) {
             launchPlayer()
             isStarted = true
+            CoroutineScope(mainDispatcher).launch {
+                eventChannel.send(MusicPlayerEvent.Play)
+            }
         }
 
         if (isIntended) {
@@ -132,10 +158,16 @@ class MusicPlayerService : Service() {
 
     fun play() {
         exoPlayer.play()
+        CoroutineScope(mainDispatcher).launch {
+            eventChannel.send(MusicPlayerEvent.Play)
+        }
     }
 
     fun pause() {
         exoPlayer.pause()
+        CoroutineScope(mainDispatcher).launch {
+            eventChannel.send(MusicPlayerEvent.Pause)
+        }
     }
 
     fun skipToPrev() {

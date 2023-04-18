@@ -10,7 +10,7 @@ import android.support.v4.media.session.PlaybackStateCompat
 import androidx.core.app.NotificationCompat
 import com.google.android.exoplayer2.ExoPlayer
 import com.jh.murun.presentation.R
-import com.jh.presentation.service.MusicPlayerService
+import com.jh.presentation.service.music_player.MusicPlayerService
 
 class CustomNotificationManager(
     private val musicPlayerService: MusicPlayerService,

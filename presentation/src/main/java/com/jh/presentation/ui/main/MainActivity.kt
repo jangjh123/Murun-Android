@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.content.pm.PackageManager
+import android.graphics.BitmapFactory
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
@@ -33,23 +34,27 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.layout.ContentScale.Companion.Crop
-import androidx.compose.ui.layout.ContentScale.Companion.FillBounds
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.jh.murun.presentation.R
 import com.jh.presentation.base.BaseActivity
 import com.jh.presentation.enums.CadenceType.*
-import com.jh.presentation.service.CadenceTrackingService
-import com.jh.presentation.service.CadenceTrackingService.CadenceTrackingServiceBinder
-import com.jh.presentation.service.MusicPlayerService
-import com.jh.presentation.service.MusicPlayerService.MusicPlayerServiceBinder
+import com.jh.presentation.service.cadence_tracking.CadenceTrackingService
+import com.jh.presentation.service.cadence_tracking.CadenceTrackingService.CadenceTrackingServiceBinder
+import com.jh.presentation.service.music_player.MusicPlayerService
+import com.jh.presentation.service.music_player.MusicPlayerService.MusicPlayerServiceBinder
+import com.jh.presentation.service.music_player.MusicPlayerState
 import com.jh.presentation.ui.*
 import com.jh.presentation.ui.main.MainEvent.*
 import com.jh.presentation.ui.main.favorite.FavoriteActivity
@@ -65,12 +70,21 @@ class MainActivity : BaseActivity() {
 
     private lateinit var musicPlayerService: MusicPlayerService
     private var isMusicPlayerServiceBinding = false
+    private val playerUiState = mutableStateOf(MusicPlayerState())
     private val musicPlayerServiceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             val binder: MusicPlayerServiceBinder = service as MusicPlayerServiceBinder
             musicPlayerService = binder.getServiceInstance()
             isMusicPlayerServiceBinding = true
             musicPlayerService.setState(mainState = viewModel.state.value)
+
+            lifecycleScope.launch {
+                repeatOnLifecycle(Lifecycle.State.STARTED) {
+                    musicPlayerService.state.collectLatest {
+                        playerUiState.value = it
+                    }
+                }
+            }
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
@@ -97,7 +111,7 @@ class MainActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
 
         initComposeUi {
-            MainActivityContent()
+            MainActivityContent(playerUiState)
         }
 
         repeatOnStarted {
@@ -162,96 +176,105 @@ class MainActivity : BaseActivity() {
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun MainActivityContent(
+    playerUiState: MutableState<MusicPlayerState>,
     viewModel: MainViewModel = hiltViewModel()
 ) {
     val scope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
     val cadenceAssignTextState = remember { mutableStateOf("") }
+    val player = playerUiState.value
+//    val convertImage = { byteArray: ByteArray, size: Int -> ImageBitmap
+//        BitmapFactory.decodeByteArray(byteArray, size, size).asImageBitmap()
+//    }
 
     with(viewModel.state.collectAsStateWithLifecycle().value) {
         Box(modifier = Modifier.fillMaxSize()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp)
-            ) {
-                Image(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp)
-                        .blur(
-                            radiusX = 2.dp,
-                            radiusY = 2.dp
-                        ),
-                    painter = if (image != null) BitmapPainter(image) else painterResource(id = R.drawable.music_default),
-                    contentDescription = "songInfoBackground",
-                    contentScale = Crop,
-                )
+            if (player.currentMusic?.mediaMetadata?.artworkData != null) {
 
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(200.dp)
-                        .background(color = DarkFilter1)
-                )
-            }
-
-            Box(modifier = Modifier.fillMaxWidth()) {
-                Row(
-                    modifier = Modifier
-                        .padding(
-                            vertical = 24.dp,
-                            horizontal = 24.dp
-                        )
-                        .fillMaxWidth()
                 ) {
-                    Box {
-                        Image(
-                            modifier = Modifier
-                                .clip(shape = Shapes.large)
-                                .size(120.dp),
-                            painter = if (image != null) BitmapPainter(image) else painterResource(id = R.drawable.music_default),
-                            contentDescription = "albumCover",
-                            contentScale = if (image != null) FillBounds else Crop
-                        )
+//                    Image(
+//                        modifier = Modifier
+//                            .fillMaxWidth()
+//                            .height(200.dp)
+//                            .blur(
+//                                radiusX = 2.dp,
+//                                radiusY = 2.dp
+//                            ),
+//                        painter = if (player.currentMusic?.mediaMetadata?.artworkData != null) BitmapPainter(BitmapFactory.decodeByteArray(player.currentMusic.mediaMetadata.artworkData, 320, 320).asImageBitmap())
+//                        else painterResource(id = R.drawable.music_default),
+//                        contentDescription = "songInfoBackground",
+//                        contentScale = Crop,
+//                    )
 
-                        Text(
-                            modifier = Modifier.align(Center),
-                            text = "No Music",
-                            style = Typography.body1,
-                            color = Gray0
-                        )
-                    }
-
-                    Column(
+                    Box(
                         modifier = Modifier
-                            .padding(start = 12.dp)
-                            .height(120.dp),
-                        verticalArrangement = SpaceBetween
-                    ) {
-                        Column {
-                            Text(
-                                text = title,
-                                style = Typography.h3,
-                                color = Color.White
+                            .fillMaxWidth()
+                            .height(200.dp)
+                            .background(color = DarkFilter1)
+                    )
+                }
+
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier
+                            .padding(
+                                vertical = 24.dp,
+                                horizontal = 24.dp
                             )
+                            .fillMaxWidth()
+                    ) {
+                        Box {
+//                            Image(
+//                                modifier = Modifier
+//                                    .clip(shape = Shapes.large)
+//                                    .size(120.dp),
+//                                painter = if (player.currentMusic?.mediaMetadata?.artworkData != null) BitmapPainter(convertImage(player.currentMusic.mediaMetadata.artworkData!!, 720))
+//                                else painterResource(id = R.drawable.music_default),
+//                                contentDescription = "albumCover",
+//                                contentScale = if (player.currentMusic?.mediaMetadata?.artworkData != null) FillBounds else Crop
+//                            )
 
                             Text(
-                                text = artist,
+                                modifier = Modifier.align(Center),
+                                text = "No Music",
                                 style = Typography.body1,
                                 color = Gray0
                             )
                         }
 
-                        Text(
-                            text = "$bpm BPM",
-                            style = Typography.h4,
-                            color = MainColor
-                        )
+                        Column(
+                            modifier = Modifier
+                                .padding(start = 12.dp)
+                                .height(120.dp),
+                            verticalArrangement = SpaceBetween
+                        ) {
+                            Column {
+                                Text(
+                                    text = player.currentMusic?.mediaMetadata?.title.toString(),
+                                    style = Typography.h3,
+                                    color = Color.White
+                                )
+
+                                Text(
+                                    text = player.currentMusic?.mediaMetadata?.artist.toString(),
+                                    style = Typography.body1,
+                                    color = Gray0
+                                )
+                            }
+
+                            Text(
+                                text = "BPM", // TODO : Should insert bpm to metadata
+                                style = Typography.h4,
+                                color = MainColor
+                            )
+                        }
                     }
                 }
             }
-
             Column(
                 modifier = Modifier
                     .padding(top = 168.dp)
@@ -281,7 +304,7 @@ private fun MainActivityContent(
 
                     Icon(
                         modifier = Modifier.clickableWithoutRipple { viewModel.onClickPlayOrPause() },
-                        painter = painterResource(id = if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play),
+                        painter = painterResource(id = if (playerUiState.value.isPlaying) R.drawable.ic_pause else R.drawable.ic_play),
                         contentDescription = "playOrPauseIcon",
                         tint = MainColor
                     )
@@ -508,7 +531,7 @@ private fun MainActivityContent(
                 }
             }
 
-            if (isLoading) {
+            if (player.isLoading) {
                 LoadingScreen()
             }
 

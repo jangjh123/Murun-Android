@@ -28,13 +28,13 @@ class MainViewModel @Inject constructor(
     private fun reduceState(state: MainState, event: MainEvent): MainState {
         return when (event) {
             is MainEvent.SkipToPrev -> {
-                state.copy(isLoading = true)
+                state
             }
             is MainEvent.PlayOrPause -> {
-                state.copy(isPlaying = !state.isPlaying)
+                state
             }
             is MainEvent.SkipToNext -> {
-                state.copy()
+                state
             }
             is MainEvent.ChangeRepeatMode -> {
                 state.copy(isRepeatingOne = !state.isRepeatingOne)
