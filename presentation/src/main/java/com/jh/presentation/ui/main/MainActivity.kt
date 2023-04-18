@@ -41,15 +41,18 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jh.murun.presentation.R
 import com.jh.presentation.base.BaseActivity
 import com.jh.presentation.enums.CadenceType.*
+import com.jh.presentation.service.CadenceTrackingService
+import com.jh.presentation.service.CadenceTrackingService.CadenceTrackingServiceBinder
+import com.jh.presentation.service.MusicPlayerService
+import com.jh.presentation.service.MusicPlayerService.MusicPlayerServiceBinder
 import com.jh.presentation.ui.*
 import com.jh.presentation.ui.main.MainEvent.*
 import com.jh.presentation.ui.main.favorite.FavoriteActivity
-import com.jh.presentation.ui.service.CadenceTrackingService
-import com.jh.presentation.ui.service.CadenceTrackingService.CadenceTrackingServiceBinder
 import com.jh.presentation.ui.theme.*
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
@@ -59,6 +62,21 @@ import kotlinx.coroutines.launch
 @AndroidEntryPoint
 class MainActivity : BaseActivity() {
     override val viewModel: MainViewModel by viewModels()
+
+    private lateinit var musicPlayerService: MusicPlayerService
+    private var isMusicPlayerServiceBinding = false
+    private val musicPlayerServiceConnection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+            val binder: MusicPlayerServiceBinder = service as MusicPlayerServiceBinder
+            musicPlayerService = binder.getServiceInstance()
+            isMusicPlayerServiceBinding = true
+            musicPlayerService.setState(mainState = viewModel.state.value)
+        }
+
+        override fun onServiceDisconnected(name: ComponentName?) {
+            isMusicPlayerServiceBinding = false
+        }
+    }
 
     private lateinit var cadenceTrackingService: CadenceTrackingService
     private var isCadenceTrackingServiceBinding = false
@@ -79,7 +97,7 @@ class MainActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
 
         initComposeUi {
-            MainActivityContent(viewModel = viewModel)
+            MainActivityContent()
         }
 
         repeatOnStarted {
@@ -89,11 +107,21 @@ class MainActivity : BaseActivity() {
                         startActivity(FavoriteActivity.newIntent(this@MainActivity))
                     }
                     is MainSideEffect.TrackCadence -> {
-                        bindService(Intent(this@MainActivity, CadenceTrackingService::class.java), cadenceTrackingServiceConnection, Context.BIND_AUTO_CREATE)
+                        if (!isCadenceTrackingServiceBinding) {
+                            bindService(Intent(this@MainActivity, CadenceTrackingService::class.java), cadenceTrackingServiceConnection, Context.BIND_AUTO_CREATE)
+                        }
                     }
                     is MainSideEffect.StopTrackingCadence -> {
                         cadenceTrackingService.stop()
                         unbindService(cadenceTrackingServiceConnection)
+                    }
+                    is MainSideEffect.PlayMusic -> {
+                        if (!isMusicPlayerServiceBinding) {
+                            bindService(Intent(this@MainActivity, MusicPlayerService::class.java), musicPlayerServiceConnection, Context.BIND_AUTO_CREATE)
+                        }
+                    }
+                    is MainSideEffect.ChangeRepeatMode -> {
+                        musicPlayerService.changeRepeatMode()
                     }
                 }
             }
@@ -101,12 +129,7 @@ class MainActivity : BaseActivity() {
     }
 
     private fun trackCadence() {
-        if (ContextCompat.checkSelfPermission(
-                this@MainActivity,
-                Manifest.permission.ACTIVITY_RECOGNITION
-            )
-            == PackageManager.PERMISSION_GRANTED
-        ) {
+        if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.ACTIVITY_RECOGNITION) == PackageManager.PERMISSION_GRANTED) {
             cadenceTrackingService.start(this@MainActivity)
             cadenceTrackingService.cadenceLiveData.observe(this@MainActivity) { cadence ->
                 viewModel.onCadenceMeasured(cadence)
@@ -119,10 +142,13 @@ class MainActivity : BaseActivity() {
     }
 
     override fun onDestroy() {
-        if (::cadenceTrackingService.isInitialized && isCadenceTrackingServiceBinding) {
+        if (isCadenceTrackingServiceBinding) {
             unbindService(cadenceTrackingServiceConnection)
         }
 
+        if (isMusicPlayerServiceBinding) {
+            unbindService(musicPlayerServiceConnection)
+        }
         super.onDestroy()
     }
 
@@ -136,9 +162,11 @@ class MainActivity : BaseActivity() {
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun MainActivityContent(
-    viewModel: MainViewModel
+    viewModel: MainViewModel = hiltViewModel()
 ) {
     val scope = rememberCoroutineScope()
+    val focusManager = LocalFocusManager.current
+    val cadenceAssignTextState = remember { mutableStateOf("") }
 
     with(viewModel.state.collectAsStateWithLifecycle().value) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -266,7 +294,7 @@ private fun MainActivityContent(
                     )
 
                     Icon(
-                        modifier = Modifier.clickableWithoutRipple { viewModel.onClickRepeatOne() },
+                        modifier = Modifier.clickableWithoutRipple { viewModel.onClickChangeRepeatMode() },
                         painter = painterResource(id = R.drawable.ic_repeat_one),
                         contentDescription = "repeatIcon",
                         tint = if (isRepeatingOne) MainColor else Color.LightGray
@@ -319,7 +347,7 @@ private fun MainActivityContent(
                                 ) {
                                     Text(
                                         modifier = Modifier.align(Center),
-                                        text = "$cadence",
+                                        text = "$measuredCadence",
                                         style = Typography.h5,
                                         color = cadenceTrackingColorState.value,
                                     )
@@ -353,43 +381,54 @@ private fun MainActivityContent(
                                         .fillMaxWidth()
                                         .height(200.dp)
                                 ) {
-                                    val focusManager = LocalFocusManager.current
-                                    val cadenceAssignTextState = remember { mutableStateOf("") }
+                                    if (cadenceAssignTextState.value.length >= 3 && cadenceAssignTextState.value.toInt() > 180) {
+                                        cadenceAssignTextState.value = ""
+                                    }
 
-                                    CompositionLocalProvider(
-                                        LocalTextSelectionColors.provides(
-                                            TextSelectionColors(
-                                                handleColor = MainColor,
-                                                backgroundColor = Gray0
-                                            )
-                                        )
+                                    Column(
+                                        modifier = Modifier.align(Center),
+                                        horizontalAlignment = CenterHorizontally
                                     ) {
-                                        TextField(
-                                            modifier = Modifier.align(Center),
-                                            value = cadenceAssignTextState.value,
-                                            onValueChange = { cadenceAssignTextState.value = it },
-                                            placeholder = {
-                                                Text(
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    text = "입력",
-                                                    style = Typography.h6,
-                                                    color = cadenceAssignColorState.value,
-                                                )
-                                            },
-                                            textStyle = Typography.h6,
-                                            keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Decimal),
-                                            keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
-                                            singleLine = true,
-                                            colors = TextFieldDefaults.textFieldColors(
-                                                textColor = MainColor,
-                                                backgroundColor = Color.White,
-                                                cursorColor = MainColor,
-                                                focusedIndicatorColor = Color.Transparent,
-                                                unfocusedIndicatorColor = Color.Transparent,
-                                                disabledIndicatorColor = Color.Transparent,
-                                            ),
-                                            enabled = cadenceType == ASSIGN
+                                        Text(
+                                            text = "60 이상 180 이하",
+                                            style = Typography.body1,
+                                            color = Gray3
                                         )
+
+                                        CompositionLocalProvider(
+                                            LocalTextSelectionColors.provides(
+                                                TextSelectionColors(
+                                                    handleColor = MainColor,
+                                                    backgroundColor = Gray0
+                                                )
+                                            )
+                                        ) {
+                                            TextField(
+                                                value = cadenceAssignTextState.value,
+                                                onValueChange = { cadenceAssignTextState.value = it },
+                                                placeholder = {
+                                                    Text(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        text = "입력",
+                                                        style = Typography.h6,
+                                                        color = cadenceAssignColorState.value,
+                                                    )
+                                                },
+                                                textStyle = Typography.h6,
+                                                keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Decimal),
+                                                keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+                                                singleLine = true,
+                                                colors = TextFieldDefaults.textFieldColors(
+                                                    textColor = MainColor,
+                                                    backgroundColor = Color.White,
+                                                    cursorColor = MainColor,
+                                                    focusedIndicatorColor = Color.Transparent,
+                                                    unfocusedIndicatorColor = Color.Transparent,
+                                                    disabledIndicatorColor = Color.Transparent,
+                                                ),
+                                                enabled = cadenceType == ASSIGN
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -412,14 +451,24 @@ private fun MainActivityContent(
                                     indication = null,
                                     onClick = {
                                         if (!isRunning) {
-                                            if (cadenceType == NONE) {
-                                                viewModel.showSnackBar()
-                                                scope.launch {
-                                                    delay(3000L)
-                                                    viewModel.hideSnackBar()
+                                            when (cadenceType) {
+                                                TRACKING -> {
+                                                    viewModel.onClickStartRunning(null)
                                                 }
-                                            } else {
-                                                viewModel.onClickStartRunning()
+                                                ASSIGN -> {
+                                                    if (cadenceAssignTextState.value.isNotEmpty() &&
+                                                        cadenceAssignTextState.value.toInt() in 60..180
+                                                    ) {
+                                                        viewModel.onClickStartRunning(cadenceAssignTextState.value.toInt())
+                                                    }
+                                                }
+                                                NONE -> {
+                                                    viewModel.showSnackBar()
+                                                    scope.launch {
+                                                        delay(3000L)
+                                                        viewModel.hideSnackBar()
+                                                    }
+                                                }
                                             }
                                         }
                                     },

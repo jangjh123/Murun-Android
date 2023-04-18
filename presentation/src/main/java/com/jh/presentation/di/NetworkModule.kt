@@ -50,7 +50,7 @@ object NetworkModule {
                     )
                     .build()
             )
-            .addConverterFactory(GsonConverterFactory.create())
+            .addConverterFactory(GsonConverterFactory.create(GsonBuilder().setLenient().create()))
             .build()
             .create(ApiService::class.java)
     }

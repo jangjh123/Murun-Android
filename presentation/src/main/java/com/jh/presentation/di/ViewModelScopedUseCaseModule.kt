@@ -1,9 +1,6 @@
 package com.jh.presentation.di
 
-import com.jh.murun.domain.repository.GetMusicRepository
 import com.jh.murun.domain.repository.SplashRepository
-import com.jh.murun.domain.use_case.music.GetMusicByIdUseCase
-import com.jh.murun.domain.use_case.music.GetMusicListUseCase
 import com.jh.murun.domain.use_case.splash.GetToSkipOnBoardingUseCase
 import com.jh.murun.domain.use_case.splash.SetToSkipOnBoardingUseCase
 import dagger.Module
@@ -14,7 +11,7 @@ import dagger.hilt.android.scopes.ViewModelScoped
 
 @Module
 @InstallIn(ViewModelComponent::class)
-object UseCaseModule {
+object ViewModelScopedUseCaseModule {
 
     @ViewModelScoped
     @Provides
@@ -23,12 +20,4 @@ object UseCaseModule {
     @ViewModelScoped
     @Provides
     fun provideSetToSkipOnBoardingUseCase(splashRepository: SplashRepository) = SetToSkipOnBoardingUseCase(splashRepository)
-
-    @ViewModelScoped
-    @Provides
-    fun provideGetMusicListUseCase(getMusicRepository: GetMusicRepository) = GetMusicListUseCase(getMusicRepository)
-
-    @ViewModelScoped
-    @Provides
-    fun provideGetMusicByIdUseCase(getMusicRepository: GetMusicRepository) = GetMusicByIdUseCase(getMusicRepository)
 }

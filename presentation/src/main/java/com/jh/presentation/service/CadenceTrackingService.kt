@@ -1,4 +1,4 @@
-package com.jh.presentation.ui.service
+package com.jh.presentation.service
 
 import android.app.Service
 import android.content.Context
@@ -11,16 +11,22 @@ import android.os.Binder
 import android.os.IBinder
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import com.jh.presentation.di.DefaultDispatcher
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.*
+import javax.inject.Inject
 
-class CadenceTrackingService : Service(), SensorEventListener {
+@AndroidEntryPoint
+class CadenceTrackingService @Inject constructor(
+    @DefaultDispatcher private val defaultDispatcher: CoroutineDispatcher
+) : Service(), SensorEventListener {
     private lateinit var sensorManager: SensorManager
     private var stepCount = 0
     private lateinit var cadenceUpdatingJob: Job
 
-    private val _cadenceLiveData =  MutableLiveData<Int>()
+    private val _cadenceLiveData = MutableLiveData<Int>()
     val cadenceLiveData: LiveData<Int>
-    get() = _cadenceLiveData
+        get() = _cadenceLiveData
 
     inner class CadenceTrackingServiceBinder : Binder() {
         fun getServiceInstance(): CadenceTrackingService {
@@ -45,7 +51,7 @@ class CadenceTrackingService : Service(), SensorEventListener {
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
 
     private fun calculateCadence() {
-        cadenceUpdatingJob = CoroutineScope(Dispatchers.Default).launch {
+        cadenceUpdatingJob = CoroutineScope(defaultDispatcher).launch {
             delay(60000L)
             _cadenceLiveData.postValue(stepCount)
             stepCount = 0
