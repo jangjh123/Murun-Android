@@ -10,7 +10,6 @@ import android.graphics.BitmapFactory
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
-import android.util.Base64
 import androidx.activity.viewModels
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -127,7 +126,7 @@ class MainActivity : BaseActivity() {
                         musicPlayerService.playOrPause()
                     }
                     is MainSideEffect.SkipToNext -> {
-                        musicPlayerService.skipToPrev()
+                        musicPlayerService.skipToNext()
                     }
                     is MainSideEffect.GoToFavorite -> {
                         startActivity(FavoriteActivity.newIntent(this@MainActivity))
