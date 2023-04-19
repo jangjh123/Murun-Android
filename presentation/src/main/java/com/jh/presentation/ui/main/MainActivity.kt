@@ -10,6 +10,7 @@ import android.graphics.BitmapFactory
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
+import android.util.Base64
 import androidx.activity.viewModels
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -33,10 +34,12 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.layout.ContentScale.Companion.Crop
+import androidx.compose.ui.layout.ContentScale.Companion.FillBounds
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -117,6 +120,18 @@ class MainActivity : BaseActivity() {
         repeatOnStarted {
             viewModel.sideEffectChannelFlow.collectLatest { sideEffect ->
                 when (sideEffect) {
+                    is MainSideEffect.SkipToPrev -> {
+                        musicPlayerService.skipToPrev()
+                    }
+                    is MainSideEffect.Play -> {
+                        musicPlayerService.play()
+                    }
+                    is MainSideEffect.Pause -> {
+                        musicPlayerService.pause()
+                    }
+                    is MainSideEffect.SkipToNext -> {
+                        musicPlayerService.skipToPrev()
+                    }
                     is MainSideEffect.GoToFavorite -> {
                         startActivity(FavoriteActivity.newIntent(this@MainActivity))
                     }
@@ -129,7 +144,7 @@ class MainActivity : BaseActivity() {
                         cadenceTrackingService.stop()
                         unbindService(cadenceTrackingServiceConnection)
                     }
-                    is MainSideEffect.PlayMusic -> {
+                    is MainSideEffect.LaunchMusicPlayer -> {
                         if (!isMusicPlayerServiceBinding) {
                             bindService(Intent(this@MainActivity, MusicPlayerService::class.java), musicPlayerServiceConnection, Context.BIND_AUTO_CREATE)
                         }
@@ -183,61 +198,61 @@ private fun MainActivityContent(
     val focusManager = LocalFocusManager.current
     val cadenceAssignTextState = remember { mutableStateOf("") }
     val player = playerUiState.value
-//    val convertImage = { byteArray: ByteArray, size: Int -> ImageBitmap
-//        BitmapFactory.decodeByteArray(byteArray, size, size).asImageBitmap()
-//    }
+    val convertImage = { byteArray: ByteArray ->
+        ImageBitmap
+        BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size).asImageBitmap()
+    }
 
     with(viewModel.state.collectAsStateWithLifecycle().value) {
         Box(modifier = Modifier.fillMaxSize()) {
-            if (player.currentMusic?.mediaMetadata?.artworkData != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+            ) {
+                Image(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                        .blur(
+                            radiusX = 2.dp,
+                            radiusY = 2.dp
+                        ),
+                    painter = if (player.currentMusic?.mediaMetadata?.artworkData != null) BitmapPainter(convertImage(player.currentMusic.mediaMetadata.artworkData!!))
+                    else painterResource(id = R.drawable.music_default),
+                    contentDescription = "songInfoBackground",
+                    contentScale = Crop,
+                )
 
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(200.dp)
+                        .background(color = DarkFilter1)
+                )
+            }
+
+            Box(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier
+                        .padding(
+                            vertical = 24.dp,
+                            horizontal = 24.dp
+                        )
+                        .fillMaxWidth()
                 ) {
-//                    Image(
-//                        modifier = Modifier
-//                            .fillMaxWidth()
-//                            .height(200.dp)
-//                            .blur(
-//                                radiusX = 2.dp,
-//                                radiusY = 2.dp
-//                            ),
-//                        painter = if (player.currentMusic?.mediaMetadata?.artworkData != null) BitmapPainter(BitmapFactory.decodeByteArray(player.currentMusic.mediaMetadata.artworkData, 320, 320).asImageBitmap())
-//                        else painterResource(id = R.drawable.music_default),
-//                        contentDescription = "songInfoBackground",
-//                        contentScale = Crop,
-//                    )
+                    Box {
+                        Image(
+                            modifier = Modifier
+                                .clip(shape = Shapes.large)
+                                .size(120.dp),
+                            painter = if (player.currentMusic?.mediaMetadata?.artworkData != null) BitmapPainter(convertImage(player.currentMusic.mediaMetadata.artworkData!!))
+                            else painterResource(id = R.drawable.music_default),
+                            contentDescription = "albumCover",
+                            contentScale = if (player.currentMusic?.mediaMetadata?.artworkData?.isNotEmpty() == true) FillBounds else Crop
+                        )
 
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(200.dp)
-                            .background(color = DarkFilter1)
-                    )
-                }
-
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    Row(
-                        modifier = Modifier
-                            .padding(
-                                vertical = 24.dp,
-                                horizontal = 24.dp
-                            )
-                            .fillMaxWidth()
-                    ) {
-                        Box {
-//                            Image(
-//                                modifier = Modifier
-//                                    .clip(shape = Shapes.large)
-//                                    .size(120.dp),
-//                                painter = if (player.currentMusic?.mediaMetadata?.artworkData != null) BitmapPainter(convertImage(player.currentMusic.mediaMetadata.artworkData!!, 720))
-//                                else painterResource(id = R.drawable.music_default),
-//                                contentDescription = "albumCover",
-//                                contentScale = if (player.currentMusic?.mediaMetadata?.artworkData != null) FillBounds else Crop
-//                            )
-
+                        if (player.currentMusic == null) {
                             Text(
                                 modifier = Modifier.align(Center),
                                 text = "No Music",
@@ -245,36 +260,37 @@ private fun MainActivityContent(
                                 color = Gray0
                             )
                         }
+                    }
 
-                        Column(
-                            modifier = Modifier
-                                .padding(start = 12.dp)
-                                .height(120.dp),
-                            verticalArrangement = SpaceBetween
-                        ) {
-                            Column {
-                                Text(
-                                    text = player.currentMusic?.mediaMetadata?.title.toString(),
-                                    style = Typography.h3,
-                                    color = Color.White
-                                )
-
-                                Text(
-                                    text = player.currentMusic?.mediaMetadata?.artist.toString(),
-                                    style = Typography.body1,
-                                    color = Gray0
-                                )
-                            }
+                    Column(
+                        modifier = Modifier
+                            .padding(start = 12.dp)
+                            .height(120.dp),
+                        verticalArrangement = SpaceBetween
+                    ) {
+                        Column {
+                            Text(
+                                text = if (player.currentMusic != null) player.currentMusic.mediaMetadata.title.toString() else "",
+                                style = Typography.h3,
+                                color = Color.White
+                            )
 
                             Text(
-                                text = "BPM", // TODO : Should insert bpm to metadata
-                                style = Typography.h4,
-                                color = MainColor
+                                text = if (player.currentMusic != null) player.currentMusic.mediaMetadata.artist.toString() else "",
+                                style = Typography.body1,
+                                color = Gray0
                             )
                         }
+
+                        Text(
+                            text = "BPM", // TODO : Should insert bpm to metadata
+                            style = Typography.h4,
+                            color = MainColor
+                        )
                     }
                 }
             }
+
             Column(
                 modifier = Modifier
                     .padding(top = 168.dp)
@@ -295,32 +311,34 @@ private fun MainActivityContent(
                         .align(CenterHorizontally),
                     horizontalArrangement = Arrangement.spacedBy(36.dp)
                 ) {
+                    val iconColorState = animateColorAsState(targetValue = if (player.isLaunched) MainColor else Color.LightGray)
+
                     Icon(
                         modifier = Modifier.clickableWithoutRipple { viewModel.onClickSkipToPrev() },
                         painter = painterResource(id = R.drawable.ic_skip_prev),
                         contentDescription = "skipToPrevIcon",
-                        tint = Color.LightGray
+                        tint = iconColorState.value
                     )
 
                     Icon(
-                        modifier = Modifier.clickableWithoutRipple { viewModel.onClickPlayOrPause() },
+                        modifier = Modifier.clickableWithoutRipple { if (player.isPlaying) viewModel.onClickPause() else viewModel.onClickPlay() },
                         painter = painterResource(id = if (playerUiState.value.isPlaying) R.drawable.ic_pause else R.drawable.ic_play),
                         contentDescription = "playOrPauseIcon",
-                        tint = MainColor
+                        tint = iconColorState.value
                     )
 
                     Icon(
                         modifier = Modifier.clickableWithoutRipple { viewModel.onClickSkipToNext() },
                         painter = painterResource(id = R.drawable.ic_skip_next),
                         contentDescription = "skipToNextIcon",
-                        tint = Color.LightGray
+                        tint = iconColorState.value
                     )
 
                     Icon(
                         modifier = Modifier.clickableWithoutRipple { viewModel.onClickChangeRepeatMode() },
-                        painter = painterResource(id = R.drawable.ic_repeat_one),
+                        painter = painterResource(id = if (player.isRepeatingOne) R.drawable.ic_repeat_one else R.drawable.ic_repeat_all),
                         contentDescription = "repeatIcon",
-                        tint = if (isRepeatingOne) MainColor else Color.LightGray
+                        tint = iconColorState.value
                     )
                 }
 

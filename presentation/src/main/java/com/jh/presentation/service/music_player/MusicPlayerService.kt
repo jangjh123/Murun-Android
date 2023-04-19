@@ -71,14 +71,23 @@ class MusicPlayerService : Service() {
 
     private fun reduceState(state: MusicPlayerState, event: MusicPlayerEvent): MusicPlayerState {
         return when (event) {
+            is MusicPlayerEvent.Launch -> {
+                state.copy(isLaunched = true)
+            }
             is MusicPlayerEvent.LoadMusic -> {
                 state.copy(isLoading = true)
             }
             is MusicPlayerEvent.Play -> {
-                state.copy(isPlaying = true, currentMusic = exoPlayer.currentMediaItem)
+                state.copy(isPlaying = true)
             }
             is MusicPlayerEvent.Pause -> {
                 state.copy(isPlaying = false)
+            }
+            is MusicPlayerEvent.MusicChanged -> {
+                state.copy(isLoading = false, currentMusic = exoPlayer.currentMediaItem)
+            }
+            is MusicPlayerEvent.RepeatModeChanged -> {
+                state.copy(isRepeatingOne = !state.isRepeatingOne)
             }
         }
     }
@@ -92,6 +101,9 @@ class MusicPlayerService : Service() {
     override fun onBind(intent: Intent?): IBinder {
         if (!isMusicLoaderServiceBinding) {
             bindService(Intent(this@MusicPlayerService, MusicLoaderService::class.java), musicLoaderServiceConnection, Context.BIND_AUTO_CREATE)
+            CoroutineScope(mainDispatcher).launch {
+                eventChannel.send(MusicPlayerEvent.Launch)
+            }
         }
 
         return MusicPlayerServiceBinder()
@@ -139,9 +151,6 @@ class MusicPlayerService : Service() {
         if (!isStarted) {
             launchPlayer()
             isStarted = true
-            CoroutineScope(mainDispatcher).launch {
-                eventChannel.send(MusicPlayerEvent.Play)
-            }
         }
 
         if (isIntended) {
@@ -154,6 +163,9 @@ class MusicPlayerService : Service() {
     private fun launchPlayer() {
         exoPlayer.prepare()
         exoPlayer.play()
+        CoroutineScope(mainDispatcher).launch {
+            eventChannel.send(MusicPlayerEvent.Play)
+        }
     }
 
     fun play() {
@@ -184,6 +196,9 @@ class MusicPlayerService : Service() {
                 exoPlayer.seekToNextMediaItem()
                 launchPlayer()
             } else {
+                CoroutineScope(mainDispatcher).launch {
+                    eventChannel.send(MusicPlayerEvent.LoadMusic)
+                }
                 musicLoaderService.loadNextMusicFile()
                 isIntended = true
             }
@@ -201,6 +216,10 @@ class MusicPlayerService : Service() {
             exoPlayer.repeatMode = REPEAT_MODE_ONE
         } else {
             exoPlayer.repeatMode = REPEAT_MODE_ALL
+        }
+
+        CoroutineScope(mainDispatcher).launch {
+            eventChannel.send(MusicPlayerEvent.RepeatModeChanged)
         }
     }
 
@@ -221,6 +240,10 @@ class MusicPlayerService : Service() {
                     notificationManager.showNotification(convertMetadata(it))
                 } else {
                     notificationManager.setMetadata(convertMetadata(it))
+                }
+
+                CoroutineScope(mainDispatcher).launch {
+                    eventChannel.send(MusicPlayerEvent.MusicChanged)
                 }
             }
         }
