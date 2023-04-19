@@ -15,20 +15,20 @@ fun LifecycleOwner.repeatOnStarted(
     }
 }
 
-fun <T> Channel<T>.sendEvent(event: T, viewModel: ViewModel? = null) {
-    viewModel.let {
-        viewModel?.viewModelScope?.launch(Dispatchers.Main.immediate) {
-            this@sendEvent.send(event)
-        }
-    } ?: run {
-        CoroutineScope(Dispatchers.Main.immediate).launch {
-            this@sendEvent.send(event)
-        }
+fun <T> Channel<T>.sendEvent(event: T) {
+    CoroutineScope(Dispatchers.Main.immediate).launch {
+        this@sendEvent.send(event)
     }
 }
 
-fun <T> Channel<T>.sendSideEffect(viewModel: ViewModel, sideEffect: T) {
-    viewModel.viewModelScope.launch(Dispatchers.Main.immediate) {
-        this@sendSideEffect.send(sideEffect)
+fun <T> ViewModel.sendEvent(channel: Channel<T>, event: T) {
+    viewModelScope.launch {
+        channel.send(event)
+    }
+}
+
+fun <T> ViewModel.sendSideEffect(channel: Channel<T>, sideEffect: T) {
+    viewModelScope.launch {
+        channel.send(sideEffect)
     }
 }

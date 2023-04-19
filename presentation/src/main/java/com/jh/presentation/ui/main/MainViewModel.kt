@@ -5,11 +5,12 @@ import com.jh.presentation.base.BaseViewModel
 import com.jh.presentation.di.MainDispatcher
 import com.jh.presentation.enums.CadenceType.ASSIGN
 import com.jh.presentation.enums.CadenceType.TRACKING
+import com.jh.presentation.ui.sendEvent
+import com.jh.presentation.ui.sendSideEffect
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
@@ -55,84 +56,61 @@ class MainViewModel @Inject constructor(
     }
 
     fun onClickSkipToPrev() {
-        viewModelScope.launch(mainDispatcher) {
-            _sideEffectChannel.send(MainSideEffect.SkipToPrev)
-        }
+        sendSideEffect(_sideEffectChannel, MainSideEffect.SkipToPrev)
     }
 
     fun onClickPlayOrPause() {
-        viewModelScope.launch(mainDispatcher) {
-            _sideEffectChannel.send(MainSideEffect.PlayOrPause)
-        }
+        sendSideEffect(_sideEffectChannel, MainSideEffect.PlayOrPause)
     }
 
     fun onClickSkipToNext() {
-        viewModelScope.launch(mainDispatcher) {
-            _sideEffectChannel.send(MainSideEffect.SkipToNext)
-        }
+        sendSideEffect(_sideEffectChannel, MainSideEffect.SkipToNext)
     }
 
     fun onClickChangeRepeatMode() {
-        viewModelScope.launch(mainDispatcher) {
-            _sideEffectChannel.send(MainSideEffect.ChangeRepeatMode)
-        }
+        sendSideEffect(_sideEffectChannel, MainSideEffect.ChangeRepeatMode)
     }
 
     fun onClickTrackCadence() {
-        viewModelScope.launch(mainDispatcher) {
-            eventChannel.send(MainEvent.TrackCadence)
-        }
+        sendEvent(eventChannel, MainEvent.TrackCadence)
     }
 
     fun onClickAssignCadence() {
-        viewModelScope.launch(mainDispatcher) {
-            eventChannel.send(MainEvent.AssignCadence)
-        }
+        sendEvent(eventChannel, MainEvent.AssignCadence)
     }
 
     fun showSnackBar() {
-        viewModelScope.launch(mainDispatcher) {
-            eventChannel.send(MainEvent.ShowSnackBar)
-        }
+        sendEvent(eventChannel, MainEvent.ShowSnackBar)
     }
 
 
     fun hideSnackBar() {
-        viewModelScope.launch(mainDispatcher) {
-            eventChannel.send(MainEvent.HideSnackBar)
-        }
+        sendEvent(eventChannel, MainEvent.HideSnackBar)
     }
 
     fun onClickStartRunning(cadence: Int?) {
-        viewModelScope.launch(mainDispatcher) {
-            eventChannel.send(MainEvent.StartRunning)
-            if (state.value.cadenceType == TRACKING) {
-                _sideEffectChannel.send(MainSideEffect.TrackCadence)
-            } else if (state.value.cadenceType == ASSIGN) {
-                eventChannel.send(MainEvent.SetAssignedCadence(cadence!!))
-            }
-            _sideEffectChannel.send(MainSideEffect.LaunchMusicPlayer)
+        sendEvent(eventChannel, MainEvent.StartRunning)
+        sendSideEffect(_sideEffectChannel, MainSideEffect.LaunchMusicPlayer)
+
+        if (state.value.cadenceType == TRACKING) {
+            sendSideEffect(_sideEffectChannel, MainSideEffect.TrackCadence)
+        } else if (state.value.cadenceType == ASSIGN) {
+            sendEvent(eventChannel, MainEvent.SetAssignedCadence(cadence!!))
         }
     }
 
     fun onClickStopRunning() {
-        viewModelScope.launch(mainDispatcher) {
-            eventChannel.send(MainEvent.StopRunning)
-            if (state.value.cadenceType == TRACKING) {
-                _sideEffectChannel.send(MainSideEffect.StopTrackingCadence)
-            }
+        sendEvent(eventChannel, MainEvent.StopRunning)
+        if (state.value.cadenceType == TRACKING) {
+            sendSideEffect(_sideEffectChannel, MainSideEffect.StopTrackingCadence)
         }
     }
 
     fun onClickFavorite() {
-        viewModelScope.launch(mainDispatcher) {
-            _sideEffectChannel.send(MainSideEffect.GoToFavorite)
-        }
+        sendSideEffect(_sideEffectChannel, MainSideEffect.GoToFavorite)
     }
 
     fun onCadenceMeasured(cadence: Int) {
-        viewModelScope.launch(mainDispatcher) {
-            eventChannel.send(MainEvent.SetMeasuredCadence(cadence))
-        }
+        sendEvent(eventChannel, MainEvent.SetMeasuredCadence(cadence))
     }
 }

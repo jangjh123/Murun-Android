@@ -67,7 +67,7 @@ class MusicPlayerService : Service() {
     private val eventChannel = Channel<MusicPlayerEvent>()
     val state: StateFlow<MusicPlayerState> = eventChannel.receiveAsFlow()
         .runningFold(MusicPlayerState(), ::reduceState)
-        .stateIn(CoroutineScope(Dispatchers.Main), SharingStarted.Eagerly, MusicPlayerState())
+        .stateIn(CoroutineScope(Dispatchers.Main.immediate), SharingStarted.Eagerly, MusicPlayerState())
 
     private fun reduceState(state: MusicPlayerState, event: MusicPlayerEvent): MusicPlayerState {
         return when (event) {
