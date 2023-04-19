@@ -77,11 +77,8 @@ class MusicPlayerService : Service() {
             is MusicPlayerEvent.LoadMusic -> {
                 state.copy(isLoading = true)
             }
-            is MusicPlayerEvent.Play -> {
-                state.copy(isPlaying = true)
-            }
-            is MusicPlayerEvent.Pause -> {
-                state.copy(isPlaying = false)
+            is MusicPlayerEvent.PlayOrPause -> {
+                state.copy(isPlaying = !state.isPlaying)
             }
             is MusicPlayerEvent.MusicChanged -> {
                 state.copy(isLoading = false, currentMusic = exoPlayer.currentMediaItem)
@@ -164,21 +161,18 @@ class MusicPlayerService : Service() {
         exoPlayer.prepare()
         exoPlayer.play()
         CoroutineScope(mainDispatcher).launch {
-            eventChannel.send(MusicPlayerEvent.Play)
+            eventChannel.send(MusicPlayerEvent.PlayOrPause)
         }
     }
 
-    fun play() {
-        exoPlayer.play()
-        CoroutineScope(mainDispatcher).launch {
-            eventChannel.send(MusicPlayerEvent.Play)
+    fun playOrPause() {
+        if (exoPlayer.isPlaying) {
+            exoPlayer.pause()
+        } else {
+            exoPlayer.play()
         }
-    }
-
-    fun pause() {
-        exoPlayer.pause()
         CoroutineScope(mainDispatcher).launch {
-            eventChannel.send(MusicPlayerEvent.Pause)
+            eventChannel.send(MusicPlayerEvent.PlayOrPause)
         }
     }
 

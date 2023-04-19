@@ -123,11 +123,8 @@ class MainActivity : BaseActivity() {
                     is MainSideEffect.SkipToPrev -> {
                         musicPlayerService.skipToPrev()
                     }
-                    is MainSideEffect.Play -> {
-                        musicPlayerService.play()
-                    }
-                    is MainSideEffect.Pause -> {
-                        musicPlayerService.pause()
+                    is MainSideEffect.PlayOrPause -> {
+                        musicPlayerService.playOrPause()
                     }
                     is MainSideEffect.SkipToNext -> {
                         musicPlayerService.skipToPrev()
@@ -321,8 +318,8 @@ private fun MainActivityContent(
                     )
 
                     Icon(
-                        modifier = Modifier.clickableWithoutRipple { if (player.isPlaying) viewModel.onClickPause() else viewModel.onClickPlay() },
-                        painter = painterResource(id = if (playerUiState.value.isPlaying) R.drawable.ic_pause else R.drawable.ic_play),
+                        modifier = Modifier.clickableWithoutRipple { viewModel.onClickPlayOrPause() },
+                        painter = painterResource(id = if (player.isPlaying) R.drawable.ic_pause else R.drawable.ic_play),
                         contentDescription = "playOrPauseIcon",
                         tint = iconColorState.value
                     )

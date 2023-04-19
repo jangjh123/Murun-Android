@@ -25,14 +25,14 @@ class CustomNotificationManager(
     inner class MurunMediaSessionCallback : MediaSessionCompat.Callback() {
         override fun onPlay() {
             super.onPlay()
-            musicPlayerService.play()
+            musicPlayerService.playOrPause()
             mediaSession.setPlaybackState(stateBuilder.setState(PlaybackStateCompat.STATE_PLAYING, player.currentPosition, 1f).build())
             currentState = PlaybackStateCompat.STATE_PLAYING
         }
 
         override fun onPause() {
             super.onPause()
-            musicPlayerService.pause()
+            musicPlayerService.playOrPause()
             mediaSession.setPlaybackState(stateBuilder.setState(PlaybackStateCompat.STATE_PAUSED, player.currentPosition, 1f).build())
             currentState = PlaybackStateCompat.STATE_PAUSED
         }

@@ -60,15 +60,9 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    fun onClickPlay() {
+    fun onClickPlayOrPause() {
         viewModelScope.launch(mainDispatcher) {
-            _sideEffectChannel.send(MainSideEffect.Play)
-        }
-    }
-
-    fun onClickPause() {
-        viewModelScope.launch(mainDispatcher) {
-            _sideEffectChannel.send(MainSideEffect.Pause)
+            _sideEffectChannel.send(MainSideEffect.PlayOrPause)
         }
     }
 

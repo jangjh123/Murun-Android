@@ -7,7 +7,6 @@ sealed class MainSideEffect {
     object LaunchMusicPlayer : MainSideEffect()
     object ChangeRepeatMode : MainSideEffect()
     object SkipToPrev : MainSideEffect()
-    object Play : MainSideEffect()
-    object Pause : MainSideEffect()
+    object PlayOrPause : MainSideEffect()
     object SkipToNext : MainSideEffect()
 }
