@@ -1,10 +1,6 @@
 package com.jh.presentation.ui.main
 
 sealed class MainEvent {
-    object SkipToPrev : MainEvent()
-    object PlayOrPause : MainEvent()
-    object SkipToNext : MainEvent()
-    object ChangeRepeatMode : MainEvent()
     object TrackCadence : MainEvent()
     object AssignCadence : MainEvent()
     object ShowSnackBar : MainEvent()

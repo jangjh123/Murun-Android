@@ -27,18 +27,6 @@ class MainViewModel @Inject constructor(
 
     private fun reduceState(state: MainState, event: MainEvent): MainState {
         return when (event) {
-            is MainEvent.SkipToPrev -> {
-                state.copy(isLoading = true)
-            }
-            is MainEvent.PlayOrPause -> {
-                state.copy(isPlaying = !state.isPlaying)
-            }
-            is MainEvent.SkipToNext -> {
-                state.copy()
-            }
-            is MainEvent.ChangeRepeatMode -> {
-                state.copy(isRepeatingOne = !state.isRepeatingOne)
-            }
             is MainEvent.TrackCadence -> {
                 state.copy(cadenceType = TRACKING)
             }
@@ -68,25 +56,24 @@ class MainViewModel @Inject constructor(
 
     fun onClickSkipToPrev() {
         viewModelScope.launch(mainDispatcher) {
-            eventChannel.send(MainEvent.SkipToPrev)
+            _sideEffectChannel.send(MainSideEffect.SkipToPrev)
         }
     }
 
     fun onClickPlayOrPause() {
         viewModelScope.launch(mainDispatcher) {
-            eventChannel.send(MainEvent.PlayOrPause)
+            _sideEffectChannel.send(MainSideEffect.PlayOrPause)
         }
     }
 
     fun onClickSkipToNext() {
         viewModelScope.launch(mainDispatcher) {
-            eventChannel.send(MainEvent.SkipToNext)
+            _sideEffectChannel.send(MainSideEffect.SkipToNext)
         }
     }
 
     fun onClickChangeRepeatMode() {
         viewModelScope.launch(mainDispatcher) {
-            eventChannel.send(MainEvent.ChangeRepeatMode)
             _sideEffectChannel.send(MainSideEffect.ChangeRepeatMode)
         }
     }
@@ -123,8 +110,8 @@ class MainViewModel @Inject constructor(
                 _sideEffectChannel.send(MainSideEffect.TrackCadence)
             } else if (state.value.cadenceType == ASSIGN) {
                 eventChannel.send(MainEvent.SetAssignedCadence(cadence!!))
-                _sideEffectChannel.send(MainSideEffect.PlayMusic)
             }
+            _sideEffectChannel.send(MainSideEffect.LaunchMusicPlayer)
         }
     }
 

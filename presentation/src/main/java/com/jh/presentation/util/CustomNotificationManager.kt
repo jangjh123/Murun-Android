@@ -10,7 +10,7 @@ import android.support.v4.media.session.PlaybackStateCompat
 import androidx.core.app.NotificationCompat
 import com.google.android.exoplayer2.ExoPlayer
 import com.jh.murun.presentation.R
-import com.jh.presentation.service.MusicPlayerService
+import com.jh.presentation.service.music_player.MusicPlayerService
 
 class CustomNotificationManager(
     private val musicPlayerService: MusicPlayerService,
@@ -23,23 +23,19 @@ class CustomNotificationManager(
     private var currentState: Int = 0
 
     inner class MurunMediaSessionCallback : MediaSessionCompat.Callback() {
+        override fun onSkipToPrevious() {
+            super.onSkipToPrevious()
+            musicPlayerService.skipToPrev()
+        }
+
         override fun onPlay() {
             super.onPlay()
-            musicPlayerService.play()
-            mediaSession.setPlaybackState(stateBuilder.setState(PlaybackStateCompat.STATE_PLAYING, player.currentPosition, 1f).build())
-            currentState = PlaybackStateCompat.STATE_PLAYING
+            musicPlayerService.playOrPause()
         }
 
         override fun onPause() {
             super.onPause()
-            musicPlayerService.pause()
-            mediaSession.setPlaybackState(stateBuilder.setState(PlaybackStateCompat.STATE_PAUSED, player.currentPosition, 1f).build())
-            currentState = PlaybackStateCompat.STATE_PAUSED
-        }
-
-        override fun onSkipToPrevious() {
-            super.onSkipToPrevious()
-            musicPlayerService.skipToPrev()
+            musicPlayerService.playOrPause()
         }
 
         override fun onSkipToNext() {
@@ -89,8 +85,19 @@ class CustomNotificationManager(
         musicPlayerService.startForeground(NOTIFICATION_ID, notificationBuilder.build())
     }
 
-    fun setMetadata(metadata: MediaMetadata) {
+    fun setPlaybackState() {
+        currentState = if (currentState == PlaybackStateCompat.STATE_PLAYING) {
+            mediaSession.setPlaybackState(stateBuilder.setState(PlaybackStateCompat.STATE_PAUSED, player.currentPosition, 1f).build())
+            PlaybackStateCompat.STATE_PAUSED
+        } else {
+            mediaSession.setPlaybackState(stateBuilder.setState(PlaybackStateCompat.STATE_PLAYING, player.currentPosition, 1f).build())
+            PlaybackStateCompat.STATE_PLAYING
+        }
+    }
+
+    fun setNewMusicPlayback(metadata: MediaMetadata) {
         mediaSession.setMetadata(MediaMetadataCompat.fromMediaMetadata(metadata))
+        mediaSession.setPlaybackState(stateBuilder.setState(currentState, 0L, 1f).build())
         notificationManager.notify(NOTIFICATION_ID, notificationBuilder.build())
     }
 

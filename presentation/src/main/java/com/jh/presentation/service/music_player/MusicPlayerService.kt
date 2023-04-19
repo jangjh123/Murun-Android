@@ -1,4 +1,4 @@
-package com.jh.presentation.service
+package com.jh.presentation.service.music_player
 
 import android.app.Service
 import android.content.ComponentName
@@ -19,14 +19,17 @@ import com.jh.murun.domain.model.Music
 import com.jh.presentation.di.MainDispatcher
 import com.jh.presentation.enums.CadenceType.ASSIGN
 import com.jh.presentation.enums.CadenceType.TRACKING
-import com.jh.presentation.service.MusicLoaderService.MusicLoaderServiceBinder
+import com.jh.presentation.service.music_loader.MusicLoaderService
+import com.jh.presentation.service.music_loader.MusicLoaderService.MusicLoaderServiceBinder
 import com.jh.presentation.ui.main.MainState
+import com.jh.presentation.ui.sendEvent
 import com.jh.presentation.util.CustomNotificationManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.*
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -42,7 +45,6 @@ class MusicPlayerService : Service() {
         }
     }
     private val notificationManager by lazy { CustomNotificationManager(this@MusicPlayerService, exoPlayer) }
-    private lateinit var state: MainState
     private lateinit var musicLoaderService: MusicLoaderService
     private var isMusicLoaderServiceBinding = false
     private val musicLoaderServiceConnection = object : ServiceConnection {
@@ -60,6 +62,33 @@ class MusicPlayerService : Service() {
     private var isStarted = false
     private var isIntended = false
 
+    private lateinit var mainState: MainState
+
+    private val eventChannel = Channel<MusicPlayerEvent>()
+    val state: StateFlow<MusicPlayerState> = eventChannel.receiveAsFlow()
+        .runningFold(MusicPlayerState(), ::reduceState)
+        .stateIn(CoroutineScope(Dispatchers.Main), SharingStarted.Eagerly, MusicPlayerState())
+
+    private fun reduceState(state: MusicPlayerState, event: MusicPlayerEvent): MusicPlayerState {
+        return when (event) {
+            is MusicPlayerEvent.Launch -> {
+                state.copy(isLoading = true, isLaunched = true)
+            }
+            is MusicPlayerEvent.LoadMusic -> {
+                state.copy(isLoading = true)
+            }
+            is MusicPlayerEvent.PlayOrPause -> {
+                state.copy(isPlaying = !state.isPlaying)
+            }
+            is MusicPlayerEvent.MusicChanged -> {
+                state.copy(isLoading = false, currentMusic = exoPlayer.currentMediaItem)
+            }
+            is MusicPlayerEvent.RepeatModeChanged -> {
+                state.copy(isRepeatingOne = !state.isRepeatingOne)
+            }
+        }
+    }
+
     inner class MusicPlayerServiceBinder : Binder() {
         fun getServiceInstance(): MusicPlayerService {
             return this@MusicPlayerService
@@ -69,20 +98,21 @@ class MusicPlayerService : Service() {
     override fun onBind(intent: Intent?): IBinder {
         if (!isMusicLoaderServiceBinding) {
             bindService(Intent(this@MusicPlayerService, MusicLoaderService::class.java), musicLoaderServiceConnection, Context.BIND_AUTO_CREATE)
+            eventChannel.sendEvent(MusicPlayerEvent.Launch)
         }
 
         return MusicPlayerServiceBinder()
     }
 
     fun setState(mainState: MainState) {
-        state = mainState
+        this.mainState = mainState
     }
 
     private fun initPlayer() {
-        if (state.cadenceType == TRACKING) {
-            // 케이던스 변경시 갱신
-        } else if (state.cadenceType == ASSIGN) {
-            musicLoaderService.loadMusicListByCadence(cadence = state.assignedCadence)
+        if (mainState.cadenceType == TRACKING) {
+
+        } else if (mainState.cadenceType == ASSIGN) {
+            musicLoaderService.loadMusicListByCadence(cadence = mainState.assignedCadence)
         }
 
         collectMusicFile()
@@ -120,7 +150,6 @@ class MusicPlayerService : Service() {
 
         if (isIntended) {
             exoPlayer.seekToNextMediaItem()
-            launchPlayer()
             isIntended = false
         }
     }
@@ -128,14 +157,6 @@ class MusicPlayerService : Service() {
     private fun launchPlayer() {
         exoPlayer.prepare()
         exoPlayer.play()
-    }
-
-    fun play() {
-        exoPlayer.play()
-    }
-
-    fun pause() {
-        exoPlayer.pause()
     }
 
     fun skipToPrev() {
@@ -146,14 +167,25 @@ class MusicPlayerService : Service() {
         }
     }
 
+    fun playOrPause() {
+        if (exoPlayer.isPlaying) {
+            exoPlayer.pause()
+        } else {
+            exoPlayer.play()
+        }
+
+        notificationManager.setPlaybackState()
+        eventChannel.sendEvent(MusicPlayerEvent.PlayOrPause)
+    }
+
     fun skipToNext() {
         if (exoPlayer.repeatMode == REPEAT_MODE_ALL) {
             if (exoPlayer.hasNextMediaItem() && exoPlayer.mediaItemCount != 1) {
                 exoPlayer.seekToNextMediaItem()
-                launchPlayer()
             } else {
                 musicLoaderService.loadNextMusicFile()
                 isIntended = true
+                eventChannel.sendEvent(MusicPlayerEvent.LoadMusic)
             }
         } else {
             exoPlayer.seekTo(0L)
@@ -170,6 +202,8 @@ class MusicPlayerService : Service() {
         } else {
             exoPlayer.repeatMode = REPEAT_MODE_ALL
         }
+
+        eventChannel.sendEvent(MusicPlayerEvent.RepeatModeChanged)
     }
 
     private fun convertMetadata(mediaItem: MediaItem): android.media.MediaMetadata {
@@ -187,16 +221,19 @@ class MusicPlayerService : Service() {
                 super.onMediaItemTransition(mediaItem, reason)
                 if (!isStarted) {
                     notificationManager.showNotification(convertMetadata(it))
+                    eventChannel.sendEvent(MusicPlayerEvent.PlayOrPause)
                 } else {
-                    notificationManager.setMetadata(convertMetadata(it))
+                    notificationManager.setNewMusicPlayback(convertMetadata(it))
                 }
+
+                eventChannel.sendEvent(MusicPlayerEvent.MusicChanged)
             }
         }
 
         override fun onPositionDiscontinuity(oldPosition: PositionInfo, newPosition: PositionInfo, reason: Int) {
             super.onPositionDiscontinuity(oldPosition, newPosition, reason)
             if (reason == DISCONTINUITY_REASON_AUTO_TRANSITION) {
-                musicLoaderService.loadNextMusicFile()
+                skipToNext()
             }
         }
     }

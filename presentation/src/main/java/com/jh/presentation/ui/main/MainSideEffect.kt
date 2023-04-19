@@ -4,6 +4,9 @@ sealed class MainSideEffect {
     object GoToFavorite : MainSideEffect()
     object TrackCadence : MainSideEffect()
     object StopTrackingCadence : MainSideEffect()
-    object PlayMusic : MainSideEffect()
+    object LaunchMusicPlayer : MainSideEffect()
     object ChangeRepeatMode : MainSideEffect()
+    object SkipToPrev : MainSideEffect()
+    object PlayOrPause : MainSideEffect()
+    object SkipToNext : MainSideEffect()
 }

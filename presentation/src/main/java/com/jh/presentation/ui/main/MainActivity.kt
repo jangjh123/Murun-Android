@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.content.pm.PackageManager
+import android.graphics.BitmapFactory
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
@@ -32,7 +33,9 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.layout.ContentScale.Companion.Crop
 import androidx.compose.ui.layout.ContentScale.Companion.FillBounds
@@ -42,14 +45,18 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.jh.murun.presentation.R
 import com.jh.presentation.base.BaseActivity
 import com.jh.presentation.enums.CadenceType.*
-import com.jh.presentation.service.CadenceTrackingService
-import com.jh.presentation.service.CadenceTrackingService.CadenceTrackingServiceBinder
-import com.jh.presentation.service.MusicPlayerService
-import com.jh.presentation.service.MusicPlayerService.MusicPlayerServiceBinder
+import com.jh.presentation.service.cadence_tracking.CadenceTrackingService
+import com.jh.presentation.service.cadence_tracking.CadenceTrackingService.CadenceTrackingServiceBinder
+import com.jh.presentation.service.music_player.MusicPlayerService
+import com.jh.presentation.service.music_player.MusicPlayerService.MusicPlayerServiceBinder
+import com.jh.presentation.service.music_player.MusicPlayerState
 import com.jh.presentation.ui.*
 import com.jh.presentation.ui.main.MainEvent.*
 import com.jh.presentation.ui.main.favorite.FavoriteActivity
@@ -65,12 +72,21 @@ class MainActivity : BaseActivity() {
 
     private lateinit var musicPlayerService: MusicPlayerService
     private var isMusicPlayerServiceBinding = false
+    private val playerUiState = mutableStateOf(MusicPlayerState())
     private val musicPlayerServiceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             val binder: MusicPlayerServiceBinder = service as MusicPlayerServiceBinder
             musicPlayerService = binder.getServiceInstance()
             isMusicPlayerServiceBinding = true
             musicPlayerService.setState(mainState = viewModel.state.value)
+
+            lifecycleScope.launch {
+                repeatOnLifecycle(Lifecycle.State.STARTED) {
+                    musicPlayerService.state.collectLatest {
+                        playerUiState.value = it
+                    }
+                }
+            }
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
@@ -97,12 +113,21 @@ class MainActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
 
         initComposeUi {
-            MainActivityContent()
+            MainActivityContent(playerUiState)
         }
 
         repeatOnStarted {
             viewModel.sideEffectChannelFlow.collectLatest { sideEffect ->
                 when (sideEffect) {
+                    is MainSideEffect.SkipToPrev -> {
+                        musicPlayerService.skipToPrev()
+                    }
+                    is MainSideEffect.PlayOrPause -> {
+                        musicPlayerService.playOrPause()
+                    }
+                    is MainSideEffect.SkipToNext -> {
+                        musicPlayerService.skipToNext()
+                    }
                     is MainSideEffect.GoToFavorite -> {
                         startActivity(FavoriteActivity.newIntent(this@MainActivity))
                     }
@@ -115,7 +140,7 @@ class MainActivity : BaseActivity() {
                         cadenceTrackingService.stop()
                         unbindService(cadenceTrackingServiceConnection)
                     }
-                    is MainSideEffect.PlayMusic -> {
+                    is MainSideEffect.LaunchMusicPlayer -> {
                         if (!isMusicPlayerServiceBinding) {
                             bindService(Intent(this@MainActivity, MusicPlayerService::class.java), musicPlayerServiceConnection, Context.BIND_AUTO_CREATE)
                         }
@@ -162,11 +187,17 @@ class MainActivity : BaseActivity() {
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun MainActivityContent(
+    playerUiState: MutableState<MusicPlayerState>,
     viewModel: MainViewModel = hiltViewModel()
 ) {
     val scope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
     val cadenceAssignTextState = remember { mutableStateOf("") }
+    val player = playerUiState.value
+    val convertImage = { byteArray: ByteArray ->
+        ImageBitmap
+        BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size).asImageBitmap()
+    }
 
     with(viewModel.state.collectAsStateWithLifecycle().value) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -183,7 +214,8 @@ private fun MainActivityContent(
                             radiusX = 2.dp,
                             radiusY = 2.dp
                         ),
-                    painter = if (image != null) BitmapPainter(image) else painterResource(id = R.drawable.music_default),
+                    painter = if (player.currentMusic?.mediaMetadata?.artworkData != null) BitmapPainter(convertImage(player.currentMusic.mediaMetadata.artworkData!!))
+                    else painterResource(id = R.drawable.music_default),
                     contentDescription = "songInfoBackground",
                     contentScale = Crop,
                 )
@@ -210,17 +242,20 @@ private fun MainActivityContent(
                             modifier = Modifier
                                 .clip(shape = Shapes.large)
                                 .size(120.dp),
-                            painter = if (image != null) BitmapPainter(image) else painterResource(id = R.drawable.music_default),
+                            painter = if (player.currentMusic?.mediaMetadata?.artworkData != null) BitmapPainter(convertImage(player.currentMusic.mediaMetadata.artworkData!!))
+                            else painterResource(id = R.drawable.music_default),
                             contentDescription = "albumCover",
-                            contentScale = if (image != null) FillBounds else Crop
+                            contentScale = if (player.currentMusic?.mediaMetadata?.artworkData?.isNotEmpty() == true) FillBounds else Crop
                         )
 
-                        Text(
-                            modifier = Modifier.align(Center),
-                            text = "No Music",
-                            style = Typography.body1,
-                            color = Gray0
-                        )
+                        if (player.currentMusic == null) {
+                            Text(
+                                modifier = Modifier.align(Center),
+                                text = "No Music",
+                                style = Typography.body1,
+                                color = Gray0
+                            )
+                        }
                     }
 
                     Column(
@@ -231,20 +266,20 @@ private fun MainActivityContent(
                     ) {
                         Column {
                             Text(
-                                text = title,
+                                text = if (player.currentMusic != null) player.currentMusic.mediaMetadata.title.toString() else "",
                                 style = Typography.h3,
                                 color = Color.White
                             )
 
                             Text(
-                                text = artist,
+                                text = if (player.currentMusic != null) player.currentMusic.mediaMetadata.artist.toString() else "",
                                 style = Typography.body1,
                                 color = Gray0
                             )
                         }
 
                         Text(
-                            text = "$bpm BPM",
+                            text = "BPM", // TODO : Should insert bpm to metadata
                             style = Typography.h4,
                             color = MainColor
                         )
@@ -272,32 +307,34 @@ private fun MainActivityContent(
                         .align(CenterHorizontally),
                     horizontalArrangement = Arrangement.spacedBy(36.dp)
                 ) {
+                    val iconColorState = animateColorAsState(targetValue = if (player.isLaunched) MainColor else Color.LightGray)
+
                     Icon(
                         modifier = Modifier.clickableWithoutRipple { viewModel.onClickSkipToPrev() },
                         painter = painterResource(id = R.drawable.ic_skip_prev),
                         contentDescription = "skipToPrevIcon",
-                        tint = Color.LightGray
+                        tint = iconColorState.value
                     )
 
                     Icon(
                         modifier = Modifier.clickableWithoutRipple { viewModel.onClickPlayOrPause() },
-                        painter = painterResource(id = if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play),
+                        painter = painterResource(id = if (player.isPlaying) R.drawable.ic_pause else R.drawable.ic_play),
                         contentDescription = "playOrPauseIcon",
-                        tint = MainColor
+                        tint = iconColorState.value
                     )
 
                     Icon(
                         modifier = Modifier.clickableWithoutRipple { viewModel.onClickSkipToNext() },
                         painter = painterResource(id = R.drawable.ic_skip_next),
                         contentDescription = "skipToNextIcon",
-                        tint = Color.LightGray
+                        tint = iconColorState.value
                     )
 
                     Icon(
                         modifier = Modifier.clickableWithoutRipple { viewModel.onClickChangeRepeatMode() },
-                        painter = painterResource(id = R.drawable.ic_repeat_one),
+                        painter = painterResource(id = if (player.isRepeatingOne) R.drawable.ic_repeat_one else R.drawable.ic_repeat_all),
                         contentDescription = "repeatIcon",
-                        tint = if (isRepeatingOne) MainColor else Color.LightGray
+                        tint = iconColorState.value
                     )
                 }
 
@@ -508,7 +545,7 @@ private fun MainActivityContent(
                 }
             }
 
-            if (isLoading) {
+            if (player.isLoading) {
                 LoadingScreen()
             }
 
