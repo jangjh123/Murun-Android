@@ -86,6 +86,9 @@ class MusicPlayerService : Service() {
             is MusicPlayerEvent.RepeatModeChanged -> {
                 state.copy(isRepeatingOne = !state.isRepeatingOne)
             }
+            is MusicPlayerEvent.Quit -> {
+                state.copy(isLoading = false, isPlaying = false, currentMusic = null)
+            }
         }
     }
 
@@ -238,11 +241,15 @@ class MusicPlayerService : Service() {
         }
     }
 
-    override fun onDestroy() {
+    override fun onUnbind(intent: Intent?): Boolean {
+        eventChannel.sendEvent(MusicPlayerEvent.Quit)
+        exoPlayer.stop()
+        notificationManager.dismissNotification()
+
         if (isMusicLoaderServiceBinding) {
             unbindService(musicLoaderServiceConnection)
         }
 
-        super.onDestroy()
+        return super.onUnbind(intent)
     }
 }
