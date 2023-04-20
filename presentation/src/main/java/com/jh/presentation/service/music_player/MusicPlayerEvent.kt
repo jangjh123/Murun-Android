@@ -6,4 +6,5 @@ sealed class MusicPlayerEvent {
     object PlayOrPause : MusicPlayerEvent()
     object MusicChanged : MusicPlayerEvent()
     object RepeatModeChanged : MusicPlayerEvent()
+    object Quit : MusicPlayerEvent()
 }
