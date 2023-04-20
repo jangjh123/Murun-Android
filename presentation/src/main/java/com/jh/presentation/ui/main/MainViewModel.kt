@@ -2,6 +2,7 @@ package com.jh.presentation.ui.main
 
 import android.util.Log
 import androidx.lifecycle.viewModelScope
+import com.jh.murun.domain.model.Music
 import com.jh.murun.domain.use_case.favorite.AddFavoriteMusicUseCase
 import com.jh.presentation.base.BaseViewModel
 import com.jh.presentation.di.IoDispatcher
@@ -122,10 +123,14 @@ class MainViewModel @Inject constructor(
     }
 
     fun onClickLikeOrDislike() {
-        if (state.value.currentMusic != null) {
+        sendSideEffect(_sideEffectChannel, MainSideEffect.LikeOrDislike)
+    }
+
+    fun likeOrDislikeMusic(music: Music?) {
+        if (music != null) {
             viewModelScope.launch(ioDispatcher) {
-                addFavoriteMusicUseCase(state.value.currentMusic!!).collect { result ->
-                    when(result) {
+                addFavoriteMusicUseCase(music).collect { result ->
+                    when (result) {
                         true -> {
                             Log.d("FAVORITE", "Insertion Success.")
                         }

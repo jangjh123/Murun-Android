@@ -10,4 +10,5 @@ sealed class MainSideEffect {
     object SkipToPrev : MainSideEffect()
     object PlayOrPause : MainSideEffect()
     object SkipToNext : MainSideEffect()
+    object LikeOrDislike : MainSideEffect()
 }

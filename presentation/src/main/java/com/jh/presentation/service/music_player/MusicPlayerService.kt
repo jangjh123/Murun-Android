@@ -137,7 +137,7 @@ class MusicPlayerService : Service() {
             .setTitle(music.title)
             .setArtist(music.artist)
             .setArtworkData(music.image, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
-            .setExtras(bundleOf(Pair("duration", music.duration)))
+            .setExtras(bundleOf(Pair("duration", music.duration), Pair("music", music)))
             .build()
         val mediaItem = MediaItem.Builder()
             .setUri(music.diskPath)

@@ -49,6 +49,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import com.jh.murun.domain.model.Music
 import com.jh.murun.presentation.R
 import com.jh.presentation.base.BaseActivity
 import com.jh.presentation.enums.CadenceType.*
@@ -152,6 +153,13 @@ class MainActivity : BaseActivity() {
                     }
                     is MainSideEffect.ChangeRepeatMode -> {
                         musicPlayerService.changeRepeatMode()
+                    }
+                    is MainSideEffect.LikeOrDislike -> {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            viewModel.likeOrDislikeMusic(playerUiState.value.currentMusic?.mediaMetadata?.extras?.getParcelable("music", Music::class.java))
+                        } else {
+                            viewModel.likeOrDislikeMusic(playerUiState.value.currentMusic?.mediaMetadata?.extras?.getParcelable("music")!!)
+                        }
                     }
                 }
             }
@@ -294,7 +302,7 @@ private fun MainActivityContent(
                             )
 
                             Icon(
-                                modifier = Modifier.clickableWithoutRipple { },
+                                modifier = Modifier.clickableWithoutRipple { viewModel.onClickLikeOrDislike() },
                                 painter = painterResource(id = R.drawable.ic_favorite_empty),
                                 contentDescription = "favoriteIcon",
                                 tint = Color.Gray
@@ -551,8 +559,7 @@ private fun MainActivityContent(
                                 Icon(
                                     modifier = Modifier
                                         .size(24.dp)
-                                        .align(Center)
-                                        .clickableWithoutRipple { viewModel.onClickLikeOrDislike() },
+                                        .align(Center),
                                     painter = painterResource(id = R.drawable.ic_favorite),
                                     contentDescription = "favoriteIcon",
                                     tint = MainColor
