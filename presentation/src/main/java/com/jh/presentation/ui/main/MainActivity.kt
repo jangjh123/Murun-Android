@@ -10,6 +10,7 @@ import android.graphics.BitmapFactory
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
+import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -160,6 +161,9 @@ class MainActivity : BaseActivity() {
                         } else {
                             viewModel.likeOrDislikeMusic(playerUiState.value.currentMusic?.mediaMetadata?.extras?.getParcelable("music")!!)
                         }
+                    }
+                    is MainSideEffect.ShowToast -> {
+                        Toast.makeText(this@MainActivity, sideEffect.text, Toast.LENGTH_SHORT).show()
                     }
                 }
             }
@@ -525,11 +529,7 @@ private fun MainActivityContent(
                                                     }
                                                 }
                                                 NONE -> {
-                                                    viewModel.showSnackBar()
-                                                    scope.launch {
-                                                        delay(3000L)
-                                                        viewModel.hideSnackBar()
-                                                    }
+                                                    viewModel.showToast("케이던스 타입을 지정해 주세요.")
                                                 }
                                             }
                                         }
@@ -572,20 +572,6 @@ private fun MainActivityContent(
 
             if (player.isLoading) {
                 LoadingScreen()
-            }
-
-            if (isSnackBarVisible) {
-                Snackbar(
-                    backgroundColor = MainColor,
-                    shape = RectangleShape
-                ) {
-                    Text(
-                        modifier = Modifier.padding(all = 12.dp),
-                        text = "케이던스 타입을 지정해 주세요.",
-                        style = Typography.body1,
-                        color = Color.White
-                    )
-                }
             }
         }
     }

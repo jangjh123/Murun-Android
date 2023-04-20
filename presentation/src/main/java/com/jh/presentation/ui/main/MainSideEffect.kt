@@ -11,4 +11,5 @@ sealed class MainSideEffect {
     object PlayOrPause : MainSideEffect()
     object SkipToNext : MainSideEffect()
     object LikeOrDislike : MainSideEffect()
+    data class ShowToast(val text: String) : MainSideEffect()
 }

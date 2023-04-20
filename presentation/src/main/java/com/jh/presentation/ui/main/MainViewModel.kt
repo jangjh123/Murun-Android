@@ -41,12 +41,6 @@ class MainViewModel @Inject constructor(
             is MainEvent.AssignCadence -> {
                 state.copy(cadenceType = ASSIGN)
             }
-            is MainEvent.ShowSnackBar -> {
-                state.copy(isSnackBarVisible = true)
-            }
-            is MainEvent.HideSnackBar -> {
-                state.copy(isSnackBarVisible = false)
-            }
             is MainEvent.StartRunning -> {
                 state.copy(isRunning = true)
             }
@@ -86,14 +80,6 @@ class MainViewModel @Inject constructor(
         sendEvent(eventChannel, MainEvent.AssignCadence)
     }
 
-    fun showSnackBar() {
-        sendEvent(eventChannel, MainEvent.ShowSnackBar)
-    }
-
-    fun hideSnackBar() {
-        sendEvent(eventChannel, MainEvent.HideSnackBar)
-    }
-
     fun onClickStartRunning(cadence: Int?) {
         sendEvent(eventChannel, MainEvent.StartRunning)
         sendSideEffect(_sideEffectChannel, MainSideEffect.LaunchMusicPlayer)
@@ -126,16 +112,20 @@ class MainViewModel @Inject constructor(
         sendSideEffect(_sideEffectChannel, MainSideEffect.LikeOrDislike)
     }
 
+    fun showToast(text: String) {
+        sendSideEffect(_sideEffectChannel, MainSideEffect.ShowToast(text))
+    }
+
     fun likeOrDislikeMusic(music: Music?) {
         if (music != null) {
             viewModelScope.launch(ioDispatcher) {
                 addFavoriteMusicUseCase(music).collect { result ->
                     when (result) {
                         true -> {
-                            Log.d("FAVORITE", "Insertion Success.")
+                            showToast("곡을 리스트에 추가하였습니다.")
                         }
                         false -> {
-                            Log.d("FAVORITE", "Insertion Failed.")
+                            showToast("곡을 리스트에 저장할 수 없습니다.")
                         }
                     }
                 }
