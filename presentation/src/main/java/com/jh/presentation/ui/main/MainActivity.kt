@@ -283,11 +283,23 @@ private fun MainActivityContent(
                             )
                         }
 
-                        Text(
-                            text = "BPM", // TODO : Should insert bpm to metadata
-                            style = Typography.h4,
-                            color = MainColor
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = SpaceBetween
+                        ) {
+                            Text(
+                                text = "BPM", // TODO : Should insert bpm to metadata
+                                style = Typography.h4,
+                                color = MainColor
+                            )
+
+                            Icon(
+                                modifier = Modifier.clickableWithoutRipple {  },
+                                painter = painterResource(id = R.drawable.ic_favorite_empty),
+                                contentDescription = "favoriteIcon",
+                                tint = Color.Gray
+                            )
+                        }
                     }
                 }
             }

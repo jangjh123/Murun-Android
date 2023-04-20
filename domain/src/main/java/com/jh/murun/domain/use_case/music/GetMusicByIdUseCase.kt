@@ -7,5 +7,5 @@ class GetMusicByIdUseCase @Inject constructor(
     private val getMusicRepository: GetMusicRepository
 ){
 
-    suspend operator fun invoke(id: String) = getMusicRepository.getMusicById(id)
+    suspend operator fun invoke(id: String) = getMusicRepository.fetchMusicById(id)
 }

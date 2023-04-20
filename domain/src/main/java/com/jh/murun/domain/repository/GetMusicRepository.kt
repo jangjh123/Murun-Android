@@ -6,8 +6,8 @@ import kotlinx.coroutines.flow.Flow
 import okhttp3.ResponseBody
 
 interface GetMusicRepository {
-    suspend fun getMusicList(bpm: Int): Flow<ResponseState<List<Music>>>
-    suspend fun getMusicById(id: String): Flow<ResponseState<Music>>
+    suspend fun fetchMusicList(bpm: Int): Flow<ResponseState<List<Music>>>
+    suspend fun fetchMusicById(id: String): Flow<ResponseState<Music>>
     suspend fun fetchMusicFile(url: String): Flow<ResponseBody?>
     suspend fun fetchMusicImage(url: String): Flow<ResponseBody?>
 }

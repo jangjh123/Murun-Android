@@ -83,7 +83,6 @@ class MainViewModel @Inject constructor(
         sendEvent(eventChannel, MainEvent.ShowSnackBar)
     }
 
-
     fun hideSnackBar() {
         sendEvent(eventChannel, MainEvent.HideSnackBar)
     }
@@ -114,5 +113,9 @@ class MainViewModel @Inject constructor(
 
     fun onCadenceMeasured(cadence: Int) {
         sendEvent(eventChannel, MainEvent.SetMeasuredCadence(cadence))
+    }
+
+    fun onClickLike() {
+
     }
 }
