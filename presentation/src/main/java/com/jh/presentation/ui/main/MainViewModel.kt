@@ -1,7 +1,10 @@
 package com.jh.presentation.ui.main
 
+import android.util.Log
 import androidx.lifecycle.viewModelScope
+import com.jh.murun.domain.use_case.favorite.AddFavoriteMusicUseCase
 import com.jh.presentation.base.BaseViewModel
+import com.jh.presentation.di.IoDispatcher
 import com.jh.presentation.di.MainDispatcher
 import com.jh.presentation.enums.CadenceType.ASSIGN
 import com.jh.presentation.enums.CadenceType.TRACKING
@@ -11,11 +14,14 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
-    @MainDispatcher private val mainDispatcher: CoroutineDispatcher
+    @MainDispatcher private val mainDispatcher: CoroutineDispatcher,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+    private val addFavoriteMusicUseCase: AddFavoriteMusicUseCase
 ) : BaseViewModel() {
 
     private val eventChannel = Channel<MainEvent>()
@@ -115,7 +121,20 @@ class MainViewModel @Inject constructor(
         sendEvent(eventChannel, MainEvent.SetMeasuredCadence(cadence))
     }
 
-    fun onClickLike() {
-
+    fun onClickLikeOrDislike() {
+        if (state.value.currentMusic != null) {
+            viewModelScope.launch(ioDispatcher) {
+                addFavoriteMusicUseCase(state.value.currentMusic!!).collect { result ->
+                    when(result) {
+                        true -> {
+                            Log.d("FAVORITE", "Insertion Success.")
+                        }
+                        false -> {
+                            Log.d("FAVORITE", "Insertion Failed.")
+                        }
+                    }
+                }
+            }
+        }
     }
 }

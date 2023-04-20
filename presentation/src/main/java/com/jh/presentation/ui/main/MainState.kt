@@ -1,5 +1,6 @@
 package com.jh.presentation.ui.main
 
+import com.jh.murun.domain.model.Music
 import com.jh.presentation.enums.CadenceType
 
 data class MainState(
@@ -8,5 +9,6 @@ data class MainState(
     val cadenceType: CadenceType = CadenceType.NONE,
     val isRunning: Boolean = false,
     val isSnackBarVisible: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val currentMusic: Music? = null
 )

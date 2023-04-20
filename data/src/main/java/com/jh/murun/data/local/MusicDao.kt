@@ -9,11 +9,11 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface MusicDao {
     @Query("SELECT * FROM Music")
-    fun readAllMusic(): Flow<List<Music>>
+    suspend fun readAllMusic(): Flow<List<Music>>
 
     @Insert
-    fun insertMusic(music: Music)
+    suspend fun insertMusic(music: Music)
 
     @Query("DELETE FROM Music WHERE id = :id")
-    fun deleteMusic(id: String)
+    suspend fun deleteMusic(id: String)
 }

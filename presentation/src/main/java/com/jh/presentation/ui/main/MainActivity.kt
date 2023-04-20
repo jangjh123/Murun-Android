@@ -294,7 +294,7 @@ private fun MainActivityContent(
                             )
 
                             Icon(
-                                modifier = Modifier.clickableWithoutRipple {  },
+                                modifier = Modifier.clickableWithoutRipple { },
                                 painter = painterResource(id = R.drawable.ic_favorite_empty),
                                 contentDescription = "favoriteIcon",
                                 tint = Color.Gray
@@ -551,7 +551,8 @@ private fun MainActivityContent(
                                 Icon(
                                     modifier = Modifier
                                         .size(24.dp)
-                                        .align(Center),
+                                        .align(Center)
+                                        .clickableWithoutRipple { viewModel.onClickLikeOrDislike() },
                                     painter = painterResource(id = R.drawable.ic_favorite),
                                     contentDescription = "favoriteIcon",
                                     tint = MainColor
