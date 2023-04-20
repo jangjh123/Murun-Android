@@ -207,7 +207,6 @@ private fun MainActivityContent(
     playerUiState: MutableState<MusicPlayerState>,
     viewModel: MainViewModel = hiltViewModel()
 ) {
-    val scope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
     val cadenceAssignTextState = remember { mutableStateOf("") }
     val player = playerUiState.value

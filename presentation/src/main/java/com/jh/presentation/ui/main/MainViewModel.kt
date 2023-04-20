@@ -1,9 +1,9 @@
 package com.jh.presentation.ui.main
 
-import android.util.Log
 import androidx.lifecycle.viewModelScope
 import com.jh.murun.domain.model.Music
 import com.jh.murun.domain.use_case.favorite.AddFavoriteMusicUseCase
+import com.jh.murun.domain.use_case.favorite.GetMusicExistenceInFavoriteListUseCase
 import com.jh.presentation.base.BaseViewModel
 import com.jh.presentation.di.IoDispatcher
 import com.jh.presentation.di.MainDispatcher
@@ -22,7 +22,8 @@ import javax.inject.Inject
 class MainViewModel @Inject constructor(
     @MainDispatcher private val mainDispatcher: CoroutineDispatcher,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
-    private val addFavoriteMusicUseCase: AddFavoriteMusicUseCase
+    private val addFavoriteMusicUseCase: AddFavoriteMusicUseCase,
+    private val getMusicExistenceInFavoriteListUseCase: GetMusicExistenceInFavoriteListUseCase
 ) : BaseViewModel() {
 
     private val eventChannel = Channel<MainEvent>()
