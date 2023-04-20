@@ -145,6 +145,11 @@ class MainActivity : BaseActivity() {
                             bindService(Intent(this@MainActivity, MusicPlayerService::class.java), musicPlayerServiceConnection, Context.BIND_AUTO_CREATE)
                         }
                     }
+                    is MainSideEffect.QuitMusicPlayer -> {
+                        if (isMusicPlayerServiceBinding) {
+                            unbindService(musicPlayerServiceConnection)
+                        }
+                    }
                     is MainSideEffect.ChangeRepeatMode -> {
                         musicPlayerService.changeRepeatMode()
                     }

@@ -101,6 +101,8 @@ class MainViewModel @Inject constructor(
 
     fun onClickStopRunning() {
         sendEvent(eventChannel, MainEvent.StopRunning)
+        sendSideEffect(_sideEffectChannel, MainSideEffect.QuitMusicPlayer)
+
         if (state.value.cadenceType == TRACKING) {
             sendSideEffect(_sideEffectChannel, MainSideEffect.StopTrackingCadence)
         }

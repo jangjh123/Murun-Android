@@ -85,6 +85,10 @@ class CustomNotificationManager(
         musicPlayerService.startForeground(NOTIFICATION_ID, notificationBuilder.build())
     }
 
+    fun dismissNotification() {
+        notificationManager.cancel(NOTIFICATION_ID)
+    }
+
     fun setPlaybackState() {
         currentState = if (currentState == PlaybackStateCompat.STATE_PLAYING) {
             mediaSession.setPlaybackState(stateBuilder.setState(PlaybackStateCompat.STATE_PAUSED, player.currentPosition, 1f).build())

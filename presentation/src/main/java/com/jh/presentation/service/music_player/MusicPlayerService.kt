@@ -238,11 +238,13 @@ class MusicPlayerService : Service() {
         }
     }
 
-    override fun onDestroy() {
+    override fun onUnbind(intent: Intent?): Boolean {
+        notificationManager.dismissNotification()
+
         if (isMusicLoaderServiceBinding) {
             unbindService(musicLoaderServiceConnection)
         }
 
-        super.onDestroy()
+        return super.onUnbind(intent)
     }
 }
