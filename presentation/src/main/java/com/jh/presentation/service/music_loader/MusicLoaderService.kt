@@ -13,11 +13,8 @@ import com.jh.murun.domain.use_case.music.GetMusicListByCadenceUseCase
 import com.jh.presentation.di.IoDispatcher
 import com.jh.presentation.di.MainDispatcher
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
@@ -88,7 +85,7 @@ class MusicLoaderService : Service() {
                     }
                     is ResponseState.Error -> {} // TODO : Error handling
                 }
-            }.collect()
+            }.launchIn(CoroutineScope(ioDispatcher))
         }
     }
 
@@ -108,7 +105,7 @@ class MusicLoaderService : Service() {
                             image = result?.second
                         }
                     )
-                }.collect()
+                }.launchIn(CoroutineScope(ioDispatcher))
             }
         }
     }

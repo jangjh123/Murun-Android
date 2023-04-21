@@ -256,7 +256,7 @@ class MusicPlayerService : Service() {
                         }
                     ).onEach { isExists ->
                         eventChannel.sendEvent(MusicPlayerEvent.MusicChanged(isExistsInFavoriteList = isExists))
-                    }.collect()
+                    }.launchIn(CoroutineScope(mainDispatcher))
                 }
             }
         }

@@ -9,32 +9,34 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement.SpaceBetween
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.*
 import androidx.compose.material.ModalBottomSheetValue.Expanded
 import androidx.compose.material.ModalBottomSheetValue.Hidden
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment.Companion.BottomCenter
 import androidx.compose.ui.Alignment.Companion.Center
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.layout.ContentScale.Companion.FillBounds
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jh.murun.presentation.R
 import com.jh.presentation.base.BaseActivity
-import com.jh.presentation.ui.MurunSpacer
-import com.jh.presentation.ui.RoundedCornerButton
-import com.jh.presentation.ui.clickableWithoutRipple
-import com.jh.presentation.ui.main.MainActivity
-import com.jh.presentation.ui.repeatOnStarted
+import com.jh.presentation.ui.*
 import com.jh.presentation.ui.theme.*
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import org.burnoutcrew.reorderable.*
 
 @AndroidEntryPoint
 class FavoriteActivity : BaseActivity() {
@@ -53,8 +55,7 @@ class FavoriteActivity : BaseActivity() {
             viewModel.sideEffectChannelFlow.collectLatest { sideEffect ->
                 when (sideEffect) {
                     is FavoriteSideEffect.StartRunning -> {
-                        startActivity(MainActivity.newIntent(this@FavoriteActivity))
-                        finish()
+
                     }
                 }
             }
@@ -170,68 +171,95 @@ private fun FavoriteActivityContent(
 
                 Divider(color = SubColor)
 
-                Box(modifier = Modifier.fillMaxSize()) {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(bottom = 72.dp)
-                    ) {
-                        item {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = SpaceBetween,
-                                verticalAlignment = CenterVertically
-                            ) {
-                                Row(verticalAlignment = CenterVertically) {
-                                    Image(
-                                        modifier = Modifier
-                                            .padding(all = 12.dp)
-                                            .clip(shape = Shapes.large)
-                                            .size(60.dp),
-                                        painter = painterResource(id = R.drawable.dummy_cover),
-                                        contentDescription = "albumCover",
-                                        contentScale = FillBounds
-                                    )
+                if (!isLoading) {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        val isReordered = remember { mutableStateOf(false) }
+                        val musics = remember { mutableStateOf(favoriteList) }
+                        val reorderableState = rememberReorderableLazyListState(onMove = { from, to ->
+                            musics.value = musics.value.toMutableList().apply {
+                                add(to.index, removeAt(from.index))
+                                isReordered.value = true
+                            }
+                        })
 
-                                    Column {
-                                        Text(
-                                            text = "Music Title",
-                                            style = Typography.body2,
-                                            color = Gray1
-                                        )
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(bottom = 72.dp)
+                                .reorderable(reorderableState)
+                                .detectReorderAfterLongPress(reorderableState),
+                            state = reorderableState.listState
+                        ) {
+                            items(musics.value, { it }) { music ->
+                                ReorderableItem(reorderableState = reorderableState, key = music) { isDragging ->
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = SpaceBetween,
+                                        verticalAlignment = CenterVertically
+                                    ) {
+                                        Row(verticalAlignment = CenterVertically) {
+                                            Image(
+                                                modifier = Modifier
+                                                    .alpha(if (isDragging) 0.5f else 1f)
+                                                    .padding(all = 12.dp)
+                                                    .clip(shape = Shapes.large)
+                                                    .size(60.dp),
+                                                painter = if (music.image != null) BitmapPainter(convertImage(music.image!!))
+                                                else painterResource(id = R.drawable.music_default),
+                                                contentDescription = "albumCover",
+                                                contentScale = FillBounds
+                                            )
 
-                                        Text(
-                                            text = "Artist Name",
-                                            style = Typography.body1,
-                                            color = Gray2
+                                            Column {
+                                                Text(
+                                                    text = music.title,
+                                                    style = Typography.body2,
+                                                    color = Gray1
+                                                )
+
+                                                Text(
+                                                    text = music.artist,
+                                                    style = Typography.body1,
+                                                    color = Gray2
+                                                )
+                                            }
+                                        }
+
+                                        Icon(
+                                            modifier = Modifier
+                                                .padding(end = 12.dp)
+                                                .clickableWithoutRipple { viewModel.onClickShowMusicOption() },
+                                            painter = painterResource(id = R.drawable.ic_option),
+                                            contentDescription = "optionIcon",
+                                            tint = Gray1
                                         )
                                     }
                                 }
 
-                                Icon(
-                                    modifier = Modifier
-                                        .padding(end = 12.dp)
-                                        .clickableWithoutRipple { viewModel.onClickShowMusicOption() },
-                                    painter = painterResource(id = R.drawable.ic_option),
-                                    contentDescription = "optionIcon",
-                                    tint = Gray1
+                                Divider(
+                                    thickness = 1.dp,
+                                    color = Gray0
                                 )
                             }
                         }
-                    }
 
-                    RoundedCornerButton(
-                        modifier = Modifier
-                            .padding(all = 12.dp)
-                            .fillMaxWidth()
-                            .height(48.dp)
-                            .align(BottomCenter),
-                        backgroundColor = MainColor,
-                        text = "러닝 시작",
-                        textColor = Color.White,
-                        onClick = { viewModel.onClickGoToMain() }
-                    )
+                        RoundedCornerButton(
+                            modifier = Modifier
+                                .padding(all = 12.dp)
+                                .fillMaxWidth()
+                                .height(48.dp)
+                                .align(BottomCenter),
+                            backgroundColor = MainColor,
+                            text = "러닝 시작",
+                            textColor = Color.White,
+                            onClick = { viewModel.onClickGoToMain() }
+                        )
+                    }
                 }
+            }
+
+            if (isLoading) {
+                LoadingScreen()
             }
         }
     }

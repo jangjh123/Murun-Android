@@ -223,10 +223,6 @@ private fun MainActivityContent(
     val focusManager = LocalFocusManager.current
     val cadenceAssignTextState = remember { mutableStateOf("") }
     val player = playerUiState.value
-    val convertImage = { byteArray: ByteArray ->
-        ImageBitmap
-        BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size).asImageBitmap()
-    }
 
     with(viewModel.state.collectAsStateWithLifecycle().value) {
         Box(modifier = Modifier.fillMaxSize()) {

@@ -137,7 +137,7 @@ class MainViewModel @Inject constructor(
                             showToast("곡을 리스트에 저장할 수 없습니다.")
                         }
                     }
-                }.collect()
+                }.launchIn(viewModelScope)
             }
         }
     }
@@ -154,7 +154,7 @@ class MainViewModel @Inject constructor(
                         showToast("곡을 리스트에서 삭제할 수 없습니다.")
                     }
                 }
-            }.collect()
+            }.launchIn(viewModelScope)
         }
     }
 }

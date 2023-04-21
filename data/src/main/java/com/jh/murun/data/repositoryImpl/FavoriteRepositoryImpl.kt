@@ -10,6 +10,19 @@ import javax.inject.Inject
 class FavoriteRepositoryImpl @Inject constructor(
     private val musicDao: MusicDao
 ) : FavoriteRepository {
+
+    override suspend fun readAllMusics(): Flow<List<Music>?> {
+        return flow {
+            runCatching {
+                musicDao.readAllMusic()
+            }.onSuccess {
+                emit(it)
+            }.onFailure {
+                emit(null)
+            }
+        }
+    }
+
     override suspend fun insertMusicToFavoriteList(music: Music): Flow<Boolean> {
         return flow {
             runCatching {

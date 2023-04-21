@@ -3,9 +3,12 @@ package com.jh.presentation.ui.main.favorite
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.ModalBottomSheetValue
 import androidx.lifecycle.viewModelScope
+import com.jh.murun.domain.use_case.favorite.GetFavoriteListUseCase
 import com.jh.presentation.base.BaseViewModel
 import com.jh.presentation.di.IoDispatcher
 import com.jh.presentation.di.MainDispatcher
+import com.jh.presentation.ui.sendEvent
+import com.jh.presentation.ui.sendSideEffect
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.channels.Channel
@@ -16,7 +19,8 @@ import javax.inject.Inject
 @HiltViewModel
 class FavoriteViewModel @Inject constructor(
     @MainDispatcher private val mainDispatcher: CoroutineDispatcher,
-    @IoDispatcher private val ioDispatcher: CoroutineDispatcher
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+    private val getFavoriteListUseCase: GetFavoriteListUseCase
 ) : BaseViewModel() {
 
     private val eventChannel = Channel<FavoriteEvent>()
@@ -39,30 +43,41 @@ class FavoriteViewModel @Inject constructor(
             is FavoriteEvent.InitBottomSheetState -> {
                 state.copy(bottomSheetStateValue = null)
             }
+            is FavoriteEvent.LoadFavoriteList -> {
+                state.copy(isLoading = true)
+            }
+            is FavoriteEvent.FavoriteListLoaded -> {
+                state.copy(isLoading = false, favoriteList = event.favoriteList)
+            }
+        }
+    }
+
+    init {
+        sendEvent(eventChannel, FavoriteEvent.LoadFavoriteList)
+        viewModelScope.launch(ioDispatcher) {
+            getFavoriteListUseCase().onEach {
+                if (it != null) {
+                    eventChannel.send(FavoriteEvent.FavoriteListLoaded(it))
+                } else {
+                    // TODO : Error Handling
+                }
+            }.launchIn(viewModelScope)
         }
     }
 
     fun onClickShowMusicOption() {
-        viewModelScope.launch(mainDispatcher) {
-            eventChannel.send(FavoriteEvent.ShowMusicOption)
-        }
+        sendEvent(eventChannel, FavoriteEvent.ShowMusicOption)
     }
 
     fun onClickHideMusicOption() {
-        viewModelScope.launch(mainDispatcher) {
-            eventChannel.send(FavoriteEvent.HideMusicOption)
-        }
+        sendEvent(eventChannel, FavoriteEvent.HideMusicOption)
     }
 
     fun onInitBottomSheetState() {
-        viewModelScope.launch(mainDispatcher) {
-            eventChannel.send(FavoriteEvent.InitBottomSheetState)
-        }
+        sendEvent(eventChannel, FavoriteEvent.InitBottomSheetState)
     }
 
     fun onClickGoToMain() {
-        viewModelScope.launch(mainDispatcher) {
-            _sideEffectChannel.send(FavoriteSideEffect.StartRunning)
-        }
+        sendSideEffect(_sideEffectChannel, FavoriteSideEffect.StartRunning)
     }
 }

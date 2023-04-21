@@ -22,6 +22,7 @@ import com.jh.murun.presentation.R
 import com.jh.presentation.base.BaseActivity
 import com.jh.presentation.ui.main.MainActivity
 import com.jh.presentation.ui.on_boarding.OnBoardingActivity
+import com.jh.presentation.ui.repeatOnStarted
 import com.jh.presentation.ui.theme.*
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
@@ -37,7 +38,7 @@ class SplashActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
 
         lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) {
+            repeatOnStarted {
                 viewModel.sideEffectChannelFlow.collectLatest { sideEffect ->
                     when (sideEffect) {
                         is SplashSideEffect.SkipOnBoarding -> {
