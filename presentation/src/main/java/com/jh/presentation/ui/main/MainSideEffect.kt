@@ -10,6 +10,7 @@ sealed class MainSideEffect {
     object SkipToPrev : MainSideEffect()
     object PlayOrPause : MainSideEffect()
     object SkipToNext : MainSideEffect()
-    object LikeOrDislike : MainSideEffect()
+    object LikeMusic : MainSideEffect()
+    object DislikeMusic : MainSideEffect()
     data class ShowToast(val text: String) : MainSideEffect()
 }

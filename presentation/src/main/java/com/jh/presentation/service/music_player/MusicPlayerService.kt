@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.ServiceConnection
 import android.graphics.BitmapFactory
 import android.os.Binder
+import android.os.Build
 import android.os.IBinder
 import androidx.core.os.bundleOf
 import com.google.android.exoplayer2.ExoPlayer
@@ -16,6 +17,8 @@ import com.google.android.exoplayer2.Player.*
 import com.google.android.exoplayer2.source.ProgressiveMediaSource
 import com.google.android.exoplayer2.upstream.DefaultDataSource
 import com.jh.murun.domain.model.Music
+import com.jh.murun.domain.use_case.favorite.GetMusicExistenceInFavoriteListUseCase
+import com.jh.presentation.di.IoDispatcher
 import com.jh.presentation.di.MainDispatcher
 import com.jh.presentation.enums.CadenceType.ASSIGN
 import com.jh.presentation.enums.CadenceType.TRACKING
@@ -30,6 +33,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -37,6 +41,13 @@ class MusicPlayerService : Service() {
     @Inject
     @MainDispatcher
     lateinit var mainDispatcher: CoroutineDispatcher
+
+    @Inject
+    @IoDispatcher
+    lateinit var ioDispatcher: CoroutineDispatcher
+
+    @Inject
+    lateinit var getMusicExistenceInFavoriteListUseCase: GetMusicExistenceInFavoriteListUseCase
 
     private val exoPlayer: ExoPlayer by lazy {
         ExoPlayer.Builder(this@MusicPlayerService).build().apply {
@@ -81,13 +92,13 @@ class MusicPlayerService : Service() {
                 state.copy(isPlaying = !state.isPlaying)
             }
             is MusicPlayerEvent.MusicChanged -> {
-                state.copy(isLoading = false, currentMusic = exoPlayer.currentMediaItem)
+                state.copy(isLoading = false, currentMusic = exoPlayer.currentMediaItem, isCurrentMusicExistsInFavoriteList = event.isExistsInFavoriteList)
             }
             is MusicPlayerEvent.RepeatModeChanged -> {
                 state.copy(isRepeatingOne = !state.isRepeatingOne)
             }
             is MusicPlayerEvent.Quit -> {
-                state.copy(isLoading = false, isPlaying = false, currentMusic = null)
+                state.copy(isLoading = false, isPlaying = false, currentMusic = null, isCurrentMusicExistsInFavoriteList = false)
             }
         }
     }
@@ -229,7 +240,17 @@ class MusicPlayerService : Service() {
                     notificationManager.setNewMusicPlayback(convertMetadata(it))
                 }
 
-                eventChannel.sendEvent(MusicPlayerEvent.MusicChanged)
+                CoroutineScope(ioDispatcher).launch {
+                    getMusicExistenceInFavoriteListUseCase(
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            mediaItem.mediaMetadata.extras?.getParcelable("music", Music::class.java)?.id ?: ""
+                        } else {
+                            mediaItem.mediaMetadata.extras?.getParcelable<Music>("music")?.id ?: ""
+                        }
+                    ).onEach { isExists ->
+                        eventChannel.sendEvent(MusicPlayerEvent.MusicChanged(isExistsInFavoriteList = isExists))
+                    }.collect()
+                }
             }
         }
 

@@ -6,5 +6,5 @@ import javax.inject.Inject
 class GetMusicExistenceInFavoriteListUseCase @Inject constructor(
     private val favoriteRepository: FavoriteRepository
 ) {
-    suspend operator fun invoke(id: String) = favoriteRepository.isMusicExistInFavoriteList(id)
+    suspend operator fun invoke(id: String) = favoriteRepository.isMusicExistsInFavoriteList(id)
 }

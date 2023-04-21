@@ -22,7 +22,7 @@ class FavoriteRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun isMusicExistInFavoriteList(id: String): Flow<Boolean> {
+    override suspend fun isMusicExistsInFavoriteList(id: String): Flow<Boolean> {
         return flow {
             runCatching {
                 musicDao.readMusicId(id)

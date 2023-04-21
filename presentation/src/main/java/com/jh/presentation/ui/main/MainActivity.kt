@@ -35,7 +35,6 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.layout.ContentScale.Companion.Crop
@@ -64,7 +63,6 @@ import com.jh.presentation.ui.main.MainEvent.*
 import com.jh.presentation.ui.main.favorite.FavoriteActivity
 import com.jh.presentation.ui.theme.*
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -83,9 +81,10 @@ class MainActivity : BaseActivity() {
             musicPlayerService.setState(mainState = viewModel.state.value)
 
             lifecycleScope.launch {
-                repeatOnLifecycle(Lifecycle.State.STARTED) {
-                    musicPlayerService.state.collectLatest {
-                        playerUiState.value = it
+                repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                    musicPlayerService.state.collectLatest { playerState ->
+                        playerUiState.value = playerState
+
                     }
                 }
             }
@@ -155,12 +154,15 @@ class MainActivity : BaseActivity() {
                     is MainSideEffect.ChangeRepeatMode -> {
                         musicPlayerService.changeRepeatMode()
                     }
-                    is MainSideEffect.LikeOrDislike -> {
+                    is MainSideEffect.LikeMusic -> {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            viewModel.likeOrDislikeMusic(playerUiState.value.currentMusic?.mediaMetadata?.extras?.getParcelable("music", Music::class.java))
+                            viewModel.likeMusic(playerUiState.value.currentMusic?.mediaMetadata?.extras?.getParcelable("music", Music::class.java))
                         } else {
-                            viewModel.likeOrDislikeMusic(playerUiState.value.currentMusic?.mediaMetadata?.extras?.getParcelable("music")!!)
+                            viewModel.likeMusic(playerUiState.value.currentMusic?.mediaMetadata?.extras?.getParcelable("music")!!)
                         }
+                    }
+                    is MainSideEffect.DislikeMusic -> {
+                        // TODO : Remove music from table
                     }
                     is MainSideEffect.ShowToast -> {
                         Toast.makeText(this@MainActivity, sideEffect.text, Toast.LENGTH_SHORT).show()
@@ -305,10 +307,10 @@ private fun MainActivityContent(
                             )
 
                             Icon(
-                                modifier = Modifier.clickableWithoutRipple { viewModel.onClickLikeOrDislike() },
-                                painter = painterResource(id = R.drawable.ic_favorite_empty),
+                                modifier = Modifier.clickableWithoutRipple { viewModel.onClickLikeOrDislike(player.isCurrentMusicExistsInFavoriteList) },
+                                painter = painterResource(id = if (player.isCurrentMusicExistsInFavoriteList) R.drawable.ic_favorite_fill else R.drawable.ic_favorite_empty),
                                 contentDescription = "favoriteIcon",
-                                tint = Color.Gray
+                                tint = if (player.isCurrentMusicExistsInFavoriteList) Red else Color.Gray
                             )
                         }
                     }

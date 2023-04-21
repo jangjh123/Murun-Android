@@ -22,8 +22,7 @@ import javax.inject.Inject
 class MainViewModel @Inject constructor(
     @MainDispatcher private val mainDispatcher: CoroutineDispatcher,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
-    private val addFavoriteMusicUseCase: AddFavoriteMusicUseCase,
-    private val getMusicExistenceInFavoriteListUseCase: GetMusicExistenceInFavoriteListUseCase
+    private val addFavoriteMusicUseCase: AddFavoriteMusicUseCase
 ) : BaseViewModel() {
 
     private val eventChannel = Channel<MainEvent>()
@@ -109,18 +108,25 @@ class MainViewModel @Inject constructor(
         sendEvent(eventChannel, MainEvent.SetMeasuredCadence(cadence))
     }
 
-    fun onClickLikeOrDislike() {
-        sendSideEffect(_sideEffectChannel, MainSideEffect.LikeOrDislike)
+    fun onClickLikeOrDislike(isExists: Boolean) {
+        when (isExists) {
+            true -> {
+                sendSideEffect(_sideEffectChannel, MainSideEffect.DislikeMusic)
+            }
+            false -> {
+                sendSideEffect(_sideEffectChannel, MainSideEffect.LikeMusic)
+            }
+        }
     }
 
     fun showToast(text: String) {
         sendSideEffect(_sideEffectChannel, MainSideEffect.ShowToast(text))
     }
 
-    fun likeOrDislikeMusic(music: Music?) {
+    fun likeMusic(music: Music?) {
         if (music != null) {
             viewModelScope.launch(ioDispatcher) {
-                addFavoriteMusicUseCase(music).collect { result ->
+                addFavoriteMusicUseCase(music).onEach { result ->
                     when (result) {
                         true -> {
                             showToast("곡을 리스트에 추가하였습니다.")
@@ -129,7 +135,7 @@ class MainViewModel @Inject constructor(
                             showToast("곡을 리스트에 저장할 수 없습니다.")
                         }
                     }
-                }
+                }.collect()
             }
         }
     }

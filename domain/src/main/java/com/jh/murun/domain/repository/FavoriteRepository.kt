@@ -5,5 +5,5 @@ import kotlinx.coroutines.flow.Flow
 
 interface FavoriteRepository {
     suspend fun insertMusicToFavoriteList(music: Music): Flow<Boolean>
-    suspend fun isMusicExistInFavoriteList(id: String): Flow<Boolean>
+    suspend fun isMusicExistsInFavoriteList(id: String): Flow<Boolean>
 }

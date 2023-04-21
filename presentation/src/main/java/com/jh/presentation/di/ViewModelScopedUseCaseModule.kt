@@ -27,8 +27,4 @@ object ViewModelScopedUseCaseModule {
     @ViewModelScoped
     @Provides
     fun provideAddFavoriteMusicUseCase(favoriteRepository: FavoriteRepository) = AddFavoriteMusicUseCase(favoriteRepository)
-
-    @ViewModelScoped
-    @Provides
-    fun provideGetMusicExistenceInFavoriteList(favoriteRepository: FavoriteRepository) = GetMusicExistenceInFavoriteListUseCase(favoriteRepository)
 }
