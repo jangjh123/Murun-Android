@@ -3,6 +3,7 @@ package com.jh.presentation.ui.main
 sealed class MainSideEffect {
     object GoToFavorite : MainSideEffect()
     object TrackCadence : MainSideEffect()
+    object PlayFavoriteList : MainSideEffect()
     object StopTrackingCadence : MainSideEffect()
     object LaunchMusicPlayer : MainSideEffect()
     object QuitMusicPlayer : MainSideEffect()

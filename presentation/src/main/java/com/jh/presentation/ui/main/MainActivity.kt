@@ -6,7 +6,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.content.pm.PackageManager
-import android.graphics.BitmapFactory
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
@@ -34,8 +33,6 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.layout.ContentScale.Companion.Crop
 import androidx.compose.ui.layout.ContentScale.Companion.FillBounds
@@ -45,10 +42,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
 import com.jh.murun.domain.model.Music
 import com.jh.murun.presentation.R
 import com.jh.presentation.base.BaseActivity
@@ -81,10 +76,9 @@ class MainActivity : BaseActivity() {
             musicPlayerService.setState(mainState = viewModel.state.value)
 
             lifecycleScope.launch {
-                repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                repeatOnResumed {
                     musicPlayerService.state.collectLatest { playerState ->
                         playerUiState.value = playerState
-
                     }
                 }
             }
@@ -141,6 +135,9 @@ class MainActivity : BaseActivity() {
                         cadenceTrackingService.stop()
                         unbindService(cadenceTrackingServiceConnection)
                     }
+                    is MainSideEffect.PlayFavoriteList -> {
+                        // TODO : Play musics with favorite list
+                    }
                     is MainSideEffect.LaunchMusicPlayer -> {
                         if (!isMusicPlayerServiceBinding) {
                             bindService(Intent(this@MainActivity, MusicPlayerService::class.java), musicPlayerServiceConnection, Context.BIND_AUTO_CREATE)
@@ -196,6 +193,11 @@ class MainActivity : BaseActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        viewModel.getIsStartedRunningWithFavoriteList()
+    }
+
     override fun onDestroy() {
         if (isCadenceTrackingServiceBinding) {
             unbindService(cadenceTrackingServiceConnection)
@@ -208,8 +210,12 @@ class MainActivity : BaseActivity() {
     }
 
     companion object {
-        fun newIntent(context: Context): Intent {
-            return Intent(context, MainActivity::class.java)
+        const val KEY_IS_RUNNING_STARTED = "isRunningStarted"
+
+        fun newIntent(context: Context, isRunningStarted: Boolean?): Intent {
+            return Intent(context, MainActivity::class.java).apply {
+                putExtra(KEY_IS_RUNNING_STARTED, isRunningStarted)
+            }
         }
     }
 }

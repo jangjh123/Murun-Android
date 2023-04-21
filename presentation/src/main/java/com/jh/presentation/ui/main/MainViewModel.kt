@@ -1,5 +1,6 @@
 package com.jh.presentation.ui.main
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.jh.murun.domain.model.Music
 import com.jh.murun.domain.use_case.favorite.AddFavoriteMusicUseCase
@@ -22,6 +23,7 @@ import javax.inject.Inject
 class MainViewModel @Inject constructor(
     @MainDispatcher private val mainDispatcher: CoroutineDispatcher,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+    private val savedStateHandle: SavedStateHandle,
     private val addFavoriteMusicUseCase: AddFavoriteMusicUseCase,
     private val deleteFavoriteMusicUseCase: DeleteFavoriteMusicUseCase
 ) : BaseViewModel() {
@@ -57,6 +59,13 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    fun getIsStartedRunningWithFavoriteList() {
+        if (savedStateHandle.get<Boolean>(MainActivity.KEY_IS_RUNNING_STARTED) == true) {
+            startRunning()
+            sendSideEffect(_sideEffectChannel, MainSideEffect.PlayFavoriteList)
+        }
+    }
+
     fun onClickSkipToPrev() {
         sendSideEffect(_sideEffectChannel, MainSideEffect.SkipToPrev)
     }
@@ -82,8 +91,7 @@ class MainViewModel @Inject constructor(
     }
 
     fun onClickStartRunning(cadence: Int?) {
-        sendEvent(eventChannel, MainEvent.StartRunning)
-        sendSideEffect(_sideEffectChannel, MainSideEffect.LaunchMusicPlayer)
+        startRunning()
 
         if (state.value.cadenceType == TRACKING) {
             sendSideEffect(_sideEffectChannel, MainSideEffect.TrackCadence)
@@ -122,6 +130,11 @@ class MainViewModel @Inject constructor(
 
     fun showToast(text: String) {
         sendSideEffect(_sideEffectChannel, MainSideEffect.ShowToast(text))
+    }
+
+    private fun startRunning() {
+        sendEvent(eventChannel, MainEvent.StartRunning)
+        sendSideEffect(_sideEffectChannel, MainSideEffect.LaunchMusicPlayer)
     }
 
     fun likeMusic(music: Music?) {

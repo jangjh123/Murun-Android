@@ -42,7 +42,7 @@ class SplashActivity : BaseActivity() {
                 viewModel.sideEffectChannelFlow.collectLatest { sideEffect ->
                     when (sideEffect) {
                         is SplashSideEffect.SkipOnBoarding -> {
-                            startActivity(Intent(MainActivity.newIntent(this@SplashActivity)))
+                            startActivity(Intent(MainActivity.newIntent(this@SplashActivity, null)))
                         }
                         is SplashSideEffect.NoSkipOnBoarding -> {
                             startActivity(Intent(OnBoardingActivity.newIntent(this@SplashActivity)))

@@ -34,6 +34,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jh.murun.presentation.R
 import com.jh.presentation.base.BaseActivity
 import com.jh.presentation.ui.*
+import com.jh.presentation.ui.main.MainActivity
 import com.jh.presentation.ui.theme.*
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
@@ -57,7 +58,7 @@ class FavoriteActivity : BaseActivity() {
             viewModel.sideEffectChannelFlow.collectLatest { sideEffect ->
                 when (sideEffect) {
                     is FavoriteSideEffect.StartRunning -> {
-
+                        startActivity(MainActivity.newIntent(this@FavoriteActivity, true))
                     }
                     is FavoriteSideEffect.ShowToast -> {
                         Toast.makeText(this@FavoriteActivity, sideEffect.text, Toast.LENGTH_SHORT).show()

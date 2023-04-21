@@ -59,10 +59,10 @@ class FavoriteViewModel @Inject constructor(
     }
 
     init {
-        loadFavoriteMusicList()
+        loadFavoriteList()
     }
 
-    private fun loadFavoriteMusicList() {
+    private fun loadFavoriteList() {
         sendEvent(eventChannel, FavoriteEvent.LoadFavoriteList)
         viewModelScope.launch(ioDispatcher) {
             getFavoriteListUseCase().onEach {
@@ -106,7 +106,7 @@ class FavoriteViewModel @Inject constructor(
                 when (result) {
                     true -> {
                         sendEvent(eventChannel, FavoriteEvent.HideMusicOption)
-                        loadFavoriteMusicList()
+                        loadFavoriteList()
                     }
                     false -> {
 
