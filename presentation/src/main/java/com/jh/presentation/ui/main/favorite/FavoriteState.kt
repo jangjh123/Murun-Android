@@ -8,5 +8,6 @@ import com.jh.murun.domain.model.Music
 data class FavoriteState(
     val isLoading: Boolean = false,
     val bottomSheetStateValue: ModalBottomSheetValue? = null,
-    val favoriteList: List<Music> = emptyList()
+    val favoriteList: List<Music> = emptyList(),
+    val chosenMusic: Music? = null
 )

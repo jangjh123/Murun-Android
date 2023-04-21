@@ -3,6 +3,8 @@ package com.jh.presentation.ui.main.favorite
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.ModalBottomSheetValue
 import androidx.lifecycle.viewModelScope
+import com.jh.murun.domain.model.Music
+import com.jh.murun.domain.use_case.favorite.DeleteFavoriteMusicUseCase
 import com.jh.murun.domain.use_case.favorite.GetFavoriteListUseCase
 import com.jh.presentation.base.BaseViewModel
 import com.jh.presentation.di.IoDispatcher
@@ -20,7 +22,8 @@ import javax.inject.Inject
 class FavoriteViewModel @Inject constructor(
     @MainDispatcher private val mainDispatcher: CoroutineDispatcher,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
-    private val getFavoriteListUseCase: GetFavoriteListUseCase
+    private val getFavoriteListUseCase: GetFavoriteListUseCase,
+    private val deleteFavoriteMusicUseCase: DeleteFavoriteMusicUseCase
 ) : BaseViewModel() {
 
     private val eventChannel = Channel<FavoriteEvent>()
@@ -35,7 +38,7 @@ class FavoriteViewModel @Inject constructor(
     private fun reduceState(state: FavoriteState, event: FavoriteEvent): FavoriteState {
         return when (event) {
             is FavoriteEvent.ShowMusicOption -> {
-                state.copy(bottomSheetStateValue = ModalBottomSheetValue.Expanded)
+                state.copy(bottomSheetStateValue = ModalBottomSheetValue.Expanded, chosenMusic = event.music)
             }
             is FavoriteEvent.HideMusicOption -> {
                 state.copy(bottomSheetStateValue = ModalBottomSheetValue.Hidden)
@@ -49,10 +52,17 @@ class FavoriteViewModel @Inject constructor(
             is FavoriteEvent.FavoriteListLoaded -> {
                 state.copy(isLoading = false, favoriteList = event.favoriteList)
             }
+            is FavoriteEvent.DeleteMusic -> {
+                state.copy(isLoading = true)
+            }
         }
     }
 
     init {
+        loadFavoriteMusicList()
+    }
+
+    private fun loadFavoriteMusicList() {
         sendEvent(eventChannel, FavoriteEvent.LoadFavoriteList)
         viewModelScope.launch(ioDispatcher) {
             getFavoriteListUseCase().onEach {
@@ -65,8 +75,8 @@ class FavoriteViewModel @Inject constructor(
         }
     }
 
-    fun onClickShowMusicOption() {
-        sendEvent(eventChannel, FavoriteEvent.ShowMusicOption)
+    fun onClickShowMusicOption(music: Music) {
+        sendEvent(eventChannel, FavoriteEvent.ShowMusicOption(music))
     }
 
     fun onClickHideMusicOption() {
@@ -79,5 +89,30 @@ class FavoriteViewModel @Inject constructor(
 
     fun onClickGoToMain() {
         sendSideEffect(_sideEffectChannel, FavoriteSideEffect.StartRunning)
+    }
+
+    fun onClickDeleteMusic() {
+        sendSideEffect(eventChannel, FavoriteEvent.DeleteMusic)
+        deleteMusic()
+    }
+
+    fun showToast(text: String) {
+        sendSideEffect(_sideEffectChannel, FavoriteSideEffect.ShowToast(text))
+    }
+
+    private fun deleteMusic() {
+        viewModelScope.launch(ioDispatcher) {
+            deleteFavoriteMusicUseCase(state.value.chosenMusic?.id ?: "").onEach { result ->
+                when (result) {
+                    true -> {
+                        sendEvent(eventChannel, FavoriteEvent.HideMusicOption)
+                        loadFavoriteMusicList()
+                    }
+                    false -> {
+
+                    }
+                }
+            }.launchIn(viewModelScope)
+        }
     }
 }

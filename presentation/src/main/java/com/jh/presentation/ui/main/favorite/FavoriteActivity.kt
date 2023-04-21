@@ -3,9 +3,11 @@ package com.jh.presentation.ui.main.favorite
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement.SpaceBetween
 import androidx.compose.foundation.lazy.LazyColumn
@@ -57,6 +59,9 @@ class FavoriteActivity : BaseActivity() {
                     is FavoriteSideEffect.StartRunning -> {
 
                     }
+                    is FavoriteSideEffect.ShowToast -> {
+                        Toast.makeText(this@FavoriteActivity, sideEffect.text, Toast.LENGTH_SHORT).show()
+                    }
                 }
             }
         }
@@ -104,17 +109,19 @@ private fun FavoriteActivityContent(
                         horizontalArrangement = SpaceBetween
                     ) {
                         Column {
-                            Text(
-                                text = "Music Title",
-                                style = Typography.body2,
-                                color = Gray1
-                            )
+                            chosenMusic.let { music ->
+                                Text(
+                                    text = music?.title ?: "",
+                                    style = Typography.body2,
+                                    color = Gray1
+                                )
 
-                            Text(
-                                text = "Artist Name",
-                                style = Typography.body1,
-                                color = Gray2
-                            )
+                                Text(
+                                    text = music?.artist ?: "",
+                                    style = Typography.body1,
+                                    color = Gray2
+                                )
+                            }
                         }
 
                         Icon(
@@ -129,7 +136,8 @@ private fun FavoriteActivityContent(
                     Row(
                         modifier = Modifier
                             .padding(all = 12.dp)
-                            .fillMaxWidth(),
+                            .fillMaxWidth()
+                            .clickable { chosenMusic.let { viewModel.onClickDeleteMusic() } },
                         verticalAlignment = CenterVertically
                     ) {
                         Icon(
@@ -228,7 +236,7 @@ private fun FavoriteActivityContent(
                                         Icon(
                                             modifier = Modifier
                                                 .padding(end = 12.dp)
-                                                .clickableWithoutRipple { viewModel.onClickShowMusicOption() },
+                                                .clickableWithoutRipple { viewModel.onClickShowMusicOption(music) },
                                             painter = painterResource(id = R.drawable.ic_option),
                                             contentDescription = "optionIcon",
                                             tint = Gray1
