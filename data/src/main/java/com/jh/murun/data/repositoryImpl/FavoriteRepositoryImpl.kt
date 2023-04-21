@@ -27,6 +27,25 @@ class FavoriteRepositoryImpl @Inject constructor(
             runCatching {
                 musicDao.readMusicId(id)
             }.onSuccess {
+                when(it) {
+                    true -> {
+                        emit(true)
+                    }
+                    false -> {
+                        emit(false)
+                    }
+                }
+            }.onFailure {
+                emit(false)
+            }
+        }
+    }
+
+    override suspend fun deleteMusicFromFavoriteList(id: String): Flow<Boolean> {
+        return flow {
+            runCatching {
+                musicDao.deleteMusic(id)
+            }.onSuccess {
                 emit(true)
             }.onFailure {
                 emit(false)

@@ -155,14 +155,22 @@ class MainActivity : BaseActivity() {
                         musicPlayerService.changeRepeatMode()
                     }
                     is MainSideEffect.LikeMusic -> {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            viewModel.likeMusic(playerUiState.value.currentMusic?.mediaMetadata?.extras?.getParcelable("music", Music::class.java))
-                        } else {
-                            viewModel.likeMusic(playerUiState.value.currentMusic?.mediaMetadata?.extras?.getParcelable("music")!!)
-                        }
+                        viewModel.likeMusic(
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                playerUiState.value.currentMusic?.mediaMetadata?.extras?.getParcelable("music", Music::class.java)
+                            } else {
+                                playerUiState.value.currentMusic?.mediaMetadata?.extras?.getParcelable("music")!!
+                            }
+                        )
                     }
                     is MainSideEffect.DislikeMusic -> {
-                        // TODO : Remove music from table
+                        viewModel.dislikeMusic(
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                playerUiState.value.currentMusic?.mediaMetadata?.extras?.getParcelable("music", Music::class.java)?.id ?: ""
+                            } else {
+                                playerUiState.value.currentMusic?.mediaMetadata?.extras?.getParcelable<Music>("music")?.id ?: ""
+                            }
+                        )
                     }
                     is MainSideEffect.ShowToast -> {
                         Toast.makeText(this@MainActivity, sideEffect.text, Toast.LENGTH_SHORT).show()

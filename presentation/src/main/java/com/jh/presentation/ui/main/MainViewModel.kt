@@ -3,7 +3,7 @@ package com.jh.presentation.ui.main
 import androidx.lifecycle.viewModelScope
 import com.jh.murun.domain.model.Music
 import com.jh.murun.domain.use_case.favorite.AddFavoriteMusicUseCase
-import com.jh.murun.domain.use_case.favorite.GetMusicExistenceInFavoriteListUseCase
+import com.jh.murun.domain.use_case.favorite.DeleteFavoriteMusicUseCase
 import com.jh.presentation.base.BaseViewModel
 import com.jh.presentation.di.IoDispatcher
 import com.jh.presentation.di.MainDispatcher
@@ -22,7 +22,8 @@ import javax.inject.Inject
 class MainViewModel @Inject constructor(
     @MainDispatcher private val mainDispatcher: CoroutineDispatcher,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
-    private val addFavoriteMusicUseCase: AddFavoriteMusicUseCase
+    private val addFavoriteMusicUseCase: AddFavoriteMusicUseCase,
+    private val deleteFavoriteMusicUseCase: DeleteFavoriteMusicUseCase
 ) : BaseViewModel() {
 
     private val eventChannel = Channel<MainEvent>()
@@ -137,6 +138,21 @@ class MainViewModel @Inject constructor(
                     }
                 }.collect()
             }
+        }
+    }
+
+    fun dislikeMusic(id: String) {
+        viewModelScope.launch(ioDispatcher) {
+            deleteFavoriteMusicUseCase(id).onEach { result ->
+                when (result) {
+                    true -> {
+                        showToast("곡을 리스트에서 삭제하였습니다.")
+                    }
+                    false -> {
+                        showToast("곡을 리스트에서 삭제할 수 없습니다.")
+                    }
+                }
+            }.collect()
         }
     }
 }
