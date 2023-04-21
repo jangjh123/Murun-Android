@@ -131,6 +131,7 @@ class MainViewModel @Inject constructor(
                     when (result) {
                         true -> {
                             showToast("곡을 리스트에 추가하였습니다.")
+                            sendSideEffect(_sideEffectChannel, MainSideEffect.UpdateLikeIcon(true))
                         }
                         false -> {
                             showToast("곡을 리스트에 저장할 수 없습니다.")
@@ -147,6 +148,7 @@ class MainViewModel @Inject constructor(
                 when (result) {
                     true -> {
                         showToast("곡을 리스트에서 삭제하였습니다.")
+                        sendSideEffect(_sideEffectChannel, MainSideEffect.UpdateLikeIcon(false))
                     }
                     false -> {
                         showToast("곡을 리스트에서 삭제할 수 없습니다.")

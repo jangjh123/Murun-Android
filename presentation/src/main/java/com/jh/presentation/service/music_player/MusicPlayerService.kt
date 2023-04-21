@@ -100,6 +100,9 @@ class MusicPlayerService : Service() {
             is MusicPlayerEvent.Quit -> {
                 state.copy(isLoading = false, isPlaying = false, currentMusic = null, isCurrentMusicExistsInFavoriteList = false)
             }
+            is MusicPlayerEvent.MusicExistenceInFavoriteListChanged -> {
+                state.copy(isCurrentMusicExistsInFavoriteList = event.isExists)
+            }
         }
     }
 
@@ -218,6 +221,10 @@ class MusicPlayerService : Service() {
         }
 
         eventChannel.sendEvent(MusicPlayerEvent.RepeatModeChanged)
+    }
+
+    fun setMusicExistenceInFavoriteList(isExists: Boolean) {
+        eventChannel.sendEvent(MusicPlayerEvent.MusicExistenceInFavoriteListChanged(isExists))
     }
 
     private fun convertMetadata(mediaItem: MediaItem): android.media.MediaMetadata {

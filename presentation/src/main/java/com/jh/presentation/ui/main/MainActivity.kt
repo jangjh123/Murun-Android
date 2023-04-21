@@ -175,6 +175,9 @@ class MainActivity : BaseActivity() {
                     is MainSideEffect.ShowToast -> {
                         Toast.makeText(this@MainActivity, sideEffect.text, Toast.LENGTH_SHORT).show()
                     }
+                    is MainSideEffect.UpdateLikeIcon -> {
+                        musicPlayerService.setMusicExistenceInFavoriteList(sideEffect.isExists)
+                    }
                 }
             }
         }
