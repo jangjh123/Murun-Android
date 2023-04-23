@@ -8,8 +8,7 @@ import com.jh.murun.domain.use_case.favorite.DeleteFavoriteMusicUseCase
 import com.jh.presentation.base.BaseViewModel
 import com.jh.presentation.di.IoDispatcher
 import com.jh.presentation.di.MainDispatcher
-import com.jh.presentation.enums.CadenceType.ASSIGN
-import com.jh.presentation.enums.CadenceType.TRACKING
+import com.jh.presentation.enums.LoadingMusicType.*
 import com.jh.presentation.ui.sendEvent
 import com.jh.presentation.ui.sendSideEffect
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -39,10 +38,13 @@ class MainViewModel @Inject constructor(
     private fun reduceState(state: MainState, event: MainEvent): MainState {
         return when (event) {
             is MainEvent.TrackCadence -> {
-                state.copy(cadenceType = TRACKING)
+                state.copy(loadingMusicType = TRACKING_CADENCE)
             }
             is MainEvent.AssignCadence -> {
-                state.copy(cadenceType = ASSIGN)
+                state.copy(loadingMusicType = ASSIGN_CADENCE)
+            }
+            is MainEvent.PlayFavoriteList -> {
+                state.copy(loadingMusicType = FAVORITE_LIST)
             }
             is MainEvent.StartRunning -> {
                 state.copy(isRunning = true)
@@ -61,8 +63,8 @@ class MainViewModel @Inject constructor(
 
     fun getIsStartedRunningWithFavoriteList() {
         if (savedStateHandle.get<Boolean>(MainActivity.KEY_IS_RUNNING_STARTED) == true) {
+            sendEvent(eventChannel, MainEvent.PlayFavoriteList)
             startRunning()
-            sendSideEffect(_sideEffectChannel, MainSideEffect.PlayFavoriteList)
         }
     }
 
@@ -93,9 +95,9 @@ class MainViewModel @Inject constructor(
     fun onClickStartRunning(cadence: Int?) {
         startRunning()
 
-        if (state.value.cadenceType == TRACKING) {
+        if (state.value.loadingMusicType == TRACKING_CADENCE) {
             sendSideEffect(_sideEffectChannel, MainSideEffect.TrackCadence)
-        } else if (state.value.cadenceType == ASSIGN) {
+        } else if (state.value.loadingMusicType == ASSIGN_CADENCE) {
             sendEvent(eventChannel, MainEvent.SetAssignedCadence(cadence!!))
         }
     }
@@ -104,7 +106,7 @@ class MainViewModel @Inject constructor(
         sendEvent(eventChannel, MainEvent.StopRunning)
         sendSideEffect(_sideEffectChannel, MainSideEffect.QuitMusicPlayer)
 
-        if (state.value.cadenceType == TRACKING) {
+        if (state.value.loadingMusicType == TRACKING_CADENCE) {
             sendSideEffect(_sideEffectChannel, MainSideEffect.StopTrackingCadence)
         }
     }

@@ -258,10 +258,10 @@ private fun FavoriteActivityContent(
                                 .fillMaxWidth()
                                 .height(48.dp)
                                 .align(BottomCenter),
-                            backgroundColor = MainColor,
+                            backgroundColor = if (favoriteList.isNotEmpty()) MainColor else Color.LightGray,
                             text = "러닝 시작",
                             textColor = Color.White,
-                            onClick = { viewModel.onClickGoToMain() }
+                            onClick = { if (favoriteList.isNotEmpty()) { viewModel.onClickGoToMain() } }
                         )
                     }
                 }

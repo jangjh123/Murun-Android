@@ -6,6 +6,7 @@ import android.os.Binder
 import android.os.IBinder
 import com.jh.murun.domain.model.Music
 import com.jh.murun.domain.model.ResponseState
+import com.jh.murun.domain.use_case.favorite.GetFavoriteListUseCase
 import com.jh.murun.domain.use_case.music.GetMusicByIdUseCase
 import com.jh.murun.domain.use_case.music.GetMusicFileUseCase
 import com.jh.murun.domain.use_case.music.GetMusicImageUseCase
@@ -13,8 +14,11 @@ import com.jh.murun.domain.use_case.music.GetMusicListByCadenceUseCase
 import com.jh.presentation.di.IoDispatcher
 import com.jh.presentation.di.MainDispatcher
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
@@ -28,6 +32,9 @@ class MusicLoaderService : Service() {
 
     @Inject
     lateinit var getMusicListByCadenceUseCase: GetMusicListByCadenceUseCase
+
+    @Inject
+    lateinit var getFavoriteListUseCase: GetFavoriteListUseCase
 
     @Inject
     lateinit var getMusicFileUseCase: GetMusicFileUseCase
@@ -84,6 +91,21 @@ class MusicLoaderService : Service() {
                         }
                     }
                     is ResponseState.Error -> {} // TODO : Error handling
+                }
+            }.launchIn(CoroutineScope(ioDispatcher))
+        }
+    }
+
+    fun loadFavoriteList() {
+        CoroutineScope(ioDispatcher).launch {
+            getFavoriteListUseCase().onEach { result ->
+                if (result != null) {
+                    musicQueue.addAll(result)
+                    if (musicQueue.isNotEmpty()) {
+                        loadMusicFileAndImage(musicQueue.poll()!!)
+                    }
+                } else {
+                    // TODO : Error Handling
                 }
             }.launchIn(CoroutineScope(ioDispatcher))
         }

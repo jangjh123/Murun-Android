@@ -47,7 +47,7 @@ import androidx.lifecycle.lifecycleScope
 import com.jh.murun.domain.model.Music
 import com.jh.murun.presentation.R
 import com.jh.presentation.base.BaseActivity
-import com.jh.presentation.enums.CadenceType.*
+import com.jh.presentation.enums.LoadingMusicType.*
 import com.jh.presentation.service.cadence_tracking.CadenceTrackingService
 import com.jh.presentation.service.cadence_tracking.CadenceTrackingService.CadenceTrackingServiceBinder
 import com.jh.presentation.service.music_player.MusicPlayerService
@@ -134,9 +134,6 @@ class MainActivity : BaseActivity() {
                     is MainSideEffect.StopTrackingCadence -> {
                         cadenceTrackingService.stop()
                         unbindService(cadenceTrackingServiceConnection)
-                    }
-                    is MainSideEffect.PlayFavoriteList -> {
-                        // TODO : Play musics with favorite list
                     }
                     is MainSideEffect.LaunchMusicPlayer -> {
                         if (!isMusicPlayerServiceBinding) {
@@ -386,10 +383,10 @@ private fun MainActivityContent(
                     verticalArrangement = SpaceBetween
                 ) {
                     Column {
-                        val cadenceTrackingColorState = animateColorAsState(targetValue = if (cadenceType == TRACKING) MainColor else Color.LightGray)
-                        val cadenceTrackingAlphaState = animateFloatAsState(targetValue = if (cadenceType == ASSIGN && isRunning) 0.3f else 1f)
-                        val cadenceAssignColorState = animateColorAsState(targetValue = if (cadenceType == ASSIGN) MainColor else Color.LightGray)
-                        val cadenceAssignAlphaState = animateFloatAsState(targetValue = if (cadenceType == TRACKING && isRunning) 0.3f else 1f)
+                        val cadenceTrackingColorState = animateColorAsState(targetValue = if (loadingMusicType == TRACKING_CADENCE) MainColor else Color.LightGray)
+                        val cadenceTrackingAlphaState = animateFloatAsState(targetValue = if (loadingMusicType == ASSIGN_CADENCE && isRunning) 0.3f else 1f)
+                        val cadenceAssignColorState = animateColorAsState(targetValue = if (loadingMusicType == ASSIGN_CADENCE) MainColor else Color.LightGray)
+                        val cadenceAssignAlphaState = animateFloatAsState(targetValue = if (loadingMusicType == ASSIGN_CADENCE && isRunning) 0.3f else 1f)
 
                         Row(
                             modifier = Modifier
@@ -506,7 +503,7 @@ private fun MainActivityContent(
                                                     unfocusedIndicatorColor = Color.Transparent,
                                                     disabledIndicatorColor = Color.Transparent,
                                                 ),
-                                                enabled = cadenceType == ASSIGN
+                                                enabled = loadingMusicType == ASSIGN_CADENCE
                                             )
                                         }
                                     }
@@ -531,11 +528,11 @@ private fun MainActivityContent(
                                     indication = null,
                                     onClick = {
                                         if (!isRunning) {
-                                            when (cadenceType) {
-                                                TRACKING -> {
+                                            when (loadingMusicType) {
+                                                TRACKING_CADENCE -> {
                                                     viewModel.onClickStartRunning(null)
                                                 }
-                                                ASSIGN -> {
+                                                ASSIGN_CADENCE -> {
                                                     if (cadenceAssignTextState.value.isNotEmpty() &&
                                                         cadenceAssignTextState.value.toInt() in 60..180
                                                     ) {
@@ -545,6 +542,7 @@ private fun MainActivityContent(
                                                 NONE -> {
                                                     viewModel.showToast("케이던스 타입을 지정해 주세요.")
                                                 }
+                                                FAVORITE_LIST -> Unit
                                             }
                                         }
                                     },

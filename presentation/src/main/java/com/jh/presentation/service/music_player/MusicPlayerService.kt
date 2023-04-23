@@ -20,8 +20,7 @@ import com.jh.murun.domain.model.Music
 import com.jh.murun.domain.use_case.favorite.GetMusicExistenceInFavoriteListUseCase
 import com.jh.presentation.di.IoDispatcher
 import com.jh.presentation.di.MainDispatcher
-import com.jh.presentation.enums.CadenceType.ASSIGN
-import com.jh.presentation.enums.CadenceType.TRACKING
+import com.jh.presentation.enums.LoadingMusicType.*
 import com.jh.presentation.service.music_loader.MusicLoaderService
 import com.jh.presentation.service.music_loader.MusicLoaderService.MusicLoaderServiceBinder
 import com.jh.presentation.ui.main.MainState
@@ -126,10 +125,12 @@ class MusicPlayerService : Service() {
     }
 
     private fun initPlayer() {
-        if (mainState.cadenceType == TRACKING) {
+        if (mainState.loadingMusicType == TRACKING_CADENCE) {
 
-        } else if (mainState.cadenceType == ASSIGN) {
+        } else if (mainState.loadingMusicType == ASSIGN_CADENCE) {
             musicLoaderService.loadMusicListByCadence(cadence = mainState.assignedCadence)
+        } else if (mainState.loadingMusicType == FAVORITE_LIST) {
+            musicLoaderService.loadFavoriteList()
         }
 
         collectMusicFile()
