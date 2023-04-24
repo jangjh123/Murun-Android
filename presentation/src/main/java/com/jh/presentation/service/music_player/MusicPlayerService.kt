@@ -201,9 +201,13 @@ class MusicPlayerService : Service() {
             if (exoPlayer.hasNextMediaItem() && exoPlayer.mediaItemCount != 1) {
                 exoPlayer.seekToNextMediaItem()
             } else {
-                musicLoaderService.loadNextMusicFile()
-                isIntended = true
-                eventChannel.sendEvent(MusicPlayerEvent.LoadMusic)
+                if (mainState.loadingMusicType == TRACKING_CADENCE) {
+                    musicLoaderService.loadMusicListByCadence(mainState.trackedCadence)
+                } else {
+                    musicLoaderService.loadNextMusicFile()
+                    isIntended = true
+                    eventChannel.sendEvent(MusicPlayerEvent.LoadMusic)
+                }
             }
         } else {
             exoPlayer.seekTo(0L)
@@ -257,7 +261,11 @@ class MusicPlayerService : Service() {
         override fun onPositionDiscontinuity(oldPosition: PositionInfo, newPosition: PositionInfo, reason: Int) {
             super.onPositionDiscontinuity(oldPosition, newPosition, reason)
             if (reason == DISCONTINUITY_REASON_AUTO_TRANSITION) {
-                skipToNext()
+                if (mainState.loadingMusicType == TRACKING_CADENCE) {
+                    musicLoaderService.loadMusicListByCadence(mainState.trackedCadence)
+                } else {
+                    skipToNext()
+                }
             }
         }
     }

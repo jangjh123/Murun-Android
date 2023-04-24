@@ -17,9 +17,10 @@ import kotlinx.coroutines.*
 import javax.inject.Inject
 
 @AndroidEntryPoint
-class CadenceTrackingService @Inject constructor(
-    @DefaultDispatcher private val defaultDispatcher: CoroutineDispatcher
-) : Service(), SensorEventListener {
+class CadenceTrackingService : Service(), SensorEventListener {
+    @Inject
+    @DefaultDispatcher
+    lateinit var defaultDispatcher: CoroutineDispatcher
     private lateinit var sensorManager: SensorManager
     private var stepCount = 0
     private lateinit var cadenceUpdatingJob: Job
