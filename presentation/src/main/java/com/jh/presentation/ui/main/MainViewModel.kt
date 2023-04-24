@@ -1,21 +1,30 @@
 package com.jh.presentation.ui.main
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
+import com.jh.murun.domain.model.Music
+import com.jh.murun.domain.use_case.favorite.AddFavoriteMusicUseCase
+import com.jh.murun.domain.use_case.favorite.DeleteFavoriteMusicUseCase
 import com.jh.presentation.base.BaseViewModel
+import com.jh.presentation.di.IoDispatcher
 import com.jh.presentation.di.MainDispatcher
-import com.jh.presentation.enums.CadenceType.ASSIGN
-import com.jh.presentation.enums.CadenceType.TRACKING
+import com.jh.presentation.enums.LoadingMusicType.*
 import com.jh.presentation.ui.sendEvent
 import com.jh.presentation.ui.sendSideEffect
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
-    @MainDispatcher private val mainDispatcher: CoroutineDispatcher
+    @MainDispatcher private val mainDispatcher: CoroutineDispatcher,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+    private val savedStateHandle: SavedStateHandle,
+    private val addFavoriteMusicUseCase: AddFavoriteMusicUseCase,
+    private val deleteFavoriteMusicUseCase: DeleteFavoriteMusicUseCase
 ) : BaseViewModel() {
 
     private val eventChannel = Channel<MainEvent>()
@@ -29,16 +38,13 @@ class MainViewModel @Inject constructor(
     private fun reduceState(state: MainState, event: MainEvent): MainState {
         return when (event) {
             is MainEvent.TrackCadence -> {
-                state.copy(cadenceType = TRACKING)
+                state.copy(loadingMusicType = TRACKING_CADENCE)
             }
             is MainEvent.AssignCadence -> {
-                state.copy(cadenceType = ASSIGN)
+                state.copy(loadingMusicType = ASSIGN_CADENCE)
             }
-            is MainEvent.ShowSnackBar -> {
-                state.copy(isSnackBarVisible = true)
-            }
-            is MainEvent.HideSnackBar -> {
-                state.copy(isSnackBarVisible = false)
+            is MainEvent.PlayFavoriteList -> {
+                state.copy(loadingMusicType = FAVORITE_LIST)
             }
             is MainEvent.StartRunning -> {
                 state.copy(isRunning = true)
@@ -52,6 +58,13 @@ class MainViewModel @Inject constructor(
             is MainEvent.SetMeasuredCadence -> {
                 state.copy(measuredCadence = event.cadence)
             }
+        }
+    }
+
+    fun getIsStartedRunningWithFavoriteList() {
+        if (savedStateHandle.get<Boolean>(MainActivity.KEY_IS_RUNNING_STARTED) == true) {
+            sendEvent(eventChannel, MainEvent.PlayFavoriteList)
+            startRunning()
         }
     }
 
@@ -79,22 +92,12 @@ class MainViewModel @Inject constructor(
         sendEvent(eventChannel, MainEvent.AssignCadence)
     }
 
-    fun showSnackBar() {
-        sendEvent(eventChannel, MainEvent.ShowSnackBar)
-    }
-
-
-    fun hideSnackBar() {
-        sendEvent(eventChannel, MainEvent.HideSnackBar)
-    }
-
     fun onClickStartRunning(cadence: Int?) {
-        sendEvent(eventChannel, MainEvent.StartRunning)
-        sendSideEffect(_sideEffectChannel, MainSideEffect.LaunchMusicPlayer)
+        startRunning()
 
-        if (state.value.cadenceType == TRACKING) {
+        if (state.value.loadingMusicType == TRACKING_CADENCE) {
             sendSideEffect(_sideEffectChannel, MainSideEffect.TrackCadence)
-        } else if (state.value.cadenceType == ASSIGN) {
+        } else if (state.value.loadingMusicType == ASSIGN_CADENCE) {
             sendEvent(eventChannel, MainEvent.SetAssignedCadence(cadence!!))
         }
     }
@@ -103,7 +106,7 @@ class MainViewModel @Inject constructor(
         sendEvent(eventChannel, MainEvent.StopRunning)
         sendSideEffect(_sideEffectChannel, MainSideEffect.QuitMusicPlayer)
 
-        if (state.value.cadenceType == TRACKING) {
+        if (state.value.loadingMusicType == TRACKING_CADENCE) {
             sendSideEffect(_sideEffectChannel, MainSideEffect.StopTrackingCadence)
         }
     }
@@ -114,5 +117,59 @@ class MainViewModel @Inject constructor(
 
     fun onCadenceMeasured(cadence: Int) {
         sendEvent(eventChannel, MainEvent.SetMeasuredCadence(cadence))
+    }
+
+    fun onClickLikeOrDislike(isExists: Boolean) {
+        when (isExists) {
+            true -> {
+                sendSideEffect(_sideEffectChannel, MainSideEffect.DislikeMusic)
+            }
+            false -> {
+                sendSideEffect(_sideEffectChannel, MainSideEffect.LikeMusic)
+            }
+        }
+    }
+
+    fun showToast(text: String) {
+        sendSideEffect(_sideEffectChannel, MainSideEffect.ShowToast(text))
+    }
+
+    private fun startRunning() {
+        sendEvent(eventChannel, MainEvent.StartRunning)
+        sendSideEffect(_sideEffectChannel, MainSideEffect.LaunchMusicPlayer)
+    }
+
+    fun likeMusic(music: Music?) {
+        if (music != null) {
+            viewModelScope.launch(ioDispatcher) {
+                addFavoriteMusicUseCase(music).onEach { result ->
+                    when (result) {
+                        true -> {
+                            showToast("곡을 리스트에 추가하였습니다.")
+                            sendSideEffect(_sideEffectChannel, MainSideEffect.UpdateLikeIcon(true))
+                        }
+                        false -> {
+                            showToast("곡을 리스트에 저장할 수 없습니다.")
+                        }
+                    }
+                }.launchIn(viewModelScope)
+            }
+        }
+    }
+
+    fun dislikeMusic(music: Music) {
+        viewModelScope.launch(ioDispatcher) {
+            deleteFavoriteMusicUseCase(music).onEach { result ->
+                when (result) {
+                    true -> {
+                        showToast("곡을 리스트에서 삭제하였습니다.")
+                        sendSideEffect(_sideEffectChannel, MainSideEffect.UpdateLikeIcon(false))
+                    }
+                    false -> {
+                        showToast("곡을 리스트에서 삭제할 수 없습니다.")
+                    }
+                }
+            }.launchIn(viewModelScope)
+        }
     }
 }

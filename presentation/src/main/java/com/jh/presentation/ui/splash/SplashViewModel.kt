@@ -10,10 +10,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -42,14 +39,12 @@ class SplashViewModel @Inject constructor(
                         setToSkipOnBoardingUseCase.invoke()
                         cancel()
                     }
-                }
-                .catch {
+                }.catch {
                     setToSkipOnBoardingUseCase.invoke()
                     withContext(mainDispatcher) {
                         _sideEffectChannel.send(SplashSideEffect.NoSkipOnBoarding)
                     }
-                }
-                .collect()
+                }.launchIn(viewModelScope)
         }
     }
 }

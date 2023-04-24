@@ -6,10 +6,10 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.content.pm.PackageManager
-import android.graphics.BitmapFactory
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
+import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -33,9 +33,6 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.layout.ContentScale.Companion.Crop
 import androidx.compose.ui.layout.ContentScale.Companion.FillBounds
@@ -45,13 +42,12 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
+import com.jh.murun.domain.model.Music
 import com.jh.murun.presentation.R
 import com.jh.presentation.base.BaseActivity
-import com.jh.presentation.enums.CadenceType.*
+import com.jh.presentation.enums.LoadingMusicType.*
 import com.jh.presentation.service.cadence_tracking.CadenceTrackingService
 import com.jh.presentation.service.cadence_tracking.CadenceTrackingService.CadenceTrackingServiceBinder
 import com.jh.presentation.service.music_player.MusicPlayerService
@@ -62,7 +58,6 @@ import com.jh.presentation.ui.main.MainEvent.*
 import com.jh.presentation.ui.main.favorite.FavoriteActivity
 import com.jh.presentation.ui.theme.*
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -81,9 +76,9 @@ class MainActivity : BaseActivity() {
             musicPlayerService.setState(mainState = viewModel.state.value)
 
             lifecycleScope.launch {
-                repeatOnLifecycle(Lifecycle.State.STARTED) {
-                    musicPlayerService.state.collectLatest {
-                        playerUiState.value = it
+                repeatOnResumed {
+                    musicPlayerService.state.collectLatest { playerState ->
+                        playerUiState.value = playerState
                     }
                 }
             }
@@ -153,6 +148,32 @@ class MainActivity : BaseActivity() {
                     is MainSideEffect.ChangeRepeatMode -> {
                         musicPlayerService.changeRepeatMode()
                     }
+                    is MainSideEffect.LikeMusic -> {
+                        viewModel.likeMusic(
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                playerUiState.value.currentMusic?.mediaMetadata?.extras?.getParcelable("music", Music::class.java)
+                            } else {
+                                playerUiState.value.currentMusic?.mediaMetadata?.extras?.getParcelable("music")!!
+                            }
+                        )
+                    }
+                    is MainSideEffect.DislikeMusic -> {
+                        val music = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            playerUiState.value.currentMusic?.mediaMetadata?.extras?.getParcelable("music", Music::class.java)
+                        } else {
+                            playerUiState.value.currentMusic?.mediaMetadata?.extras?.getParcelable<Music>("music")
+                        }
+
+                        if (music != null) {
+                            viewModel.dislikeMusic(music)
+                        }
+                    }
+                    is MainSideEffect.ShowToast -> {
+                        Toast.makeText(this@MainActivity, sideEffect.text, Toast.LENGTH_SHORT).show()
+                    }
+                    is MainSideEffect.UpdateLikeIcon -> {
+                        musicPlayerService.setCurrentMusicIsStoredOrNot(sideEffect.isStored)
+                    }
                 }
             }
         }
@@ -171,6 +192,11 @@ class MainActivity : BaseActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        viewModel.getIsStartedRunningWithFavoriteList()
+    }
+
     override fun onDestroy() {
         if (isCadenceTrackingServiceBinding) {
             unbindService(cadenceTrackingServiceConnection)
@@ -183,8 +209,12 @@ class MainActivity : BaseActivity() {
     }
 
     companion object {
-        fun newIntent(context: Context): Intent {
-            return Intent(context, MainActivity::class.java)
+        const val KEY_IS_RUNNING_STARTED = "isRunningStarted"
+
+        fun newIntent(context: Context, isRunningStarted: Boolean?): Intent {
+            return Intent(context, MainActivity::class.java).apply {
+                putExtra(KEY_IS_RUNNING_STARTED, isRunningStarted)
+            }
         }
     }
 }
@@ -195,14 +225,9 @@ private fun MainActivityContent(
     playerUiState: MutableState<MusicPlayerState>,
     viewModel: MainViewModel = hiltViewModel()
 ) {
-    val scope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
     val cadenceAssignTextState = remember { mutableStateOf("") }
     val player = playerUiState.value
-    val convertImage = { byteArray: ByteArray ->
-        ImageBitmap
-        BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size).asImageBitmap()
-    }
 
     with(viewModel.state.collectAsStateWithLifecycle().value) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -283,11 +308,23 @@ private fun MainActivityContent(
                             )
                         }
 
-                        Text(
-                            text = "BPM", // TODO : Should insert bpm to metadata
-                            style = Typography.h4,
-                            color = MainColor
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = SpaceBetween
+                        ) {
+                            Text(
+                                text = "BPM", // TODO : Should insert bpm to metadata
+                                style = Typography.h4,
+                                color = MainColor
+                            )
+
+                            Icon(
+                                modifier = Modifier.clickableWithoutRipple { viewModel.onClickLikeOrDislike(player.isCurrentMusicStored) },
+                                painter = painterResource(id = if (player.isCurrentMusicStored) R.drawable.ic_favorite_fill else R.drawable.ic_favorite_empty),
+                                contentDescription = "favoriteIcon",
+                                tint = if (player.isCurrentMusicStored) Red else Color.Gray
+                            )
+                        }
                     }
                 }
             }
@@ -348,10 +385,10 @@ private fun MainActivityContent(
                     verticalArrangement = SpaceBetween
                 ) {
                     Column {
-                        val cadenceTrackingColorState = animateColorAsState(targetValue = if (cadenceType == TRACKING) MainColor else Color.LightGray)
-                        val cadenceTrackingAlphaState = animateFloatAsState(targetValue = if (cadenceType == ASSIGN && isRunning) 0.3f else 1f)
-                        val cadenceAssignColorState = animateColorAsState(targetValue = if (cadenceType == ASSIGN) MainColor else Color.LightGray)
-                        val cadenceAssignAlphaState = animateFloatAsState(targetValue = if (cadenceType == TRACKING && isRunning) 0.3f else 1f)
+                        val cadenceTrackingColorState = animateColorAsState(targetValue = if (loadingMusicType == TRACKING_CADENCE) MainColor else Color.LightGray)
+                        val cadenceTrackingAlphaState = animateFloatAsState(targetValue = if (loadingMusicType == ASSIGN_CADENCE && isRunning) 0.3f else 1f)
+                        val cadenceAssignColorState = animateColorAsState(targetValue = if (loadingMusicType == ASSIGN_CADENCE) MainColor else Color.LightGray)
+                        val cadenceAssignAlphaState = animateFloatAsState(targetValue = if (loadingMusicType == ASSIGN_CADENCE && isRunning) 0.3f else 1f)
 
                         Row(
                             modifier = Modifier
@@ -468,7 +505,7 @@ private fun MainActivityContent(
                                                     unfocusedIndicatorColor = Color.Transparent,
                                                     disabledIndicatorColor = Color.Transparent,
                                                 ),
-                                                enabled = cadenceType == ASSIGN
+                                                enabled = loadingMusicType == ASSIGN_CADENCE
                                             )
                                         }
                                     }
@@ -493,11 +530,11 @@ private fun MainActivityContent(
                                     indication = null,
                                     onClick = {
                                         if (!isRunning) {
-                                            when (cadenceType) {
-                                                TRACKING -> {
+                                            when (loadingMusicType) {
+                                                TRACKING_CADENCE -> {
                                                     viewModel.onClickStartRunning(null)
                                                 }
-                                                ASSIGN -> {
+                                                ASSIGN_CADENCE -> {
                                                     if (cadenceAssignTextState.value.isNotEmpty() &&
                                                         cadenceAssignTextState.value.toInt() in 60..180
                                                     ) {
@@ -505,12 +542,9 @@ private fun MainActivityContent(
                                                     }
                                                 }
                                                 NONE -> {
-                                                    viewModel.showSnackBar()
-                                                    scope.launch {
-                                                        delay(3000L)
-                                                        viewModel.hideSnackBar()
-                                                    }
+                                                    viewModel.showToast("케이던스 타입을 지정해 주세요.")
                                                 }
+                                                FAVORITE_LIST -> Unit
                                             }
                                         }
                                     },
@@ -552,20 +586,6 @@ private fun MainActivityContent(
 
             if (player.isLoading) {
                 LoadingScreen()
-            }
-
-            if (isSnackBarVisible) {
-                Snackbar(
-                    backgroundColor = MainColor,
-                    shape = RectangleShape
-                ) {
-                    Text(
-                        modifier = Modifier.padding(all = 12.dp),
-                        text = "케이던스 타입을 지정해 주세요.",
-                        style = Typography.body1,
-                        color = Color.White
-                    )
-                }
             }
         }
     }

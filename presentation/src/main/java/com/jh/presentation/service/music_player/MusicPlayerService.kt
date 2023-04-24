@@ -16,9 +16,9 @@ import com.google.android.exoplayer2.Player.*
 import com.google.android.exoplayer2.source.ProgressiveMediaSource
 import com.google.android.exoplayer2.upstream.DefaultDataSource
 import com.jh.murun.domain.model.Music
+import com.jh.presentation.di.IoDispatcher
 import com.jh.presentation.di.MainDispatcher
-import com.jh.presentation.enums.CadenceType.ASSIGN
-import com.jh.presentation.enums.CadenceType.TRACKING
+import com.jh.presentation.enums.LoadingMusicType.*
 import com.jh.presentation.service.music_loader.MusicLoaderService
 import com.jh.presentation.service.music_loader.MusicLoaderService.MusicLoaderServiceBinder
 import com.jh.presentation.ui.main.MainState
@@ -30,6 +30,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -37,6 +38,10 @@ class MusicPlayerService : Service() {
     @Inject
     @MainDispatcher
     lateinit var mainDispatcher: CoroutineDispatcher
+
+    @Inject
+    @IoDispatcher
+    lateinit var ioDispatcher: CoroutineDispatcher
 
     private val exoPlayer: ExoPlayer by lazy {
         ExoPlayer.Builder(this@MusicPlayerService).build().apply {
@@ -81,13 +86,16 @@ class MusicPlayerService : Service() {
                 state.copy(isPlaying = !state.isPlaying)
             }
             is MusicPlayerEvent.MusicChanged -> {
-                state.copy(isLoading = false, currentMusic = exoPlayer.currentMediaItem)
+                state.copy(isLoading = false, currentMusic = exoPlayer.currentMediaItem, isCurrentMusicStored = event.isCurrentMusicStored)
+            }
+            is MusicPlayerEvent.ChangeMusicIsStoredOrNot -> {
+                state.copy(isCurrentMusicStored = event.isCurrentMusicStored)
             }
             is MusicPlayerEvent.RepeatModeChanged -> {
                 state.copy(isRepeatingOne = !state.isRepeatingOne)
             }
             is MusicPlayerEvent.Quit -> {
-                state.copy(isLoading = false, isPlaying = false, currentMusic = null)
+                state.copy(isLoading = false, isPlaying = false, currentMusic = null, isCurrentMusicStored = false)
             }
         }
     }
@@ -112,10 +120,12 @@ class MusicPlayerService : Service() {
     }
 
     private fun initPlayer() {
-        if (mainState.cadenceType == TRACKING) {
+        if (mainState.loadingMusicType == TRACKING_CADENCE) {
 
-        } else if (mainState.cadenceType == ASSIGN) {
+        } else if (mainState.loadingMusicType == ASSIGN_CADENCE) {
             musicLoaderService.loadMusicListByCadence(cadence = mainState.assignedCadence)
+        } else if (mainState.loadingMusicType == FAVORITE_LIST) {
+            musicLoaderService.loadFavoriteList()
         }
 
         collectMusicFile()
@@ -137,7 +147,7 @@ class MusicPlayerService : Service() {
             .setTitle(music.title)
             .setArtist(music.artist)
             .setArtworkData(music.image, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
-            .setExtras(bundleOf(Pair("duration", music.duration)))
+            .setExtras(bundleOf(Pair("duration", music.duration), Pair("music", music), Pair("isStored", music.isStored)))
             .build()
         val mediaItem = MediaItem.Builder()
             .setUri(music.diskPath)
@@ -209,6 +219,10 @@ class MusicPlayerService : Service() {
         eventChannel.sendEvent(MusicPlayerEvent.RepeatModeChanged)
     }
 
+    fun setCurrentMusicIsStoredOrNot(isStored: Boolean) {
+        eventChannel.sendEvent(MusicPlayerEvent.ChangeMusicIsStoredOrNot(isStored))
+    }
+
     private fun convertMetadata(mediaItem: MediaItem): android.media.MediaMetadata {
         return android.media.MediaMetadata.Builder().apply {
             putString(android.media.MediaMetadata.METADATA_KEY_TITLE, mediaItem.mediaMetadata.title.toString())
@@ -229,7 +243,9 @@ class MusicPlayerService : Service() {
                     notificationManager.setNewMusicPlayback(convertMetadata(it))
                 }
 
-                eventChannel.sendEvent(MusicPlayerEvent.MusicChanged)
+                CoroutineScope(mainDispatcher).launch {
+                    eventChannel.sendEvent(MusicPlayerEvent.MusicChanged(mediaItem.mediaMetadata.extras?.getBoolean("isStored") == true))
+                }
             }
         }
 

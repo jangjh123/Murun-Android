@@ -1,6 +1,10 @@
 package com.jh.presentation.di
 
+import com.jh.murun.domain.repository.FavoriteRepository
 import com.jh.murun.domain.repository.SplashRepository
+import com.jh.murun.domain.use_case.favorite.AddFavoriteMusicUseCase
+import com.jh.murun.domain.use_case.favorite.DeleteFavoriteMusicUseCase
+import com.jh.murun.domain.use_case.favorite.GetFavoriteListUseCase
 import com.jh.murun.domain.use_case.splash.GetToSkipOnBoardingUseCase
 import com.jh.murun.domain.use_case.splash.SetToSkipOnBoardingUseCase
 import dagger.Module
@@ -20,4 +24,16 @@ object ViewModelScopedUseCaseModule {
     @ViewModelScoped
     @Provides
     fun provideSetToSkipOnBoardingUseCase(splashRepository: SplashRepository) = SetToSkipOnBoardingUseCase(splashRepository)
+
+    @ViewModelScoped
+    @Provides
+    fun provideGetFavoriteListUseCase(favoriteRepository: FavoriteRepository) = GetFavoriteListUseCase(favoriteRepository)
+
+    @ViewModelScoped
+    @Provides
+    fun provideAddFavoriteMusicUseCase(favoriteRepository: FavoriteRepository) = AddFavoriteMusicUseCase(favoriteRepository)
+
+    @ViewModelScoped
+    @Provides
+    fun provideDeleteFavoriteMusicUseCase(favoriteRepository: FavoriteRepository) = DeleteFavoriteMusicUseCase(favoriteRepository)
 }

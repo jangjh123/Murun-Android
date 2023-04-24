@@ -6,6 +6,5 @@ import javax.inject.Inject
 class GetMusicListByCadenceUseCase @Inject constructor(
     private val getMusicRepository: GetMusicRepository
 ) {
-
-    suspend operator fun invoke(cadence: Int) = getMusicRepository.getMusicList(bpm = cadence)
+    suspend operator fun invoke(cadence: Int) = getMusicRepository.fetchMusicList(bpm = cadence)
 }

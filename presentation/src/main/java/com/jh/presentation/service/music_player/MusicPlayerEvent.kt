@@ -4,7 +4,8 @@ sealed class MusicPlayerEvent {
     object Launch : MusicPlayerEvent()
     object LoadMusic : MusicPlayerEvent()
     object PlayOrPause : MusicPlayerEvent()
-    object MusicChanged : MusicPlayerEvent()
+    data class MusicChanged(val isCurrentMusicStored: Boolean) : MusicPlayerEvent()
+    data class ChangeMusicIsStoredOrNot(val isCurrentMusicStored: Boolean) : MusicPlayerEvent()
     object RepeatModeChanged : MusicPlayerEvent()
     object Quit : MusicPlayerEvent()
 }

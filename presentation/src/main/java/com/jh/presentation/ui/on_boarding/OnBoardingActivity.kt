@@ -46,7 +46,7 @@ class OnBoardingActivity : BaseActivity() {
             viewModel.sideEffectChannelFlow.collectLatest { sideEffect ->
                 when(sideEffect) {
                     is OnBoardingSideEffect.GoToMainActivity -> {
-                        startActivity(MainActivity.newIntent(this@OnBoardingActivity))
+                        startActivity(MainActivity.newIntent(this@OnBoardingActivity, null))
                         finish()
                     }
                 }

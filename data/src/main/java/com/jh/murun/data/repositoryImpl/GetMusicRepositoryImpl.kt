@@ -20,7 +20,7 @@ class GetMusicRepositoryImpl @Inject constructor(
     private val responseHandler: ResponseHandler
 ) : GetMusicRepository {
 
-    override suspend fun getMusicList(bpm: Int): Flow<ResponseState<List<Music>>> {
+    override suspend fun fetchMusicList(bpm: Int): Flow<ResponseState<List<Music>>> {
         return flow {
             responseHandler.handle {
                 apiService.fetchMusicList(bpm = bpm)
@@ -33,7 +33,7 @@ class GetMusicRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun getMusicById(id: String): Flow<ResponseState<Music>> {
+    override suspend fun fetchMusicById(id: String): Flow<ResponseState<Music>> {
         return flow {
             responseHandler.handle {
                 apiService.fetchMusicById(id)

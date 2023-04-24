@@ -1,5 +1,6 @@
 package com.jh.presentation.di
 
+import com.jh.murun.domain.repository.FavoriteRepository
 import com.jh.murun.domain.repository.GetMusicRepository
 import com.jh.murun.domain.use_case.music.GetMusicByIdUseCase
 import com.jh.murun.domain.use_case.music.GetMusicFileUseCase
@@ -30,4 +31,8 @@ object ServiceScopedUseCaseModule {
     @ServiceScoped
     @Provides
     fun provideGetMusicImageUseCase(getMusicRepository: GetMusicRepository) = GetMusicImageUseCase(getMusicRepository)
+
+    @ServiceScoped
+    @Provides
+    fun provideGetMusicExistenceInFavoriteList(favoriteRepository: FavoriteRepository) = com.jh.murun.domain.use_case.favorite.GetFavoriteMusicByIdUseCase(favoriteRepository)
 }
