@@ -67,7 +67,6 @@ class FavoriteRepositoryImpl @Inject constructor(
             e.printStackTrace()
         }
 
-
         return flow {
             runCatching {
                 musicDao.deleteMusic(music.id)

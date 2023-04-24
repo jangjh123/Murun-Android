@@ -4,5 +4,5 @@ enum class LoadingMusicType {
     NONE,
     TRACKING_CADENCE,
     ASSIGN_CADENCE,
-    FAVORITE_LIST,
+    FAVORITE_LIST
 }

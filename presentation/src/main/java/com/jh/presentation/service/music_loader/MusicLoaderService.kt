@@ -95,7 +95,7 @@ class MusicLoaderService : Service() {
                             loadMusicFileAndImage(musicQueue.poll()!!)
                         }
                     }
-                    is ResponseState.Error -> {} // TODO : Error handling
+                    is ResponseState.Error -> Unit // TODO : Error handling
                 }
             }.launchIn(CoroutineScope(ioDispatcher))
         }
@@ -115,18 +115,6 @@ class MusicLoaderService : Service() {
             }.launchIn(CoroutineScope(ioDispatcher))
         }
     }
-
-//                CoroutineScope(ioDispatcher).launch {
-//                    getMusicExistenceInFavoriteListUseCase(
-//                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-//                            mediaItem.mediaMetadata.extras?.getParcelable("music", Music::class.java)?.id ?: ""
-//                        } else {
-//                            mediaItem.mediaMetadata.extras?.getParcelable<Music>("music")?.id ?: ""
-//                        }
-//                    ).onEach { isExists ->
-//                        eventChannel.sendEvent(MusicPlayerEvent.MusicChanged(isExistsInFavoriteList = isExists))
-//                    }.launchIn(CoroutineScope(mainDispatcher))
-//                }
 
     private fun loadMusicFileAndImage(music: Music) {
         if (music.diskPath != null) {

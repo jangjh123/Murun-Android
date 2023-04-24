@@ -48,7 +48,7 @@ class CadenceTrackingService @Inject constructor(
         }
     }
 
-    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
+    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
 
     private fun calculateCadence() {
         cadenceUpdatingJob = CoroutineScope(defaultDispatcher).launch {

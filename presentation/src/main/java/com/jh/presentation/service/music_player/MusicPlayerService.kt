@@ -120,12 +120,17 @@ class MusicPlayerService : Service() {
     }
 
     private fun initPlayer() {
-        if (mainState.loadingMusicType == TRACKING_CADENCE) {
-
-        } else if (mainState.loadingMusicType == ASSIGN_CADENCE) {
-            musicLoaderService.loadMusicListByCadence(cadence = mainState.assignedCadence)
-        } else if (mainState.loadingMusicType == FAVORITE_LIST) {
-            musicLoaderService.loadFavoriteList()
+        when (mainState.loadingMusicType) {
+            TRACKING_CADENCE -> {
+                musicLoaderService.loadMusicListByCadence(cadence = mainState.trackedCadence)
+            }
+            ASSIGN_CADENCE -> {
+                musicLoaderService.loadMusicListByCadence(cadence = mainState.assignedCadence)
+            }
+            FAVORITE_LIST -> {
+                musicLoaderService.loadFavoriteList()
+            }
+            NONE -> Unit
         }
 
         collectMusicFile()

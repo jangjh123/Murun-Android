@@ -45,6 +45,7 @@ class SplashActivity : BaseActivity() {
                             startActivity(Intent(MainActivity.newIntent(this@SplashActivity, null)))
                         }
                         is SplashSideEffect.NoSkipOnBoarding -> {
+                            println("놀라요")
                             startActivity(Intent(OnBoardingActivity.newIntent(this@SplashActivity)))
                         }
                     }

@@ -7,7 +7,6 @@ import com.jh.murun.domain.use_case.favorite.AddFavoriteMusicUseCase
 import com.jh.murun.domain.use_case.favorite.DeleteFavoriteMusicUseCase
 import com.jh.presentation.base.BaseViewModel
 import com.jh.presentation.di.IoDispatcher
-import com.jh.presentation.di.MainDispatcher
 import com.jh.presentation.enums.LoadingMusicType.*
 import com.jh.presentation.ui.sendEvent
 import com.jh.presentation.ui.sendSideEffect
@@ -20,7 +19,6 @@ import javax.inject.Inject
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
-    @MainDispatcher private val mainDispatcher: CoroutineDispatcher,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     private val savedStateHandle: SavedStateHandle,
     private val addFavoriteMusicUseCase: AddFavoriteMusicUseCase,
@@ -55,8 +53,8 @@ class MainViewModel @Inject constructor(
             is MainEvent.SetAssignedCadence -> {
                 state.copy(assignedCadence = event.cadence)
             }
-            is MainEvent.SetMeasuredCadence -> {
-                state.copy(measuredCadence = event.cadence)
+            is MainEvent.SetTrackedCadence -> {
+                state.copy(trackedCadence = event.cadence)
             }
         }
     }
@@ -116,7 +114,7 @@ class MainViewModel @Inject constructor(
     }
 
     fun onCadenceMeasured(cadence: Int) {
-        sendEvent(eventChannel, MainEvent.SetMeasuredCadence(cadence))
+        sendEvent(eventChannel, MainEvent.SetTrackedCadence(cadence))
     }
 
     fun onClickLikeOrDislike(isExists: Boolean) {

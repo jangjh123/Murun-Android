@@ -426,7 +426,7 @@ private fun MainActivityContent(
                                 ) {
                                     Text(
                                         modifier = Modifier.align(Center),
-                                        text = "$measuredCadence",
+                                        text = "$trackedCadence",
                                         style = Typography.h5,
                                         color = cadenceTrackingColorState.value,
                                     )
