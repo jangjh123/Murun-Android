@@ -7,5 +7,5 @@ sealed class MainEvent {
     object StartRunning : MainEvent()
     object StopRunning : MainEvent()
     data class SetAssignedCadence(val cadence: Int) : MainEvent()
-    data class SetMeasuredCadence(val cadence: Int) : MainEvent()
+    data class SetTrackedCadence(val cadence: Int) : MainEvent()
 }
