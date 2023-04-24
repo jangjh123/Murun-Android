@@ -157,9 +157,9 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    fun dislikeMusic(id: String) {
+    fun dislikeMusic(music: Music) {
         viewModelScope.launch(ioDispatcher) {
-            deleteFavoriteMusicUseCase(id).onEach { result ->
+            deleteFavoriteMusicUseCase(music).onEach { result ->
                 when (result) {
                     true -> {
                         showToast("곡을 리스트에서 삭제하였습니다.")

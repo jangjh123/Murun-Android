@@ -158,13 +158,15 @@ class MainActivity : BaseActivity() {
                         )
                     }
                     is MainSideEffect.DislikeMusic -> {
-                        viewModel.dislikeMusic(
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                playerUiState.value.currentMusic?.mediaMetadata?.extras?.getParcelable("music", Music::class.java)?.id ?: ""
-                            } else {
-                                playerUiState.value.currentMusic?.mediaMetadata?.extras?.getParcelable<Music>("music")?.id ?: ""
-                            }
-                        )
+                        val music = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            playerUiState.value.currentMusic?.mediaMetadata?.extras?.getParcelable("music", Music::class.java)
+                        } else {
+                            playerUiState.value.currentMusic?.mediaMetadata?.extras?.getParcelable<Music>("music")
+                        }
+
+                        if (music != null) {
+                            viewModel.dislikeMusic(music)
+                        }
                     }
                     is MainSideEffect.ShowToast -> {
                         Toast.makeText(this@MainActivity, sideEffect.text, Toast.LENGTH_SHORT).show()

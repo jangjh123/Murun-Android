@@ -102,17 +102,19 @@ class FavoriteViewModel @Inject constructor(
 
     private fun deleteMusic() {
         viewModelScope.launch(ioDispatcher) {
-            deleteFavoriteMusicUseCase(state.value.chosenMusic?.id ?: "").onEach { result ->
-                when (result) {
-                    true -> {
-                        sendEvent(eventChannel, FavoriteEvent.HideMusicOption)
-                        loadFavoriteList()
-                    }
-                    false -> {
+            state.value.chosenMusic?.let {
+                deleteFavoriteMusicUseCase(it).onEach { result ->
+                    when (result) {
+                        true -> {
+                            sendEvent(eventChannel, FavoriteEvent.HideMusicOption)
+                            loadFavoriteList()
+                        }
+                        false -> {
 
+                        }
                     }
-                }
-            }.launchIn(viewModelScope)
+                }.launchIn(viewModelScope)
+            }
         }
     }
 }

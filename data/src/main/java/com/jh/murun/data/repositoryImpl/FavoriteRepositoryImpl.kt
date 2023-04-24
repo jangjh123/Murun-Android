@@ -60,10 +60,17 @@ class FavoriteRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun deleteMusicFromFavoriteList(id: String): Flow<Boolean> {
+    override suspend fun deleteMusicFromFavoriteList(music: Music): Flow<Boolean> {
+        try {
+            File(context.getExternalFilesDir(Environment.DIRECTORY_MUSIC)?.absolutePath + File.separator + "${music.artist} - ${music.title}.mp3").delete()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+
         return flow {
             runCatching {
-                musicDao.deleteMusic(id)
+                musicDao.deleteMusic(music.id)
             }.onSuccess {
                 emit(true)
             }.onFailure {
