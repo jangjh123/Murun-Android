@@ -112,11 +112,21 @@ class MusicLoaderService : Service() {
     }
 
     private fun loadMusicFileAndImage(music: Music) {
+        if (music.diskPath != null) {
+            CoroutineScope(ioDispatcher).launch {
+                _completeMusicFlow.emit(music.apply {
+                    diskPath = writeMusicFileToCache(File(music.diskPath).inputStream(), music.title)
+                })
+            }
+
+            return
+        }
+
         if (music.fileUrl != null && music.imageUrl != null) {
             CoroutineScope(ioDispatcher).launch {
                 getMusicFileUseCase(music.fileUrl!!).zip(getMusicImageUseCase(music.imageUrl!!)) { musicFile, musicImage ->
                     if (musicFile != null && musicImage != null) {
-                        Pair(writeMusicFileToDisk(musicFile.byteStream(), music.title), musicImage.bytes())
+                        Pair(writeMusicFileToCache(musicFile.byteStream(), music.title), musicImage.bytes())
                     } else {
                         null
                     }
@@ -132,7 +142,7 @@ class MusicLoaderService : Service() {
         }
     }
 
-    private suspend fun writeMusicFileToDisk(byteStream: InputStream, title: String): String {
+    private suspend fun writeMusicFileToCache(byteStream: InputStream, title: String): String {
         var path = ""
         try {
             val file = File(applicationContext.cacheDir, "$title.mp3")

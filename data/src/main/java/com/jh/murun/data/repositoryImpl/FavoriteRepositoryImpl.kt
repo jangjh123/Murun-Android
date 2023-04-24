@@ -1,14 +1,18 @@
 package com.jh.murun.data.repositoryImpl
 
+import android.content.Context
+import android.os.Environment
 import com.jh.murun.data.local.MusicDao
 import com.jh.murun.domain.model.Music
 import com.jh.murun.domain.repository.FavoriteRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import java.io.File
 import javax.inject.Inject
 
 class FavoriteRepositoryImpl @Inject constructor(
-    private val musicDao: MusicDao
+    private val musicDao: MusicDao,
+    private val context: Context
 ) : FavoriteRepository {
 
     override suspend fun readAllMusics(): Flow<List<Music>?> {
@@ -24,6 +28,12 @@ class FavoriteRepositoryImpl @Inject constructor(
     }
 
     override suspend fun insertMusicToFavoriteList(music: Music): Flow<Boolean> {
+        val cacheFile = File(music.diskPath!!)
+        val externalStorageFile = File(context.getExternalFilesDir(Environment.DIRECTORY_MUSIC)?.absolutePath + File.separator + "${music.artist} - ${music.title}.mp3")
+
+        cacheFile.copyTo(externalStorageFile)
+        music.diskPath = externalStorageFile.absolutePath
+
         return flow {
             runCatching {
                 musicDao.insertMusic(music)

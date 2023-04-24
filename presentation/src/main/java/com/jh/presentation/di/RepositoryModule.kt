@@ -1,5 +1,6 @@
 package com.jh.presentation.di
 
+import android.content.Context
 import com.jh.murun.data.data_store.DataStoreManager
 import com.jh.murun.data.local.MusicDao
 import com.jh.murun.data.remote.ApiService
@@ -13,6 +14,7 @@ import com.jh.murun.domain.repository.SplashRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
@@ -33,5 +35,8 @@ object RepositoryModule {
 
     @Singleton
     @Provides
-    fun provideFavoriteRepository(musicDao: MusicDao): FavoriteRepository = FavoriteRepositoryImpl(musicDao)
+    fun provideFavoriteRepository(
+        musicDao: MusicDao,
+        @ApplicationContext context: Context
+    ): FavoriteRepository = FavoriteRepositoryImpl(musicDao, context)
 }
