@@ -7,6 +7,7 @@ import android.os.IBinder
 import com.jh.murun.domain.model.Music
 import com.jh.murun.domain.model.ResponseState
 import com.jh.murun.domain.use_case.favorite.GetFavoriteListUseCase
+import com.jh.murun.domain.use_case.favorite.GetFavoriteMusicByIdUseCase
 import com.jh.murun.domain.use_case.music.GetMusicByIdUseCase
 import com.jh.murun.domain.use_case.music.GetMusicFileUseCase
 import com.jh.murun.domain.use_case.music.GetMusicImageUseCase
@@ -41,6 +42,9 @@ class MusicLoaderService : Service() {
 
     @Inject
     lateinit var getMusicImageUseCase: GetMusicImageUseCase
+
+    @Inject
+    lateinit var getFavoriteMusicByIdUseCase: GetFavoriteMusicByIdUseCase
 
     @Inject
     @MainDispatcher
@@ -81,7 +85,8 @@ class MusicLoaderService : Service() {
                                     duration = 0L,
                                     imageUrl = "https://i.stack.imgur.com/kPTSA.jpg?s=256&g=1",
                                     fileUrl = "https://cdn.pixabay.com/download/audio/2023/03/26/audio_87449b1afe.mp3?filename=mortal-gaming-144000.mp3",
-                                    title = "타이틀"
+                                    title = "타이틀",
+                                    isStored = false
                                 )
                             )
                         )
@@ -111,34 +116,52 @@ class MusicLoaderService : Service() {
         }
     }
 
+//                CoroutineScope(ioDispatcher).launch {
+//                    getMusicExistenceInFavoriteListUseCase(
+//                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+//                            mediaItem.mediaMetadata.extras?.getParcelable("music", Music::class.java)?.id ?: ""
+//                        } else {
+//                            mediaItem.mediaMetadata.extras?.getParcelable<Music>("music")?.id ?: ""
+//                        }
+//                    ).onEach { isExists ->
+//                        eventChannel.sendEvent(MusicPlayerEvent.MusicChanged(isExistsInFavoriteList = isExists))
+//                    }.launchIn(CoroutineScope(mainDispatcher))
+//                }
+
     private fun loadMusicFileAndImage(music: Music) {
         if (music.diskPath != null) {
             CoroutineScope(ioDispatcher).launch {
-                _completeMusicFlow.emit(music.apply {
-                    diskPath = writeMusicFileToCache(File(music.diskPath).inputStream(), music.title)
-                })
+                if (music.diskPath != null) {
+                    _completeMusicFlow.emit(music.apply {
+                        diskPath = writeMusicFileToCache(File(music.diskPath!!).inputStream(), music.title)
+                    })
+                }
             }
 
             return
         }
 
-        if (music.fileUrl != null && music.imageUrl != null) {
-            CoroutineScope(ioDispatcher).launch {
-                getMusicFileUseCase(music.fileUrl!!).zip(getMusicImageUseCase(music.imageUrl!!)) { musicFile, musicImage ->
-                    if (musicFile != null && musicImage != null) {
-                        Pair(writeMusicFileToCache(musicFile.byteStream(), music.title), musicImage.bytes())
-                    } else {
-                        null
-                    }
-                }.onEach { result ->
-                    _completeMusicFlow.emit(
-                        music.apply {
-                            diskPath = result?.first
-                            image = result?.second
+        CoroutineScope(ioDispatcher).launch {
+            getFavoriteMusicByIdUseCase(music.id).onEach { result ->
+                if (result != null) {
+                    _completeMusicFlow.emit(result.apply {
+                        diskPath = writeMusicFileToCache(File(result.diskPath!!).inputStream(), result.title)
+                    })
+                } else {
+                    getMusicFileUseCase(music.fileUrl!!).zip(getMusicImageUseCase(music.imageUrl!!)) { musicFile, musicImage ->
+                        if (musicFile != null && musicImage != null) {
+                            Pair(writeMusicFileToCache(musicFile.byteStream(), music.title), musicImage.bytes())
+                        } else {
+                            null
                         }
-                    )
-                }.launchIn(CoroutineScope(ioDispatcher))
-            }
+                    }.onEach { pair ->
+                        _completeMusicFlow.emit(music.apply {
+                            diskPath = pair?.first
+                            image = pair?.second
+                        })
+                    }.launchIn(CoroutineScope(ioDispatcher))
+                }
+            }.launchIn(CoroutineScope(ioDispatcher))
         }
     }
 

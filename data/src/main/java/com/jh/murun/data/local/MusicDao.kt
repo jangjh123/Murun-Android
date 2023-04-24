@@ -10,6 +10,9 @@ interface MusicDao {
     @Query("SELECT * FROM Music")
     suspend fun readAllMusic(): List<Music>
 
+    @Query("SELECT * FROM Music WHERE id = :id")
+    suspend fun readMusic(id: String): Music
+
     @Query("SELECT EXISTS (SELECT 1 FROM Music WHERE id = :id) AS result")
     suspend fun readMusicId(id: String): Boolean
 

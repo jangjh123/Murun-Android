@@ -2,7 +2,6 @@ package com.jh.presentation.di
 
 import com.jh.murun.domain.repository.FavoriteRepository
 import com.jh.murun.domain.repository.GetMusicRepository
-import com.jh.murun.domain.use_case.favorite.GetMusicExistenceInFavoriteListUseCase
 import com.jh.murun.domain.use_case.music.GetMusicByIdUseCase
 import com.jh.murun.domain.use_case.music.GetMusicFileUseCase
 import com.jh.murun.domain.use_case.music.GetMusicImageUseCase
@@ -12,7 +11,6 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.components.ServiceComponent
 import dagger.hilt.android.scopes.ServiceScoped
-import dagger.hilt.android.scopes.ViewModelScoped
 
 @Module
 @InstallIn(ServiceComponent::class)
@@ -36,5 +34,5 @@ object ServiceScopedUseCaseModule {
 
     @ServiceScoped
     @Provides
-    fun provideGetMusicExistenceInFavoriteList(favoriteRepository: FavoriteRepository) = GetMusicExistenceInFavoriteListUseCase(favoriteRepository)
+    fun provideGetMusicExistenceInFavoriteList(favoriteRepository: FavoriteRepository) = com.jh.murun.domain.use_case.favorite.GetFavoriteMusicByIdUseCase(favoriteRepository)
 }

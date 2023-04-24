@@ -28,6 +28,7 @@ data class MusicResponse(
                 title = title ?: "No Title",
                 artist = artist ?: "No Artist",
                 duration = duration ?: 0L,
+                isStored = false,
                 imageUrl = albumImage,
                 fileUrl = url
             )

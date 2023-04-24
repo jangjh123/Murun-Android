@@ -7,7 +7,6 @@ import android.content.Intent
 import android.content.ServiceConnection
 import android.graphics.BitmapFactory
 import android.os.Binder
-import android.os.Build
 import android.os.IBinder
 import androidx.core.os.bundleOf
 import com.google.android.exoplayer2.ExoPlayer
@@ -17,7 +16,6 @@ import com.google.android.exoplayer2.Player.*
 import com.google.android.exoplayer2.source.ProgressiveMediaSource
 import com.google.android.exoplayer2.upstream.DefaultDataSource
 import com.jh.murun.domain.model.Music
-import com.jh.murun.domain.use_case.favorite.GetMusicExistenceInFavoriteListUseCase
 import com.jh.presentation.di.IoDispatcher
 import com.jh.presentation.di.MainDispatcher
 import com.jh.presentation.enums.LoadingMusicType.*
@@ -44,9 +42,6 @@ class MusicPlayerService : Service() {
     @Inject
     @IoDispatcher
     lateinit var ioDispatcher: CoroutineDispatcher
-
-    @Inject
-    lateinit var getMusicExistenceInFavoriteListUseCase: GetMusicExistenceInFavoriteListUseCase
 
     private val exoPlayer: ExoPlayer by lazy {
         ExoPlayer.Builder(this@MusicPlayerService).build().apply {
@@ -91,16 +86,16 @@ class MusicPlayerService : Service() {
                 state.copy(isPlaying = !state.isPlaying)
             }
             is MusicPlayerEvent.MusicChanged -> {
-                state.copy(isLoading = false, currentMusic = exoPlayer.currentMediaItem, isCurrentMusicExistsInFavoriteList = event.isExistsInFavoriteList)
+                state.copy(isLoading = false, currentMusic = exoPlayer.currentMediaItem, isCurrentMusicStored = event.isCurrentMusicStored)
+            }
+            is MusicPlayerEvent.ChangeMusicIsStoredOrNot -> {
+                state.copy(isCurrentMusicStored = event.isCurrentMusicStored)
             }
             is MusicPlayerEvent.RepeatModeChanged -> {
                 state.copy(isRepeatingOne = !state.isRepeatingOne)
             }
             is MusicPlayerEvent.Quit -> {
-                state.copy(isLoading = false, isPlaying = false, currentMusic = null, isCurrentMusicExistsInFavoriteList = false)
-            }
-            is MusicPlayerEvent.MusicExistenceInFavoriteListChanged -> {
-                state.copy(isCurrentMusicExistsInFavoriteList = event.isExists)
+                state.copy(isLoading = false, isPlaying = false, currentMusic = null, isCurrentMusicStored = false)
             }
         }
     }
@@ -152,7 +147,7 @@ class MusicPlayerService : Service() {
             .setTitle(music.title)
             .setArtist(music.artist)
             .setArtworkData(music.image, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
-            .setExtras(bundleOf(Pair("duration", music.duration), Pair("music", music)))
+            .setExtras(bundleOf(Pair("duration", music.duration), Pair("music", music), Pair("isStored", music.isStored)))
             .build()
         val mediaItem = MediaItem.Builder()
             .setUri(music.diskPath)
@@ -224,8 +219,8 @@ class MusicPlayerService : Service() {
         eventChannel.sendEvent(MusicPlayerEvent.RepeatModeChanged)
     }
 
-    fun setMusicExistenceInFavoriteList(isExists: Boolean) {
-        eventChannel.sendEvent(MusicPlayerEvent.MusicExistenceInFavoriteListChanged(isExists))
+    fun setCurrentMusicIsStoredOrNot(isStored: Boolean) {
+        eventChannel.sendEvent(MusicPlayerEvent.ChangeMusicIsStoredOrNot(isStored))
     }
 
     private fun convertMetadata(mediaItem: MediaItem): android.media.MediaMetadata {
@@ -248,16 +243,8 @@ class MusicPlayerService : Service() {
                     notificationManager.setNewMusicPlayback(convertMetadata(it))
                 }
 
-                CoroutineScope(ioDispatcher).launch {
-                    getMusicExistenceInFavoriteListUseCase(
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            mediaItem.mediaMetadata.extras?.getParcelable("music", Music::class.java)?.id ?: ""
-                        } else {
-                            mediaItem.mediaMetadata.extras?.getParcelable<Music>("music")?.id ?: ""
-                        }
-                    ).onEach { isExists ->
-                        eventChannel.sendEvent(MusicPlayerEvent.MusicChanged(isExistsInFavoriteList = isExists))
-                    }.launchIn(CoroutineScope(mainDispatcher))
+                CoroutineScope(mainDispatcher).launch {
+                    eventChannel.sendEvent(MusicPlayerEvent.MusicChanged(mediaItem.mediaMetadata.extras?.getBoolean("isStored") == true))
                 }
             }
         }

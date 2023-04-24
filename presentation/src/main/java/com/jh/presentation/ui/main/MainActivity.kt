@@ -170,7 +170,7 @@ class MainActivity : BaseActivity() {
                         Toast.makeText(this@MainActivity, sideEffect.text, Toast.LENGTH_SHORT).show()
                     }
                     is MainSideEffect.UpdateLikeIcon -> {
-                        musicPlayerService.setMusicExistenceInFavoriteList(sideEffect.isExists)
+                        musicPlayerService.setCurrentMusicIsStoredOrNot(sideEffect.isStored)
                     }
                 }
             }
@@ -317,10 +317,10 @@ private fun MainActivityContent(
                             )
 
                             Icon(
-                                modifier = Modifier.clickableWithoutRipple { viewModel.onClickLikeOrDislike(player.isCurrentMusicExistsInFavoriteList) },
-                                painter = painterResource(id = if (player.isCurrentMusicExistsInFavoriteList) R.drawable.ic_favorite_fill else R.drawable.ic_favorite_empty),
+                                modifier = Modifier.clickableWithoutRipple { viewModel.onClickLikeOrDislike(player.isCurrentMusicStored) },
+                                painter = painterResource(id = if (player.isCurrentMusicStored) R.drawable.ic_favorite_fill else R.drawable.ic_favorite_empty),
                                 contentDescription = "favoriteIcon",
-                                tint = if (player.isCurrentMusicExistsInFavoriteList) Red else Color.Gray
+                                tint = if (player.isCurrentMusicStored) Red else Color.Gray
                             )
                         }
                     }
