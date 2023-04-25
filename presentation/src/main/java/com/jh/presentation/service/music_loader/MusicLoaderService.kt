@@ -74,11 +74,11 @@ class MusicLoaderService : Service() {
         CoroutineScope(ioDispatcher).launch {
             getMusicListByCadenceUseCase(cadence = cadence).onEach { result ->
                 when (result) {
-                    is ResponseState.Success -> {
+                    is ResponseState.OnSuccess -> {
                         musicQueue.clear()
                         musicQueue.addAll(
                             listOf(
-                                result.data.first(),
+                                (result.data as List<*>).first() as Music,
                                 Music(
                                     id = "aaba",
                                     artist = "d",
@@ -97,7 +97,7 @@ class MusicLoaderService : Service() {
                             // TODO : NoMusic Error Handling
                         }
                     }
-                    is ResponseState.Error -> {
+                    is ResponseState.OnError -> {
 
                     }
                 }
@@ -141,9 +141,9 @@ class MusicLoaderService : Service() {
                     })
                 } else {
                     getMusicFileUseCase(music.fileUrl!!).zip(getMusicImageUseCase(music.imageUrl!!)) { musicFile, imageFile ->
-                        if (musicFile is ResponseState.Success && imageFile is ResponseState.Success) {
+                        if (musicFile is ResponseState.OnSuccess && imageFile is ResponseState.OnSuccess) {
                             return@zip Pair(writeMusicFileToCache(musicFile.data.byteStream(), music.title), imageFile.data.bytes())
-                        } else if (musicFile is ResponseState.Success && imageFile is ResponseState.Error) {
+                        } else if (musicFile is ResponseState.OnSuccess && imageFile is ResponseState.OnError) {
                             return@zip Pair(writeMusicFileToCache(musicFile.data.byteStream(), music.title), null)
                         } else {
                             return@zip null
