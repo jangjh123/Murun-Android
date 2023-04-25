@@ -93,9 +93,13 @@ class MusicLoaderService : Service() {
 
                         if (musicQueue.isNotEmpty()) {
                             loadMusicFileAndImage(musicQueue.poll()!!)
+                        } else {
+                            // TODO : NoMusic Error Handling
                         }
                     }
-                    is ResponseState.Error -> Unit // TODO : Error handling
+                    is ResponseState.Error -> {
+
+                    }
                 }
             }.launchIn(CoroutineScope(ioDispatcher))
         }
@@ -138,15 +142,19 @@ class MusicLoaderService : Service() {
                 } else {
                     getMusicFileUseCase(music.fileUrl!!).zip(getMusicImageUseCase(music.imageUrl!!)) { musicFile, musicImage ->
                         if (musicFile != null && musicImage != null) {
-                            Pair(writeMusicFileToCache(musicFile.byteStream(), music.title), musicImage.bytes())
+                            return@zip Pair(writeMusicFileToCache(musicFile.byteStream(), music.title), musicImage.bytes())
                         } else {
-                            null
+                            return@zip null
                         }
                     }.onEach { pair ->
-                        _completeMusicFlow.emit(music.apply {
-                            diskPath = pair?.first
-                            image = pair?.second
-                        })
+                        if (pair != null) {
+                            _completeMusicFlow.emit(music.apply {
+                                diskPath = pair.first
+                                image = pair.second
+                            })
+                        } else {
+                            // TODO : Error Handling
+                        }
                     }.launchIn(CoroutineScope(ioDispatcher))
                 }
             }.launchIn(CoroutineScope(ioDispatcher))

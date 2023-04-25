@@ -305,22 +305,27 @@ private fun MainActivityContent(
                             )
                         }
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = SpaceBetween
-                        ) {
-                            Text(
-                                text = "BPM", // TODO : Should insert bpm to metadata
-                                style = Typography.h4,
-                                color = MainColor
-                            )
-
-                            Icon(
-                                modifier = Modifier.clickableWithoutRipple { viewModel.onClickLikeOrDislike(player.isCurrentMusicStored) },
-                                painter = painterResource(id = if (player.isCurrentMusicStored) R.drawable.ic_favorite_fill else R.drawable.ic_favorite_empty),
-                                contentDescription = "favoriteIcon",
-                                tint = if (player.isCurrentMusicStored) Red else Color.Gray
-                            )
+                        if (player.currentMusic != null) {
+                            Box(
+                                modifier = Modifier
+                                    .width(60.dp)
+                                    .height(32.dp)
+                                    .border(
+                                        width = 2.dp,
+                                        color = if (player.isCurrentMusicStored) Red else Color.Gray,
+                                        shape = RoundedCornerShape(24.dp)
+                                    )
+                            ) {
+                                Icon(
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .align(Center)
+                                        .clickableWithoutRipple { viewModel.onClickLikeOrDislike(player.isCurrentMusicStored) },
+                                    painter = painterResource(id = if (player.isCurrentMusicStored) R.drawable.ic_favorite_fill else R.drawable.ic_favorite_empty),
+                                    contentDescription = "favoriteIcon",
+                                    tint = if (player.isCurrentMusicStored) Red else Color.Gray
+                                )
+                            }
                         }
                     }
                 }
