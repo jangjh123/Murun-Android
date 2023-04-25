@@ -140,9 +140,11 @@ class MusicLoaderService : Service() {
                         diskPath = writeMusicFileToCache(File(result.diskPath!!).inputStream(), result.title)
                     })
                 } else {
-                    getMusicFileUseCase(music.fileUrl!!).zip(getMusicImageUseCase(music.imageUrl!!)) { musicFile, musicImage ->
-                        if (musicFile != null && musicImage != null) {
-                            return@zip Pair(writeMusicFileToCache(musicFile.byteStream(), music.title), musicImage.bytes())
+                    getMusicFileUseCase(music.fileUrl!!).zip(getMusicImageUseCase(music.imageUrl!!)) { musicFile, imageFile ->
+                        if (musicFile is ResponseState.Success && imageFile is ResponseState.Success) {
+                            return@zip Pair(writeMusicFileToCache(musicFile.data.byteStream(), music.title), imageFile.data.bytes())
+                        } else if (musicFile is ResponseState.Success && imageFile is ResponseState.Error) {
+                            return@zip Pair(writeMusicFileToCache(musicFile.data.byteStream(), music.title), null)
                         } else {
                             return@zip null
                         }
