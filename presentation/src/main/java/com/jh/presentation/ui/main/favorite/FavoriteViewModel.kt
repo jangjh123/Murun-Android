@@ -6,9 +6,9 @@ import androidx.lifecycle.viewModelScope
 import com.jh.murun.domain.model.Music
 import com.jh.murun.domain.use_case.favorite.DeleteFavoriteMusicUseCase
 import com.jh.murun.domain.use_case.favorite.GetFavoriteListUseCase
+import com.jh.murun.domain.use_case.favorite.UpdateReorderedFavoriteMusicListUseCase
 import com.jh.presentation.base.BaseViewModel
 import com.jh.presentation.di.IoDispatcher
-import com.jh.presentation.di.MainDispatcher
 import com.jh.presentation.ui.sendEvent
 import com.jh.presentation.ui.sendSideEffect
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -20,10 +20,10 @@ import javax.inject.Inject
 
 @HiltViewModel
 class FavoriteViewModel @Inject constructor(
-    @MainDispatcher private val mainDispatcher: CoroutineDispatcher,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     private val getFavoriteListUseCase: GetFavoriteListUseCase,
-    private val deleteFavoriteMusicUseCase: DeleteFavoriteMusicUseCase
+    private val deleteFavoriteMusicUseCase: DeleteFavoriteMusicUseCase,
+    private val updateReorderedFavoriteMusicListUseCase: UpdateReorderedFavoriteMusicListUseCase
 ) : BaseViewModel() {
 
     private val eventChannel = Channel<FavoriteEvent>()
@@ -96,8 +96,18 @@ class FavoriteViewModel @Inject constructor(
         deleteMusic()
     }
 
+    fun onReordered(list: List<Music>) {
+        sendSideEffect(_sideEffectChannel, FavoriteSideEffect.UpdateReorderedFavoriteList(list))
+    }
+
     fun showToast(text: String) {
         sendSideEffect(_sideEffectChannel, FavoriteSideEffect.ShowToast(text))
+    }
+
+    fun updateReorderedFavoriteList(musics: List<Music>) {
+        viewModelScope.launch(ioDispatcher) {
+            updateReorderedFavoriteMusicListUseCase(musics)
+        }
     }
 
     private fun deleteMusic() {
@@ -110,7 +120,7 @@ class FavoriteViewModel @Inject constructor(
                             loadFavoriteList()
                         }
                         false -> {
-
+                            // TODO : Error Handling
                         }
                     }
                 }.launchIn(viewModelScope)

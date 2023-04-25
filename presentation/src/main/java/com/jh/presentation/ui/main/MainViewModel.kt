@@ -63,6 +63,7 @@ class MainViewModel @Inject constructor(
         if (savedStateHandle.get<Boolean>(MainActivity.KEY_IS_RUNNING_STARTED) == true) {
             sendEvent(eventChannel, MainEvent.PlayFavoriteList)
             startRunning()
+            savedStateHandle.remove<Boolean>(MainActivity.KEY_IS_RUNNING_STARTED)
         }
     }
 

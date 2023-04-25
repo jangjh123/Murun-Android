@@ -80,7 +80,7 @@ class MusicLoaderService : Service() {
                             listOf(
                                 result.data.first(),
                                 Music(
-                                    id = "",
+                                    id = "aaba",
                                     artist = "d",
                                     duration = 0L,
                                     imageUrl = "https://i.stack.imgur.com/kPTSA.jpg?s=256&g=1",

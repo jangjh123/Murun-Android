@@ -17,8 +17,14 @@ interface MusicDao {
     suspend fun readMusicId(id: String): Boolean
 
     @Insert
+    suspend fun insertAllMusic(musics: List<Music>)
+
+    @Insert
     suspend fun insertMusic(music: Music)
 
     @Query("DELETE FROM Music WHERE id = :id")
     suspend fun deleteMusic(id: String)
+
+    @Query("DELETE FROM Music")
+    suspend fun deleteAllMusic()
 }

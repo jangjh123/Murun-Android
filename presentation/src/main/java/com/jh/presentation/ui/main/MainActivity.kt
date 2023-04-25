@@ -346,7 +346,7 @@ private fun MainActivityContent(
                         .align(CenterHorizontally),
                     horizontalArrangement = Arrangement.spacedBy(36.dp)
                 ) {
-                    val iconColorState = animateColorAsState(targetValue = if (player.isLaunched) MainColor else Color.LightGray)
+                    val iconColorState = animateColorAsState(targetValue = if (isRunning) MainColor else Color.LightGray)
 
                     Icon(
                         modifier = Modifier.clickableWithoutRipple { viewModel.onClickSkipToPrev() },

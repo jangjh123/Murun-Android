@@ -228,7 +228,7 @@ class MusicPlayerService : Service() {
 
     fun setCurrentMusicIsStoredOrNot(isStored: Boolean) {
         eventChannel.sendEvent(MusicPlayerEvent.ChangeMusicIsStoredOrNot(isStored))
-        exoPlayer.currentMediaItem?.mediaMetadata?.extras?.putBoolean("isStored", true)
+        exoPlayer.currentMediaItem?.mediaMetadata?.extras?.putBoolean("isStored", isStored)
     }
 
     private fun convertMetadata(mediaItem: MediaItem): android.media.MediaMetadata {

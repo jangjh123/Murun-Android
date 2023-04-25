@@ -15,10 +15,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.*
 import androidx.compose.material.ModalBottomSheetValue.Expanded
 import androidx.compose.material.ModalBottomSheetValue.Hidden
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment.Companion.BottomCenter
 import androidx.compose.ui.Alignment.Companion.Center
 import androidx.compose.ui.Alignment.Companion.CenterVertically
@@ -28,8 +25,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.layout.ContentScale.Companion.FillBounds
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jh.murun.presentation.R
 import com.jh.presentation.base.BaseActivity
@@ -62,6 +62,9 @@ class FavoriteActivity : BaseActivity() {
                     }
                     is FavoriteSideEffect.ShowToast -> {
                         Toast.makeText(this@FavoriteActivity, sideEffect.text, Toast.LENGTH_SHORT).show()
+                    }
+                    is FavoriteSideEffect.UpdateReorderedFavoriteList -> {
+                        viewModel.updateReorderedFavoriteList(sideEffect.musics)
                     }
                 }
             }
@@ -190,6 +193,24 @@ private fun FavoriteActivityContent(
                                 isReordered.value = true
                             }
                         })
+                        val lifecycle = LocalLifecycleOwner.current.lifecycle
+                        val lifecycleEvent = remember { mutableStateOf(Lifecycle.Event.ON_ANY) }
+
+                        DisposableEffect(lifecycle) {
+                            val observer = LifecycleEventObserver { _, event ->
+                                lifecycleEvent.value = event
+                            }
+
+                            lifecycle.addObserver(observer)
+
+                            onDispose {
+                                lifecycle.removeObserver(observer)
+                            }
+                        }
+
+                        if (lifecycleEvent.value == Lifecycle.Event.ON_PAUSE && isReordered.value) {
+                            viewModel.onReordered(musics.value)
+                        }
 
                         LazyColumn(
                             modifier = Modifier
@@ -261,7 +282,11 @@ private fun FavoriteActivityContent(
                             backgroundColor = if (favoriteList.isNotEmpty()) MainColor else Color.LightGray,
                             text = "러닝 시작",
                             textColor = Color.White,
-                            onClick = { if (favoriteList.isNotEmpty()) { viewModel.onClickGoToMain() } }
+                            onClick = {
+                                if (favoriteList.isNotEmpty()) {
+                                    viewModel.onClickGoToMain()
+                                }
+                            }
                         )
                     }
                 }

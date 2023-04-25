@@ -77,4 +77,12 @@ class FavoriteRepositoryImpl @Inject constructor(
             }
         }
     }
+
+    override suspend fun updateReorderedFavoriteList(musics: List<Music>) {
+        runCatching {
+            musicDao.deleteAllMusic()
+        }.onSuccess {
+            musicDao.insertAllMusic(musics)
+        }
+    }
 }
