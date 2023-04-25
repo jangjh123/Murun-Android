@@ -72,7 +72,6 @@ class MainActivity : BaseActivity() {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             val binder: MusicPlayerServiceBinder = service as MusicPlayerServiceBinder
             musicPlayerService = binder.getServiceInstance()
-            isMusicPlayerServiceBinding = true
             musicPlayerService.setState(mainState = viewModel.state.value)
 
             lifecycleScope.launch {
@@ -84,9 +83,7 @@ class MainActivity : BaseActivity() {
             }
         }
 
-        override fun onServiceDisconnected(name: ComponentName?) {
-            isMusicPlayerServiceBinding = false
-        }
+        override fun onServiceDisconnected(name: ComponentName?) {}
     }
 
     private lateinit var cadenceTrackingService: CadenceTrackingService
@@ -95,13 +92,10 @@ class MainActivity : BaseActivity() {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             val binder: CadenceTrackingServiceBinder = service as CadenceTrackingServiceBinder
             cadenceTrackingService = binder.getServiceInstance()
-            isCadenceTrackingServiceBinding = true
             trackCadence()
         }
 
-        override fun onServiceDisconnected(name: ComponentName?) {
-            isCadenceTrackingServiceBinding = false
-        }
+        override fun onServiceDisconnected(name: ComponentName?) {}
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -128,6 +122,7 @@ class MainActivity : BaseActivity() {
                     }
                     is MainSideEffect.TrackCadence -> {
                         if (!isCadenceTrackingServiceBinding) {
+                            isCadenceTrackingServiceBinding = true
                             bindService(Intent(this@MainActivity, CadenceTrackingService::class.java), cadenceTrackingServiceConnection, Context.BIND_AUTO_CREATE)
                         }
                     }
@@ -137,11 +132,13 @@ class MainActivity : BaseActivity() {
                     }
                     is MainSideEffect.LaunchMusicPlayer -> {
                         if (!isMusicPlayerServiceBinding) {
+                            isMusicPlayerServiceBinding = true
                             bindService(Intent(this@MainActivity, MusicPlayerService::class.java), musicPlayerServiceConnection, Context.BIND_AUTO_CREATE)
                         }
                     }
                     is MainSideEffect.QuitMusicPlayer -> {
                         if (isMusicPlayerServiceBinding) {
+                            isMusicPlayerServiceBinding = false
                             unbindService(musicPlayerServiceConnection)
                         }
                     }

@@ -56,13 +56,10 @@ class MusicPlayerService : Service() {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             val binder: MusicLoaderServiceBinder = service as MusicLoaderServiceBinder
             musicLoaderService = binder.getServiceInstance()
-            isMusicLoaderServiceBinding = true
             initPlayer()
         }
 
-        override fun onServiceDisconnected(name: ComponentName?) {
-            isMusicLoaderServiceBinding = false
-        }
+        override fun onServiceDisconnected(name: ComponentName?) {}
     }
     private var isStarted = false
     private var isIntended = false
@@ -108,6 +105,7 @@ class MusicPlayerService : Service() {
 
     override fun onBind(intent: Intent?): IBinder {
         if (!isMusicLoaderServiceBinding) {
+            isMusicLoaderServiceBinding = true
             bindService(Intent(this@MusicPlayerService, MusicLoaderService::class.java), musicLoaderServiceConnection, Context.BIND_AUTO_CREATE)
             eventChannel.sendEvent(MusicPlayerEvent.Launch)
         }
@@ -276,6 +274,7 @@ class MusicPlayerService : Service() {
         notificationManager.dismissNotification()
 
         if (isMusicLoaderServiceBinding) {
+            isMusicLoaderServiceBinding = false
             unbindService(musicLoaderServiceConnection)
         }
 
