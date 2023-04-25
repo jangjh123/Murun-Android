@@ -88,7 +88,7 @@ class MusicLoaderService : Service() {
                                     title = "타이틀",
                                     isStored = false
                                 )
-                            )
+                            ).shuffled()
                         )
 
                         if (musicQueue.isNotEmpty()) {
