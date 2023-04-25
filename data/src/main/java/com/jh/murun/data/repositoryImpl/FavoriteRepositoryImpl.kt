@@ -43,10 +43,14 @@ class FavoriteRepositoryImpl @Inject constructor(
         val cacheFile = File(music.diskPath!!)
         val externalStorageFile = File(context.getExternalFilesDir(Environment.DIRECTORY_MUSIC)?.absolutePath + File.separator + "${music.artist} - ${music.title}.mp3")
 
-        cacheFile.copyTo(externalStorageFile, true)
-        music.apply {
-            diskPath = externalStorageFile.absolutePath
-            isStored = true
+        try {
+            cacheFile.copyTo(externalStorageFile, true)
+            music.apply {
+                diskPath = externalStorageFile.absolutePath
+                isStored = true
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
 
         return flow {
