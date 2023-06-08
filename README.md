@@ -19,7 +19,7 @@ ExoPlayer2 를 활용하였기 때문에, Notification 으로도 제어할 수 �
 ### 100% Kotlin
 
 ## 🏗 Architecture Pattern
-### <code>MVI(Model-View-Intent)</code>
+### <code>MVI(Model-View-ViewModel)</code> + <code>Clean Architecture</code>
   
 ## 🛠 Used Skill & Library
 ### <code>Retrofit2</code> 
