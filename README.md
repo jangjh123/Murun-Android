@@ -10,11 +10,10 @@ ExoPlayer2 를 활용하였기 때문에, Notification 으로도 제어할 수 �
 
 ---
 ## 📷 ScreenShots
-![0](https://github.com/jangjh123/murun-android/assets/82919343/7dd99053-84b0-4fec-af50-f8f7a99a945b)
-![1](https://github.com/jangjh123/murun-android/assets/82919343/7cf861bf-bb4b-4e0e-8a52-4b2ef4ad02e7)
-![2](https://github.com/jangjh123/murun-android/assets/82919343/4b75503b-6e4d-45c5-bc4f-e168b65a209a)
-![3](https://github.com/jangjh123/murun-android/assets/82919343/4f8fc50f-80b7-48cc-9ec6-00091cc8242a)
----
+![0](https://github.com/Murun-2023/murun-android/assets/82919343/ad8f8f0d-e2f1-440d-ab50-22d0892b603e)
+![1](https://github.com/Murun-2023/murun-android/assets/82919343/e89b04a0-2a61-490c-8eaa-309a72874a06)
+![2](https://github.com/Murun-2023/murun-android/assets/82919343/aeab71cb-3221-4acc-9b91-86e99c97a2b0)
+![3](https://github.com/Murun-2023/murun-android/assets/82919343/9fab4e2b-1e44-44c6-992b-3dc7593259d5)
 
 ## 💻 Language
 ### 100% Kotlin
