@@ -76,20 +76,7 @@ class MusicLoaderService : Service() {
                 when (result) {
                     is ResponseState.Success -> {
                         musicQueue.clear()
-                        musicQueue.addAll(
-                            listOf(
-                                result.data.first(),
-                                Music(
-                                    id = "aaba",
-                                    artist = "d",
-                                    duration = 0L,
-                                    imageUrl = "https://i.stack.imgur.com/kPTSA.jpg?s=256&g=1",
-                                    fileUrl = "https://cdn.pixabay.com/download/audio/2023/03/26/audio_87449b1afe.mp3?filename=mortal-gaming-144000.mp3",
-                                    title = "타이틀",
-                                    isStored = false
-                                )
-                            ).shuffled()
-                        )
+                        musicQueue.addAll(result.data.shuffled())
 
                         if (musicQueue.isNotEmpty()) {
                             loadMusicFileAndImage(musicQueue.poll()!!)
