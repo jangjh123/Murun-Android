@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.layout.ContentScale.Companion.FillBounds
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -112,18 +113,22 @@ private fun FavoriteActivityContent(
                             .fillMaxWidth(),
                         horizontalArrangement = SpaceBetween
                     ) {
-                        Column {
+                        Column(modifier = Modifier.weight(1f)) {
                             chosenMusic.let { music ->
                                 Text(
                                     text = music?.title ?: "",
                                     style = Typography.body2,
-                                    color = Gray1
+                                    color = Gray1,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
 
                                 Text(
                                     text = music?.artist ?: "",
                                     style = Typography.body1,
-                                    color = Gray2
+                                    color = Gray2,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
                         }
@@ -227,7 +232,10 @@ private fun FavoriteActivityContent(
                                         horizontalArrangement = SpaceBetween,
                                         verticalAlignment = CenterVertically
                                     ) {
-                                        Row(verticalAlignment = CenterVertically) {
+                                        Row(
+                                            modifier = Modifier.weight(1f),
+                                            verticalAlignment = CenterVertically
+                                        ) {
                                             Image(
                                                 modifier = Modifier
                                                     .alpha(if (isDragging) 0.5f else 1f)
@@ -244,13 +252,17 @@ private fun FavoriteActivityContent(
                                                 Text(
                                                     text = music.title,
                                                     style = Typography.body2,
-                                                    color = Gray1
+                                                    color = Gray1,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
                                                 )
 
                                                 Text(
                                                     text = music.artist,
                                                     style = Typography.body1,
-                                                    color = Gray2
+                                                    color = Gray2,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
                                                 )
                                             }
                                         }

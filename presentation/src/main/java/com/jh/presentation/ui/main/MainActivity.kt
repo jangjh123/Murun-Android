@@ -39,6 +39,7 @@ import androidx.compose.ui.layout.ContentScale.Companion.FillBounds
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -295,13 +296,17 @@ private fun MainActivityContent(
                             Text(
                                 text = if (player.currentMusic != null) player.currentMusic.mediaMetadata.title.toString() else "",
                                 style = Typography.h3,
-                                color = Color.White
+                                color = Color.White,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
                             )
 
                             Text(
                                 text = if (player.currentMusic != null) player.currentMusic.mediaMetadata.artist.toString() else "",
                                 style = Typography.body1,
-                                color = Gray0
+                                color = Gray0,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
 
