@@ -76,26 +76,17 @@ class MusicLoaderService : Service() {
                 when (result) {
                     is ResponseState.Success -> {
                         musicQueue.clear()
-                        musicQueue.addAll(
-                            listOf(
-                                result.data.first(),
-                                Music(
-                                    id = "",
-                                    artist = "d",
-                                    duration = 0L,
-                                    imageUrl = "https://i.stack.imgur.com/kPTSA.jpg?s=256&g=1",
-                                    fileUrl = "https://cdn.pixabay.com/download/audio/2023/03/26/audio_87449b1afe.mp3?filename=mortal-gaming-144000.mp3",
-                                    title = "타이틀",
-                                    isStored = false
-                                )
-                            )
-                        )
+                        musicQueue.addAll(result.data.shuffled())
 
                         if (musicQueue.isNotEmpty()) {
                             loadMusicFileAndImage(musicQueue.poll()!!)
+                        } else {
+                            // TODO : NoMusic Error Handling
                         }
                     }
-                    is ResponseState.Error -> Unit // TODO : Error handling
+                    is ResponseState.Error -> {
+
+                    }
                 }
             }.launchIn(CoroutineScope(ioDispatcher))
         }
@@ -136,17 +127,23 @@ class MusicLoaderService : Service() {
                         diskPath = writeMusicFileToCache(File(result.diskPath!!).inputStream(), result.title)
                     })
                 } else {
-                    getMusicFileUseCase(music.fileUrl!!).zip(getMusicImageUseCase(music.imageUrl!!)) { musicFile, musicImage ->
-                        if (musicFile != null && musicImage != null) {
-                            Pair(writeMusicFileToCache(musicFile.byteStream(), music.title), musicImage.bytes())
+                    getMusicFileUseCase(music.fileUrl!!).zip(getMusicImageUseCase(music.imageUrl!!)) { musicFile, imageFile ->
+                        if (musicFile is ResponseState.Success && imageFile is ResponseState.Success) {
+                            return@zip Pair(writeMusicFileToCache(musicFile.data.byteStream(), music.title), imageFile.data.bytes())
+                        } else if (musicFile is ResponseState.Success && imageFile is ResponseState.Error) {
+                            return@zip Pair(writeMusicFileToCache(musicFile.data.byteStream(), music.title), null)
                         } else {
-                            null
+                            return@zip null
                         }
                     }.onEach { pair ->
-                        _completeMusicFlow.emit(music.apply {
-                            diskPath = pair?.first
-                            image = pair?.second
-                        })
+                        if (pair != null) {
+                            _completeMusicFlow.emit(music.apply {
+                                diskPath = pair.first
+                                image = pair.second
+                            })
+                        } else {
+                            // TODO : Error Handling
+                        }
                     }.launchIn(CoroutineScope(ioDispatcher))
                 }
             }.launchIn(CoroutineScope(ioDispatcher))

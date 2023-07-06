@@ -4,7 +4,7 @@ import com.jh.murun.domain.base.BaseModel
 import kotlinx.android.parcel.Parcelize
 
 @Parcelize
-data class NetworkError (
+data class Error (
     val code: Int?,
     val message: String?
 ) : BaseModel

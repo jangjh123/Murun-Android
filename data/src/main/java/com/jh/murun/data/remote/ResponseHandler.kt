@@ -9,9 +9,9 @@ class ResponseHandler {
     suspend fun <T> handle(call: suspend () -> Response<T>): Flow<MurunResponse<T>> = flow {
         val response = call.invoke()
         if (response.isSuccessful && response.body() != null) {
-            emit(MurunResponse.Success(response.body()!!))
+            emit(MurunResponse.OnSuccess(response.body()!!))
         } else {
-            emit(MurunResponse.Error(ErrorResponse(code = response.code(), message = response.message())))
+            emit(MurunResponse.OnError(ErrorResponse(code = response.code(), message = response.message())))
         }
     }
 }

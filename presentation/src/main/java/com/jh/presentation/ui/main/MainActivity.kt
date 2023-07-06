@@ -39,6 +39,7 @@ import androidx.compose.ui.layout.ContentScale.Companion.FillBounds
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -72,7 +73,6 @@ class MainActivity : BaseActivity() {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             val binder: MusicPlayerServiceBinder = service as MusicPlayerServiceBinder
             musicPlayerService = binder.getServiceInstance()
-            isMusicPlayerServiceBinding = true
             musicPlayerService.setState(mainState = viewModel.state.value)
 
             lifecycleScope.launch {
@@ -84,9 +84,7 @@ class MainActivity : BaseActivity() {
             }
         }
 
-        override fun onServiceDisconnected(name: ComponentName?) {
-            isMusicPlayerServiceBinding = false
-        }
+        override fun onServiceDisconnected(name: ComponentName?) {}
     }
 
     private lateinit var cadenceTrackingService: CadenceTrackingService
@@ -95,13 +93,10 @@ class MainActivity : BaseActivity() {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             val binder: CadenceTrackingServiceBinder = service as CadenceTrackingServiceBinder
             cadenceTrackingService = binder.getServiceInstance()
-            isCadenceTrackingServiceBinding = true
             trackCadence()
         }
 
-        override fun onServiceDisconnected(name: ComponentName?) {
-            isCadenceTrackingServiceBinding = false
-        }
+        override fun onServiceDisconnected(name: ComponentName?) {}
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -128,6 +123,7 @@ class MainActivity : BaseActivity() {
                     }
                     is MainSideEffect.TrackCadence -> {
                         if (!isCadenceTrackingServiceBinding) {
+                            isCadenceTrackingServiceBinding = true
                             bindService(Intent(this@MainActivity, CadenceTrackingService::class.java), cadenceTrackingServiceConnection, Context.BIND_AUTO_CREATE)
                         }
                     }
@@ -137,11 +133,13 @@ class MainActivity : BaseActivity() {
                     }
                     is MainSideEffect.LaunchMusicPlayer -> {
                         if (!isMusicPlayerServiceBinding) {
+                            isMusicPlayerServiceBinding = true
                             bindService(Intent(this@MainActivity, MusicPlayerService::class.java), musicPlayerServiceConnection, Context.BIND_AUTO_CREATE)
                         }
                     }
                     is MainSideEffect.QuitMusicPlayer -> {
                         if (isMusicPlayerServiceBinding) {
+                            isMusicPlayerServiceBinding = false
                             unbindService(musicPlayerServiceConnection)
                         }
                     }
@@ -298,32 +296,41 @@ private fun MainActivityContent(
                             Text(
                                 text = if (player.currentMusic != null) player.currentMusic.mediaMetadata.title.toString() else "",
                                 style = Typography.h3,
-                                color = Color.White
+                                color = Color.White,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
                             )
 
                             Text(
                                 text = if (player.currentMusic != null) player.currentMusic.mediaMetadata.artist.toString() else "",
                                 style = Typography.body1,
-                                color = Gray0
+                                color = Gray0,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = SpaceBetween
-                        ) {
-                            Text(
-                                text = "BPM", // TODO : Should insert bpm to metadata
-                                style = Typography.h4,
-                                color = MainColor
-                            )
-
-                            Icon(
-                                modifier = Modifier.clickableWithoutRipple { viewModel.onClickLikeOrDislike(player.isCurrentMusicStored) },
-                                painter = painterResource(id = if (player.isCurrentMusicStored) R.drawable.ic_favorite_fill else R.drawable.ic_favorite_empty),
-                                contentDescription = "favoriteIcon",
-                                tint = if (player.isCurrentMusicStored) Red else Color.Gray
-                            )
+                        if (player.currentMusic != null) {
+                            Box(
+                                modifier = Modifier
+                                    .width(60.dp)
+                                    .height(32.dp)
+                                    .border(
+                                        width = 2.dp,
+                                        color = if (player.isCurrentMusicStored) Red else Color.Gray,
+                                        shape = RoundedCornerShape(24.dp)
+                                    )
+                            ) {
+                                Icon(
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .align(Center)
+                                        .clickableWithoutRipple { viewModel.onClickLikeOrDislike(player.isCurrentMusicStored) },
+                                    painter = painterResource(id = if (player.isCurrentMusicStored) R.drawable.ic_favorite_fill else R.drawable.ic_favorite_empty),
+                                    contentDescription = "favoriteIcon",
+                                    tint = if (player.isCurrentMusicStored) Red else Color.Gray
+                                )
+                            }
                         }
                     }
                 }
@@ -349,7 +356,7 @@ private fun MainActivityContent(
                         .align(CenterHorizontally),
                     horizontalArrangement = Arrangement.spacedBy(36.dp)
                 ) {
-                    val iconColorState = animateColorAsState(targetValue = if (player.isLaunched) MainColor else Color.LightGray)
+                    val iconColorState = animateColorAsState(targetValue = if (isRunning) MainColor else Color.LightGray)
 
                     Icon(
                         modifier = Modifier.clickableWithoutRipple { viewModel.onClickSkipToPrev() },
