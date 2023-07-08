@@ -5,16 +5,14 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
-import android.graphics.BitmapFactory
 import android.os.Binder
 import android.os.IBinder
 import androidx.core.os.bundleOf
-import com.google.android.exoplayer2.ExoPlayer
-import com.google.android.exoplayer2.MediaItem
-import com.google.android.exoplayer2.MediaMetadata
-import com.google.android.exoplayer2.Player.*
-import com.google.android.exoplayer2.source.ProgressiveMediaSource
-import com.google.android.exoplayer2.upstream.DefaultDataSource
+import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
+import androidx.media3.common.Player.*
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.ExoPlayer
 import com.jh.murun.domain.model.Music
 import com.jh.presentation.di.IoDispatcher
 import com.jh.presentation.di.MainDispatcher
@@ -33,6 +31,7 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+@UnstableApi
 @AndroidEntryPoint
 class MusicPlayerService : Service() {
     @Inject
@@ -49,7 +48,12 @@ class MusicPlayerService : Service() {
             repeatMode = REPEAT_MODE_ALL
         }
     }
-    private val notificationManager by lazy { CustomNotificationManager(this@MusicPlayerService, exoPlayer) }
+    private val notificationManager by lazy {
+        CustomNotificationManager(
+            this@MusicPlayerService,
+            exoPlayer
+        )
+    }
     private lateinit var musicLoaderService: MusicLoaderService
     private var isMusicLoaderServiceBinding = false
     private val musicLoaderServiceConnection = object : ServiceConnection {
@@ -69,7 +73,11 @@ class MusicPlayerService : Service() {
     private val eventChannel = Channel<MusicPlayerEvent>()
     val state: StateFlow<MusicPlayerState> = eventChannel.receiveAsFlow()
         .runningFold(MusicPlayerState(), ::reduceState)
-        .stateIn(CoroutineScope(Dispatchers.Main.immediate), SharingStarted.Eagerly, MusicPlayerState())
+        .stateIn(
+            CoroutineScope(Dispatchers.Main.immediate),
+            SharingStarted.Eagerly,
+            MusicPlayerState()
+        )
 
     private fun reduceState(state: MusicPlayerState, event: MusicPlayerEvent): MusicPlayerState {
         return when (event) {
@@ -83,7 +91,11 @@ class MusicPlayerService : Service() {
                 state.copy(isPlaying = !state.isPlaying)
             }
             is MusicPlayerEvent.MusicChanged -> {
-                state.copy(isLoading = false, currentMusic = exoPlayer.currentMediaItem, isCurrentMusicStored = event.isCurrentMusicStored)
+                state.copy(
+                    isLoading = false,
+                    currentMusic = exoPlayer.currentMediaItem,
+                    isCurrentMusicStored = event.isCurrentMusicStored
+                )
             }
             is MusicPlayerEvent.ChangeMusicIsStoredOrNot -> {
                 state.copy(isCurrentMusicStored = event.isCurrentMusicStored)
@@ -92,7 +104,12 @@ class MusicPlayerService : Service() {
                 state.copy(isRepeatingOne = !state.isRepeatingOne)
             }
             is MusicPlayerEvent.Quit -> {
-                state.copy(isLoading = false, isPlaying = false, currentMusic = null, isCurrentMusicStored = false)
+                state.copy(
+                    isLoading = false,
+                    isPlaying = false,
+                    currentMusic = null,
+                    isCurrentMusicStored = false
+                )
             }
         }
     }
@@ -106,7 +123,11 @@ class MusicPlayerService : Service() {
     override fun onBind(intent: Intent?): IBinder {
         if (!isMusicLoaderServiceBinding) {
             isMusicLoaderServiceBinding = true
-            bindService(Intent(this@MusicPlayerService, MusicLoaderService::class.java), musicLoaderServiceConnection, Context.BIND_AUTO_CREATE)
+            bindService(
+                Intent(this@MusicPlayerService, MusicLoaderService::class.java),
+                musicLoaderServiceConnection,
+                Context.BIND_AUTO_CREATE
+            )
             eventChannel.sendEvent(MusicPlayerEvent.Launch)
         }
 
@@ -145,19 +166,19 @@ class MusicPlayerService : Service() {
     }
 
     private fun addMusicToPlayer(music: Music) {
-        val mediaSourceFactory = ProgressiveMediaSource.Factory(DefaultDataSource.Factory(this@MusicPlayerService))
         val metadata = MediaMetadata.Builder()
             .setTitle(music.title)
             .setArtist(music.artist)
             .setArtworkData(music.image, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
-            .setExtras(bundleOf(Pair("duration", music.duration), Pair("music", music), Pair("isStored", music.isStored)))
+            .setExtras(bundleOf(Pair("duration", music.duration), Pair("isStored", false)))
             .build()
+
         val mediaItem = MediaItem.Builder()
-            .setUri(music.diskPath)
+            .setUri(music.fileUrl)
             .setMediaMetadata(metadata)
             .build()
-        val source = mediaSourceFactory.createMediaSource(mediaItem)
-        exoPlayer.addMediaSource(source)
+
+        exoPlayer.setMediaItem(mediaItem)
 
         if (!isStarted) {
             launchPlayer()
@@ -189,9 +210,6 @@ class MusicPlayerService : Service() {
         } else {
             exoPlayer.play()
         }
-
-        notificationManager.setPlaybackState()
-        eventChannel.sendEvent(MusicPlayerEvent.PlayOrPause)
     }
 
     fun skipToNext() {
@@ -212,10 +230,6 @@ class MusicPlayerService : Service() {
         }
     }
 
-    fun seekTo(position: Long) {
-        exoPlayer.seekTo(position)
-    }
-
     fun changeRepeatMode() {
         if (exoPlayer.repeatMode == REPEAT_MODE_ALL) {
             exoPlayer.repeatMode = REPEAT_MODE_ONE
@@ -231,33 +245,34 @@ class MusicPlayerService : Service() {
         exoPlayer.currentMediaItem?.mediaMetadata?.extras?.putBoolean("isStored", isStored)
     }
 
-    private fun convertMetadata(mediaItem: MediaItem): android.media.MediaMetadata {
-        return android.media.MediaMetadata.Builder().apply {
-            putString(android.media.MediaMetadata.METADATA_KEY_TITLE, mediaItem.mediaMetadata.title.toString())
-            putString(android.media.MediaMetadata.METADATA_KEY_ARTIST, mediaItem.mediaMetadata.artist.toString())
-            putBitmap(android.media.MediaMetadata.METADATA_KEY_ALBUM_ART, BitmapFactory.decodeByteArray(mediaItem.mediaMetadata.artworkData, 0, mediaItem.mediaMetadata.artworkData?.size ?: 0))
-            mediaItem.mediaMetadata.extras?.getLong("duration")?.let { putLong(android.media.MediaMetadata.METADATA_KEY_DURATION, it) }
-        }.build()
-    }
-
     private val playerListener = object : Listener {
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
             mediaItem?.let {
                 super.onMediaItemTransition(mediaItem, reason)
                 if (!isStarted) {
-                    notificationManager.showNotification(convertMetadata(it))
+                    notificationManager.showNotification()
                     eventChannel.sendEvent(MusicPlayerEvent.PlayOrPause)
                 } else {
-                    notificationManager.setNewMusicPlayback(convertMetadata(it))
+                    notificationManager.refreshNotification()
                 }
 
                 CoroutineScope(mainDispatcher).launch {
-                    eventChannel.sendEvent(MusicPlayerEvent.MusicChanged(mediaItem.mediaMetadata.extras?.getBoolean("isStored") == true))
+                    eventChannel.sendEvent(
+                        MusicPlayerEvent.MusicChanged(
+                            mediaItem.mediaMetadata.extras?.getBoolean(
+                                "isStored"
+                            ) == true
+                        )
+                    )
                 }
             }
         }
 
-        override fun onPositionDiscontinuity(oldPosition: PositionInfo, newPosition: PositionInfo, reason: Int) {
+        override fun onPositionDiscontinuity(
+            oldPosition: PositionInfo,
+            newPosition: PositionInfo,
+            reason: Int
+        ) {
             super.onPositionDiscontinuity(oldPosition, newPosition, reason)
             if (reason == DISCONTINUITY_REASON_AUTO_TRANSITION) {
                 if (mainState.loadingMusicType == TRACKING_CADENCE) {

@@ -1,6 +1,7 @@
 package com.jh.presentation.service.music_player
 
-import com.google.android.exoplayer2.MediaItem
+import androidx.media3.common.MediaItem
+
 
 data class MusicPlayerState(
     val isLaunched: Boolean = false,

@@ -45,6 +45,7 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.media3.common.util.UnstableApi
 import com.jh.murun.domain.model.Music
 import com.jh.murun.presentation.R
 import com.jh.presentation.base.BaseActivity
@@ -62,6 +63,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
+@androidx.annotation.OptIn(UnstableApi::class)
 @AndroidEntryPoint
 class MainActivity : BaseActivity() {
     override val viewModel: MainViewModel by viewModels()
