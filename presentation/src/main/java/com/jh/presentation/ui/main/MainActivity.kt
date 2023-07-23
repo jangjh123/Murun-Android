@@ -45,6 +45,7 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.media3.common.util.UnstableApi
 import com.jh.murun.domain.model.Music
 import com.jh.murun.presentation.R
 import com.jh.presentation.base.BaseActivity
@@ -62,6 +63,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
+@androidx.annotation.OptIn(UnstableApi::class)
 @AndroidEntryPoint
 class MainActivity : BaseActivity() {
     override val viewModel: MainViewModel by viewModels()
@@ -116,7 +118,7 @@ class MainActivity : BaseActivity() {
                         musicPlayerService.playOrPause()
                     }
                     is MainSideEffect.SkipToNext -> {
-                        musicPlayerService.skipToNext()
+                        Unit
                     }
                     is MainSideEffect.GoToFavorite -> {
                         startActivity(FavoriteActivity.newIntent(this@MainActivity))
@@ -147,13 +149,7 @@ class MainActivity : BaseActivity() {
                         musicPlayerService.changeRepeatMode()
                     }
                     is MainSideEffect.LikeMusic -> {
-                        viewModel.likeMusic(
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                playerUiState.value.currentMusic?.mediaMetadata?.extras?.getParcelable("music", Music::class.java)
-                            } else {
-                                playerUiState.value.currentMusic?.mediaMetadata?.extras?.getParcelable("music")!!
-                            }
-                        )
+                        viewModel.likeMusic(playerUiState.value.isCurrentMusicStored, playerUiState.value.currentMusic)
                     }
                     is MainSideEffect.DislikeMusic -> {
                         val music = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -172,6 +168,7 @@ class MainActivity : BaseActivity() {
                     is MainSideEffect.UpdateLikeIcon -> {
                         musicPlayerService.setCurrentMusicIsStoredOrNot(sideEffect.isStored)
                     }
+                    
                 }
             }
         }

@@ -17,6 +17,5 @@ data class Music(
     val bpm: Int? = null,
     val imageUrl: String? = null,
     var image: ByteArray? = null,
-    val fileUrl: String? = null,
-    var diskPath: String? = null,
+    val url: String? = null
 ) : BaseModel

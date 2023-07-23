@@ -30,7 +30,7 @@ data class MusicResponse(
                 duration = time ?: 0L,
                 isStored = false,
                 imageUrl = albumImage,
-                fileUrl = url
+                url = url
             )
         }
     }
