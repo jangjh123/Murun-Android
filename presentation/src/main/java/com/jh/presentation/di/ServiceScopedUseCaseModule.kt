@@ -5,7 +5,7 @@ import com.jh.murun.domain.repository.GetMusicRepository
 import com.jh.murun.domain.use_case.music.GetMusicByIdUseCase
 import com.jh.murun.domain.use_case.music.GetMusicFileUseCase
 import com.jh.murun.domain.use_case.music.GetMusicImageUseCase
-import com.jh.murun.domain.use_case.music.GetMusicListByCadenceUseCase
+import com.jh.murun.domain.use_case.music.GetMusicListByBpmUseCase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -18,7 +18,7 @@ object ServiceScopedUseCaseModule {
 
     @ServiceScoped
     @Provides
-    fun provideGetMusicListUseCase(getMusicRepository: GetMusicRepository) = GetMusicListByCadenceUseCase(getMusicRepository)
+    fun provideGetMusicListUseCase(getMusicRepository: GetMusicRepository) = GetMusicListByBpmUseCase(getMusicRepository)
 
     @ServiceScoped
     @Provides

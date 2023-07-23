@@ -3,10 +3,13 @@ package com.jh.presentation.util
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
+import android.os.Bundle
 import androidx.core.app.NotificationCompat
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.*
+import com.google.common.collect.ImmutableList
+import com.google.common.util.concurrent.ListenableFuture
 import com.jh.murun.presentation.R
 import com.jh.presentation.service.music_player.MusicPlayerService
 
@@ -17,10 +20,11 @@ class CustomNotificationManager(
 ) : DefaultMediaNotificationProvider(musicPlayerService) {
     private val notificationManager by lazy { musicPlayerService.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager }
     private lateinit var notificationBuilder: NotificationCompat.Builder
-    private lateinit var mediaSession: MediaSession
 
     fun showNotification() {
-        mediaSession = MediaSession.Builder(musicPlayerService, player).build()
+        val mediaSession = MediaSession.Builder(musicPlayerService, player)
+            .setId(System.currentTimeMillis().toString())
+            .build()
 
         notificationBuilder = NotificationCompat.Builder(musicPlayerService, CHANNEL_ID).apply {
             setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
@@ -31,6 +35,8 @@ class CustomNotificationManager(
                     .setShowActionsInCompactView(0, 1, 2, 3)
             )
         }
+
+//        addNotificationActions(mediaSession, listOf(CommandButton.Builder.))
 
         createNotificationChannel()
         notificationManager.notify(NOTIFICATION_ID, notificationBuilder.build())

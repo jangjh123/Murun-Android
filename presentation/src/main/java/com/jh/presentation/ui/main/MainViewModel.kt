@@ -2,6 +2,7 @@ package com.jh.presentation.ui.main
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
+import androidx.media3.common.MediaItem
 import com.jh.murun.domain.model.Music
 import com.jh.murun.domain.use_case.favorite.AddFavoriteMusicUseCase
 import com.jh.murun.domain.use_case.favorite.DeleteFavoriteMusicUseCase
@@ -138,21 +139,27 @@ class MainViewModel @Inject constructor(
         sendSideEffect(_sideEffectChannel, MainSideEffect.LaunchMusicPlayer)
     }
 
-    fun likeMusic(music: Music?) {
-        if (music != null) {
-            viewModelScope.launch(ioDispatcher) {
-                addFavoriteMusicUseCase(music).onEach { result ->
-                    when (result) {
-                        true -> {
-                            showToast("곡을 리스트에 추가하였습니다.")
-                            sendSideEffect(_sideEffectChannel, MainSideEffect.UpdateLikeIcon(true))
-                        }
-                        false -> {
-                            showToast("곡을 리스트에 저장할 수 없습니다.")
-                        }
-                    }
-                }.launchIn(viewModelScope)
-            }
+    fun likeMusic(
+        isStored: Boolean,
+        mediaItem: MediaItem?
+    ) {
+//        if (music != null) {
+//            viewModelScope.launch(ioDispatcher) {
+//                addFavoriteMusicUseCase(music).onEach { result ->
+//                    when (result) {
+//                        true -> {
+//                            showToast("곡을 리스트에 추가하였습니다.")
+//                            sendSideEffect(_sideEffectChannel, MainSideEffect.UpdateLikeIcon(true))
+//                        }
+//                        false -> {
+//                            showToast("곡을 리스트에 저장할 수 없습니다.")
+//                        }
+//                    }
+//                }.launchIn(viewModelScope)
+//            }
+//        }
+        mediaItem?.let {
+
         }
     }
 

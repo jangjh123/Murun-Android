@@ -118,7 +118,7 @@ class MainActivity : BaseActivity() {
                         musicPlayerService.playOrPause()
                     }
                     is MainSideEffect.SkipToNext -> {
-                        musicPlayerService.skipToNext()
+                        Unit
                     }
                     is MainSideEffect.GoToFavorite -> {
                         startActivity(FavoriteActivity.newIntent(this@MainActivity))
@@ -149,13 +149,7 @@ class MainActivity : BaseActivity() {
                         musicPlayerService.changeRepeatMode()
                     }
                     is MainSideEffect.LikeMusic -> {
-                        viewModel.likeMusic(
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                playerUiState.value.currentMusic?.mediaMetadata?.extras?.getParcelable("music", Music::class.java)
-                            } else {
-                                playerUiState.value.currentMusic?.mediaMetadata?.extras?.getParcelable("music")!!
-                            }
-                        )
+                        viewModel.likeMusic(playerUiState.value.isCurrentMusicStored, playerUiState.value.currentMusic)
                     }
                     is MainSideEffect.DislikeMusic -> {
                         val music = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -174,6 +168,7 @@ class MainActivity : BaseActivity() {
                     is MainSideEffect.UpdateLikeIcon -> {
                         musicPlayerService.setCurrentMusicIsStoredOrNot(sideEffect.isStored)
                     }
+                    
                 }
             }
         }

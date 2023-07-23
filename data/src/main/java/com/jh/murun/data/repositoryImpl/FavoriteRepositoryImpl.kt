@@ -40,19 +40,6 @@ class FavoriteRepositoryImpl @Inject constructor(
     }
 
     override suspend fun insertMusicToFavoriteList(music: Music): Flow<Boolean> {
-        val cacheFile = File(music.diskPath!!)
-        val externalStorageFile = File(context.getExternalFilesDir(Environment.DIRECTORY_MUSIC)?.absolutePath + File.separator + "${music.artist} - ${music.title}.mp3")
-
-        try {
-            cacheFile.copyTo(externalStorageFile, true)
-            music.apply {
-                diskPath = externalStorageFile.absolutePath
-                isStored = true
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-
         return flow {
             runCatching {
                 musicDao.insertMusic(music)
