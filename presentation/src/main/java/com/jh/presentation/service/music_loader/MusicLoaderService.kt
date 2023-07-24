@@ -8,8 +8,6 @@ import com.jh.murun.domain.model.Music
 import com.jh.murun.domain.model.ResponseState
 import com.jh.murun.domain.use_case.favorite.GetFavoriteListUseCase
 import com.jh.murun.domain.use_case.favorite.GetFavoriteMusicByIdUseCase
-import com.jh.murun.domain.use_case.music.GetMusicByIdUseCase
-import com.jh.murun.domain.use_case.music.GetMusicFileUseCase
 import com.jh.murun.domain.use_case.music.GetMusicImageUseCase
 import com.jh.murun.domain.use_case.music.GetMusicListByBpmUseCase
 import com.jh.presentation.di.IoDispatcher
@@ -28,16 +26,10 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class MusicLoaderService : Service() {
     @Inject
-    lateinit var getMusicByIdUseCase: GetMusicByIdUseCase
-
-    @Inject
     lateinit var getMusicListByBpmUseCase: GetMusicListByBpmUseCase
 
     @Inject
     lateinit var getFavoriteListUseCase: GetFavoriteListUseCase
-
-    @Inject
-    lateinit var getMusicFileUseCase: GetMusicFileUseCase
 
     @Inject
     lateinit var getMusicImageUseCase: GetMusicImageUseCase

@@ -8,6 +8,5 @@ interface FavoriteRepository {
     suspend fun getMusicById(id: String): Flow<Music?>
     suspend fun insertMusicToFavoriteList(music: Music): Flow<Boolean>
     suspend fun deleteMusicFromFavoriteList(music: Music): Flow<Boolean>
-
     suspend fun updateReorderedFavoriteList(musics: List<Music>)
 }

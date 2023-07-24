@@ -2,8 +2,6 @@ package com.jh.presentation.di
 
 import com.jh.murun.domain.repository.FavoriteRepository
 import com.jh.murun.domain.repository.GetMusicRepository
-import com.jh.murun.domain.use_case.music.GetMusicByIdUseCase
-import com.jh.murun.domain.use_case.music.GetMusicFileUseCase
 import com.jh.murun.domain.use_case.music.GetMusicImageUseCase
 import com.jh.murun.domain.use_case.music.GetMusicListByBpmUseCase
 import dagger.Module
@@ -19,14 +17,6 @@ object ServiceScopedUseCaseModule {
     @ServiceScoped
     @Provides
     fun provideGetMusicListUseCase(getMusicRepository: GetMusicRepository) = GetMusicListByBpmUseCase(getMusicRepository)
-
-    @ServiceScoped
-    @Provides
-    fun provideGetMusicByIdUseCase(getMusicRepository: GetMusicRepository) = GetMusicByIdUseCase(getMusicRepository)
-
-    @ServiceScoped
-    @Provides
-    fun provideGetMusicFileUseCase(getMusicRepository: GetMusicRepository) = GetMusicFileUseCase(getMusicRepository)
 
     @ServiceScoped
     @Provides
