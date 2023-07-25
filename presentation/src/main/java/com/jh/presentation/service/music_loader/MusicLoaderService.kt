@@ -26,6 +26,14 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class MusicLoaderService : Service() {
     @Inject
+    @MainDispatcher
+    lateinit var mainDispatcher: CoroutineDispatcher
+
+    @Inject
+    @IoDispatcher
+    lateinit var ioDispatcher: CoroutineDispatcher
+
+    @Inject
     lateinit var getMusicListByBpmUseCase: GetMusicListByBpmUseCase
 
     @Inject
@@ -36,14 +44,6 @@ class MusicLoaderService : Service() {
 
     @Inject
     lateinit var getFavoriteMusicByIdUseCase: GetFavoriteMusicByIdUseCase
-
-    @Inject
-    @MainDispatcher
-    lateinit var mainDispatcher: CoroutineDispatcher
-
-    @Inject
-    @IoDispatcher
-    lateinit var ioDispatcher: CoroutineDispatcher
 
     private val _musicFlow: MutableSharedFlow<Music> = MutableSharedFlow()
     val musicFlow: SharedFlow<Music>
@@ -70,6 +70,10 @@ class MusicLoaderService : Service() {
                                     when (imageResult) {
                                         is ResponseState.Success -> {
                                             music.image = imageResult.data.bytes()
+
+                                            withContext(mainDispatcher) {
+                                                _musicFlow.emit(music)
+                                            }
                                         }
 
                                         is ResponseState.Error -> {
@@ -77,10 +81,6 @@ class MusicLoaderService : Service() {
                                         }
                                     }
                                 }
-                            }
-
-                            withContext(mainDispatcher) {
-                                _musicFlow.emit(music)
                             }
                         }
                     }

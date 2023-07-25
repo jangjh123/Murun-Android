@@ -23,7 +23,7 @@ interface MusicDao {
     suspend fun insertMusic(music: Music)
 
     @Query("DELETE FROM Music WHERE id = :id")
-    suspend fun deleteMusic(id: String)
+    suspend fun deleteMusic(id: Int)
 
     @Query("DELETE FROM Music")
     suspend fun deleteAllMusic()

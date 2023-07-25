@@ -119,15 +119,8 @@ class MainViewModel @Inject constructor(
         sendEvent(eventChannel, MainEvent.SetTrackedCadence(cadence))
     }
 
-    fun onClickLikeOrDislike(isExists: Boolean) {
-        when (isExists) {
-            true -> {
-                sendSideEffect(_sideEffectChannel, MainSideEffect.DislikeMusic)
-            }
-            false -> {
-                sendSideEffect(_sideEffectChannel, MainSideEffect.LikeMusic)
-            }
-        }
+    fun onClickAddFavoriteMusic() {
+        sendSideEffect(_sideEffectChannel, MainSideEffect.AddFavoriteMusic)
     }
 
     fun showToast(text: String) {
@@ -139,43 +132,7 @@ class MainViewModel @Inject constructor(
         sendSideEffect(_sideEffectChannel, MainSideEffect.LaunchMusicPlayer)
     }
 
-    fun likeMusic(
-        isStored: Boolean,
-        mediaItem: MediaItem?
-    ) {
-//        if (music != null) {
-//            viewModelScope.launch(ioDispatcher) {
-//                addFavoriteMusicUseCase(music).onEach { result ->
-//                    when (result) {
-//                        true -> {
-//                            showToast("곡을 리스트에 추가하였습니다.")
-//                            sendSideEffect(_sideEffectChannel, MainSideEffect.UpdateLikeIcon(true))
-//                        }
-//                        false -> {
-//                            showToast("곡을 리스트에 저장할 수 없습니다.")
-//                        }
-//                    }
-//                }.launchIn(viewModelScope)
-//            }
-//        }
-        mediaItem?.let {
+    fun addFavoriteMusic(mediaItem: MediaItem?) {
 
-        }
-    }
-
-    fun dislikeMusic(music: Music) {
-        viewModelScope.launch(ioDispatcher) {
-            deleteFavoriteMusicUseCase(music).onEach { result ->
-                when (result) {
-                    true -> {
-                        showToast("곡을 리스트에서 삭제하였습니다.")
-                        sendSideEffect(_sideEffectChannel, MainSideEffect.UpdateLikeIcon(false))
-                    }
-                    false -> {
-                        showToast("곡을 리스트에서 삭제할 수 없습니다.")
-                    }
-                }
-            }.launchIn(viewModelScope)
-        }
     }
 }

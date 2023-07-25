@@ -8,13 +8,11 @@ import kotlinx.parcelize.Parcelize
 @Parcelize
 @Entity
 data class Music(
-    @PrimaryKey
-    val id: String,
+    @PrimaryKey(autoGenerate = true)
+    val id: Int,
     val title: String,
     val artist: String,
     val duration: Long,
-    var isStored: Boolean,
-    val bpm: Int? = null,
     val imageUrl: String? = null,
     var image: ByteArray? = null,
     val url: String? = null

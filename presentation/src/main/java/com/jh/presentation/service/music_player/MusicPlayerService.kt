@@ -10,7 +10,6 @@ import android.os.IBinder
 import androidx.core.os.bundleOf
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
-import androidx.media3.common.Player
 import androidx.media3.common.Player.*
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
@@ -94,12 +93,8 @@ class MusicPlayerService : Service() {
             is MusicPlayerEvent.MusicChanged -> {
                 state.copy(
                     isLoading = false,
-                    currentMusic = event.currentMediaItem,
-                    isCurrentMusicStored = event.isCurrentMusicStored
+                    currentMusic = event.currentMediaItem
                 )
-            }
-            is MusicPlayerEvent.ChangeMusicIsStoredOrNot -> {
-                state.copy(isCurrentMusicStored = event.isCurrentMusicStored)
             }
             is MusicPlayerEvent.RepeatModeChanged -> {
                 state.copy(isRepeatingOne = !state.isRepeatingOne)
@@ -108,8 +103,7 @@ class MusicPlayerService : Service() {
                 state.copy(
                     isLoading = false,
                     isPlaying = false,
-                    currentMusic = null,
-                    isCurrentMusicStored = false
+                    currentMusic = null
                 )
             }
         }
@@ -170,7 +164,7 @@ class MusicPlayerService : Service() {
             .setTitle(music.title)
             .setArtist(music.artist)
             .setArtworkData(music.image, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
-            .setExtras(bundleOf(Pair("duration", music.duration), Pair("isStored", false)))
+            .setExtras(bundleOf(Pair("music", music)))
             .build()
 
         val mediaItem = MediaItem.Builder()
@@ -225,11 +219,6 @@ class MusicPlayerService : Service() {
         eventChannel.sendEvent(MusicPlayerEvent.RepeatModeChanged)
     }
 
-    fun setCurrentMusicIsStoredOrNot(isStored: Boolean) {
-        eventChannel.sendEvent(MusicPlayerEvent.ChangeMusicIsStoredOrNot(isStored))
-        exoPlayer.currentMediaItem?.mediaMetadata?.extras?.putBoolean("isStored", isStored)
-    }
-
     private val playerListener = object : Listener {
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
             mediaItem?.let {
@@ -238,26 +227,8 @@ class MusicPlayerService : Service() {
 
                 CoroutineScope(mainDispatcher).launch {
                     eventChannel.sendEvent(
-                        MusicPlayerEvent.MusicChanged(
-                            mediaItem.mediaMetadata.extras?.getBoolean(
-                                "isStored"
-                            ) == true,
-                            exoPlayer.currentMediaItem
-                        )
+                        MusicPlayerEvent.MusicChanged(exoPlayer.currentMediaItem)
                     )
-                }
-            }
-        }
-
-        override fun onPositionDiscontinuity(
-            oldPosition: PositionInfo,
-            newPosition: PositionInfo,
-            reason: Int
-        ) {
-            super.onPositionDiscontinuity(oldPosition, newPosition, reason)
-            if (reason == DISCONTINUITY_REASON_AUTO_TRANSITION) {
-                if (mainState.loadingMusicType == TRACKING_CADENCE) {
-                    musicLoaderService.loadMusicListByBpm(mainState.trackedCadence)
                 }
             }
         }
