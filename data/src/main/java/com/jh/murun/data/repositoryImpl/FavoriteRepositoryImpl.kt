@@ -1,36 +1,20 @@
 package com.jh.murun.data.repositoryImpl
 
-import android.content.Context
-import android.os.Environment
 import com.jh.murun.data.local.MusicDao
 import com.jh.murun.domain.model.Music
 import com.jh.murun.domain.repository.FavoriteRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import java.io.File
 import javax.inject.Inject
 
 class FavoriteRepositoryImpl @Inject constructor(
-    private val musicDao: MusicDao,
-    private val context: Context
+    private val musicDao: MusicDao
 ) : FavoriteRepository {
 
     override suspend fun readAllMusics(): Flow<List<Music>?> {
         return flow {
             runCatching {
                 musicDao.readAllMusic()
-            }.onSuccess {
-                emit(it)
-            }.onFailure {
-                emit(null)
-            }
-        }
-    }
-
-    override suspend fun getMusicById(id: String): Flow<Music?> {
-        return flow {
-            runCatching {
-                musicDao.readMusic(id)
             }.onSuccess {
                 emit(it)
             }.onFailure {

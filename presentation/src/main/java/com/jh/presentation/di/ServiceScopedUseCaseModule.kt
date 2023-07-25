@@ -21,8 +21,4 @@ object ServiceScopedUseCaseModule {
     @ServiceScoped
     @Provides
     fun provideGetMusicImageUseCase(getMusicRepository: GetMusicRepository) = GetMusicImageUseCase(getMusicRepository)
-
-    @ServiceScoped
-    @Provides
-    fun provideGetMusicExistenceInFavoriteList(favoriteRepository: FavoriteRepository) = com.jh.murun.domain.use_case.favorite.GetFavoriteMusicByIdUseCase(favoriteRepository)
 }

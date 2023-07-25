@@ -36,7 +36,6 @@ object RepositoryModule {
     @Singleton
     @Provides
     fun provideFavoriteRepository(
-        musicDao: MusicDao,
-        @ApplicationContext context: Context
-    ): FavoriteRepository = FavoriteRepositoryImpl(musicDao, context)
+        musicDao: MusicDao
+    ): FavoriteRepository = FavoriteRepositoryImpl(musicDao)
 }

@@ -134,6 +134,8 @@ class MusicPlayerService : Service() {
     }
 
     private fun initPlayer() {
+        collectMusic()
+
         when (mainState.loadingMusicType) {
             TRACKING_CADENCE -> {
                 musicLoaderService.loadMusicListByBpm(bpm = mainState.trackedCadence)
@@ -150,10 +152,17 @@ class MusicPlayerService : Service() {
         notificationManager.showNotification()
         exoPlayer.prepare()
         exoPlayer.playWhenReady = true
-        collectMusic()
     }
 
     private fun collectMusic() {
+        musicLoaderService.musicFlow.replayCache.run {
+            if (isNotEmpty()) {
+                forEach { music ->
+                    addMusic(music)
+                }
+            }
+        }
+
         musicLoaderService.musicFlow.onEach { music ->
             addMusic(music)
         }.launchIn(CoroutineScope(mainDispatcher))

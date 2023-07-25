@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import androidx.media3.common.MediaItem
 import com.jh.murun.domain.model.Music
 import com.jh.murun.domain.use_case.favorite.AddFavoriteMusicUseCase
-import com.jh.murun.domain.use_case.favorite.DeleteFavoriteMusicUseCase
 import com.jh.presentation.base.BaseViewModel
 import com.jh.presentation.di.IoDispatcher
 import com.jh.presentation.enums.LoadingMusicType.*
@@ -22,8 +21,7 @@ import javax.inject.Inject
 class MainViewModel @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     private val savedStateHandle: SavedStateHandle,
-    private val addFavoriteMusicUseCase: AddFavoriteMusicUseCase,
-    private val deleteFavoriteMusicUseCase: DeleteFavoriteMusicUseCase
+    private val addFavoriteMusicUseCase: AddFavoriteMusicUseCase
 ) : BaseViewModel() {
 
     private val eventChannel = Channel<MainEvent>()
@@ -133,6 +131,20 @@ class MainViewModel @Inject constructor(
     }
 
     fun addFavoriteMusic(mediaItem: MediaItem?) {
+        mediaItem?.mediaMetadata?.extras?.get("music").let { music ->
+            viewModelScope.launch(ioDispatcher) {
+                addFavoriteMusicUseCase(music as Music).onEach { result ->
+                    when (result) {
+                        true -> {
+                            showToast("곡을 리스트에 추가하였습니다.")
+                        }
 
+                        false -> {
+                            showToast("곡을 리스트에 저장할 수 없습니다.")
+                        }
+                    }
+                }.launchIn(viewModelScope)
+            }
+        }
     }
 }
