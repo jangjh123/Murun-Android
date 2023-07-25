@@ -24,11 +24,10 @@ data class MusicResponse(
     companion object : DataMapper<MusicResponse, Music> {
         override fun MusicResponse.toDataModel(): Music {
             return Music(
-                id = uuid ?: "",
+                id = 0,
                 title = title ?: "No Title",
                 artist = artist ?: "No Artist",
                 duration = time ?: 0L,
-                isStored = false,
                 imageUrl = albumImage,
                 url = url
             )

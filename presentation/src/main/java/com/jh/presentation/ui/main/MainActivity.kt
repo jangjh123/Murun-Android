@@ -148,27 +148,12 @@ class MainActivity : BaseActivity() {
                     is MainSideEffect.ChangeRepeatMode -> {
                         musicPlayerService.changeRepeatMode()
                     }
-                    is MainSideEffect.LikeMusic -> {
-                        viewModel.likeMusic(playerUiState.value.isCurrentMusicStored, playerUiState.value.currentMusic)
-                    }
-                    is MainSideEffect.DislikeMusic -> {
-                        val music = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            playerUiState.value.currentMusic?.mediaMetadata?.extras?.getParcelable("music", Music::class.java)
-                        } else {
-                            playerUiState.value.currentMusic?.mediaMetadata?.extras?.getParcelable<Music>("music")
-                        }
-
-                        if (music != null) {
-                            viewModel.dislikeMusic(music)
-                        }
+                    is MainSideEffect.AddFavoriteMusic -> {
+                        viewModel.addFavoriteMusic(playerUiState.value.currentMusic)
                     }
                     is MainSideEffect.ShowToast -> {
                         Toast.makeText(this@MainActivity, sideEffect.text, Toast.LENGTH_SHORT).show()
                     }
-                    is MainSideEffect.UpdateLikeIcon -> {
-                        musicPlayerService.setCurrentMusicIsStoredOrNot(sideEffect.isStored)
-                    }
-                    
                 }
             }
         }
@@ -314,7 +299,7 @@ private fun MainActivityContent(
                                     .height(32.dp)
                                     .border(
                                         width = 2.dp,
-                                        color = if (player.isCurrentMusicStored) Red else Color.Gray,
+                                        color =  Red,
                                         shape = RoundedCornerShape(24.dp)
                                     )
                             ) {
@@ -322,10 +307,10 @@ private fun MainActivityContent(
                                     modifier = Modifier
                                         .size(20.dp)
                                         .align(Center)
-                                        .clickableWithoutRipple { viewModel.onClickLikeOrDislike(player.isCurrentMusicStored) },
-                                    painter = painterResource(id = if (player.isCurrentMusicStored) R.drawable.ic_favorite_fill else R.drawable.ic_favorite_empty),
+                                        .clickableWithoutRipple { viewModel.onClickAddFavoriteMusic() },
+                                    painter = painterResource(id = R.drawable.ic_add),
                                     contentDescription = "favoriteIcon",
-                                    tint = if (player.isCurrentMusicStored) Red else Color.Gray
+                                    tint = Red
                                 )
                             }
                         }

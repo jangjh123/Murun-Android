@@ -3,13 +3,10 @@ package com.jh.presentation.util
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
-import android.os.Bundle
 import androidx.core.app.NotificationCompat
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.*
-import com.google.common.collect.ImmutableList
-import com.google.common.util.concurrent.ListenableFuture
 import com.jh.murun.presentation.R
 import com.jh.presentation.service.music_player.MusicPlayerService
 
@@ -30,16 +27,10 @@ class CustomNotificationManager(
             setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             setOngoing(true)
             setSmallIcon(R.drawable.icon)
-            setStyle(
-                MediaStyleNotificationHelper.MediaStyle(mediaSession)
-                    .setShowActionsInCompactView(0, 1, 2, 3)
-            )
+            setStyle(MediaStyleNotificationHelper.MediaStyle(mediaSession).setShowActionsInCompactView())
         }
 
-//        addNotificationActions(mediaSession, listOf(CommandButton.Builder.))
-
         createNotificationChannel()
-        notificationManager.notify(NOTIFICATION_ID, notificationBuilder.build())
         musicPlayerService.startForeground(NOTIFICATION_ID, notificationBuilder.build())
     }
 

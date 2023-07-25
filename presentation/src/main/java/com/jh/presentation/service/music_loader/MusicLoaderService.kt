@@ -7,44 +7,20 @@ import android.os.IBinder
 import com.jh.murun.domain.model.Music
 import com.jh.murun.domain.model.ResponseState
 import com.jh.murun.domain.use_case.favorite.GetFavoriteListUseCase
-import com.jh.murun.domain.use_case.favorite.GetFavoriteMusicByIdUseCase
-import com.jh.murun.domain.use_case.music.GetMusicByIdUseCase
-import com.jh.murun.domain.use_case.music.GetMusicFileUseCase
 import com.jh.murun.domain.use_case.music.GetMusicImageUseCase
 import com.jh.murun.domain.use_case.music.GetMusicListByBpmUseCase
 import com.jh.presentation.di.IoDispatcher
 import com.jh.presentation.di.MainDispatcher
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @AndroidEntryPoint
 class MusicLoaderService : Service() {
-    @Inject
-    lateinit var getMusicByIdUseCase: GetMusicByIdUseCase
-
-    @Inject
-    lateinit var getMusicListByBpmUseCase: GetMusicListByBpmUseCase
-
-    @Inject
-    lateinit var getFavoriteListUseCase: GetFavoriteListUseCase
-
-    @Inject
-    lateinit var getMusicFileUseCase: GetMusicFileUseCase
-
-    @Inject
-    lateinit var getMusicImageUseCase: GetMusicImageUseCase
-
-    @Inject
-    lateinit var getFavoriteMusicByIdUseCase: GetFavoriteMusicByIdUseCase
-
     @Inject
     @MainDispatcher
     lateinit var mainDispatcher: CoroutineDispatcher
@@ -53,7 +29,16 @@ class MusicLoaderService : Service() {
     @IoDispatcher
     lateinit var ioDispatcher: CoroutineDispatcher
 
-    private val _musicFlow: MutableSharedFlow<Music> = MutableSharedFlow()
+    @Inject
+    lateinit var getMusicListByBpmUseCase: GetMusicListByBpmUseCase
+
+    @Inject
+    lateinit var getFavoriteListUseCase: GetFavoriteListUseCase
+
+    @Inject
+    lateinit var getMusicImageUseCase: GetMusicImageUseCase
+
+    private val _musicFlow: MutableSharedFlow<Music> = MutableSharedFlow(replay = Int.MAX_VALUE)
     val musicFlow: SharedFlow<Music>
         get() = _musicFlow
 
@@ -78,6 +63,9 @@ class MusicLoaderService : Service() {
                                     when (imageResult) {
                                         is ResponseState.Success -> {
                                             music.image = imageResult.data.bytes()
+                                            withContext(mainDispatcher) {
+                                                _musicFlow.emit(music)
+                                            }
                                         }
 
                                         is ResponseState.Error -> {
@@ -85,10 +73,6 @@ class MusicLoaderService : Service() {
                                         }
                                     }
                                 }
-                            }
-
-                            withContext(mainDispatcher) {
-                                _musicFlow.emit(music)
                             }
                         }
                     }

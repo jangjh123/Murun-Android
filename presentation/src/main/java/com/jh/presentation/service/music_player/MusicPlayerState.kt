@@ -8,6 +8,5 @@ data class MusicPlayerState(
     val isLoading: Boolean = false,
     val isPlaying: Boolean = false,
     val isRepeatingOne: Boolean = false,
-    val currentMusic: MediaItem? = null,
-    val isCurrentMusicStored: Boolean = false
+    val currentMusic: MediaItem? = null
 )

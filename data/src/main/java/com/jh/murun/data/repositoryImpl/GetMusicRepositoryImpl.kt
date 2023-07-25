@@ -33,36 +33,6 @@ class GetMusicRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun fetchMusicById(id: String): Flow<ResponseState<Music>> {
-        return flow {
-            responseHandler.handle {
-                apiService.fetchMusicById(id)
-            }.onEach { result ->
-                when (result) {
-                    is MurunResponse.OnSuccess -> emit(ResponseState.Success(result.data.toDataModel()))
-                    is MurunResponse.OnError -> emit(ResponseState.Error(result.error.toDataModel()))
-                }
-            }.catch {
-                emit(ResponseState.Error(ErrorResponse(message = "네트워크 연결 상태를 확인해 주세요.").toDataModel()))
-            }.collect()
-        }
-    }
-
-    override suspend fun fetchMusicFile(url: String): Flow<ResponseState<ResponseBody>> {
-        return flow {
-            responseHandler.handle {
-                apiService.fetchMusicFile(url)
-            }.onEach { result ->
-                when (result) {
-                    is MurunResponse.OnSuccess -> emit(ResponseState.Success(result.data))
-                    is MurunResponse.OnError -> emit(ResponseState.Error(ErrorResponse(message = "음원 파일 오류입니다.").toDataModel()))
-                }
-            }.catch {
-                emit(ResponseState.Error(ErrorResponse(message = "네트워크 연결 상태를 확인해 주세요.").toDataModel()))
-            }.collect()
-        }
-    }
-
     override suspend fun fetchMusicImage(url: String): Flow<ResponseState<ResponseBody>> {
         return flow {
             responseHandler.handle {
