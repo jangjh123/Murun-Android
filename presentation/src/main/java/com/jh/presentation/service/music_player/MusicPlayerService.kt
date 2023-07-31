@@ -200,23 +200,20 @@ class MusicPlayerService : Service() {
         }
     }
 
-//    fun skipToNext() {
-//        if (exoPlayer.repeatMode == REPEAT_MODE_ALL) {
-//            if (exoPlayer.hasNextMediaItem() && exoPlayer.mediaItemCount != 1) {
-//                exoPlayer.seekToNextMediaItem()
-//            } else {
-//                if (mainState.loadingMusicType == TRACKING_CADENCE) {
-//                    musicLoaderService.loadMusicListByBpm(mainState.trackedCadence)
-//                } else {
-//                    musicLoaderService.loadNextMusicFile()
-//                    isIntended = true
-//                    eventChannel.sendEvent(MusicPlayerEvent.LoadMusic)
-//                }
-//            }
-//        } else {
-//            exoPlayer.seekTo(0L)
-//        }
-//    }
+    fun skipToNext() {
+        if (exoPlayer.repeatMode == REPEAT_MODE_ALL) {
+            if (exoPlayer.hasNextMediaItem()) {
+                exoPlayer.seekToNext()
+            } else {
+                if (mainState.loadingMusicType == TRACKING_CADENCE) {
+                    exoPlayer.clearMediaItems()
+                    musicLoaderService.loadMusicListByBpm(mainState.trackedCadence)
+                }
+            }
+        } else {
+            exoPlayer.seekTo(0L)
+        }
+    }
 
     fun changeRepeatMode() {
         if (exoPlayer.repeatMode == REPEAT_MODE_ALL) {
@@ -240,6 +237,10 @@ class MusicPlayerService : Service() {
                     )
                 }
             }
+        }
+
+        override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+            eventChannel.sendEvent(MusicPlayerEvent.PlayOrPause)
         }
     }
 
