@@ -46,7 +46,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.util.UnstableApi
-import com.jh.murun.domain.model.Music
 import com.jh.murun.presentation.R
 import com.jh.presentation.base.BaseActivity
 import com.jh.presentation.enums.LoadingMusicType.*
@@ -118,7 +117,10 @@ class MainActivity : BaseActivity() {
                         musicPlayerService.playOrPause()
                     }
                     is MainSideEffect.SkipToNext -> {
-                        Unit
+                        musicPlayerService.skipToNext()
+                    }
+                    is MainSideEffect.ChangeRepeatMode -> {
+                        musicPlayerService.changeRepeatMode()
                     }
                     is MainSideEffect.GoToFavorite -> {
                         startActivity(FavoriteActivity.newIntent(this@MainActivity))
@@ -144,9 +146,6 @@ class MainActivity : BaseActivity() {
                             isMusicPlayerServiceBinding = false
                             unbindService(musicPlayerServiceConnection)
                         }
-                    }
-                    is MainSideEffect.ChangeRepeatMode -> {
-                        musicPlayerService.changeRepeatMode()
                     }
                     is MainSideEffect.AddFavoriteMusic -> {
                         viewModel.addFavoriteMusic(playerUiState.value.currentMusic)
@@ -299,7 +298,7 @@ private fun MainActivityContent(
                                     .height(32.dp)
                                     .border(
                                         width = 2.dp,
-                                        color =  Red,
+                                        color = Red,
                                         shape = RoundedCornerShape(24.dp)
                                     )
                             ) {
