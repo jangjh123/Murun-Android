@@ -139,7 +139,7 @@ class MusicPlayerService : Service() {
 
         when (mainState.loadingMusicType) {
             TRACKING_CADENCE -> {
-                musicLoaderService.loadMusicListByBpm(bpm = mainState.trackedCadence)
+                musicLoaderService.loadMusicListByBpm(bpm = 130) // Initial bpm for warming-up
             }
             ASSIGN_CADENCE -> {
                 musicLoaderService.loadMusicListByBpm(bpm = mainState.assignedCadence)
@@ -252,7 +252,10 @@ class MusicPlayerService : Service() {
 
         if (isMusicLoaderServiceBinding) {
             isMusicLoaderServiceBinding = false
-            unbindService(musicLoaderServiceConnection)
+
+            runCatching {
+                unbindService(musicLoaderServiceConnection)
+            }
         }
 
         return super.onUnbind(intent)

@@ -132,8 +132,10 @@ class MainActivity : BaseActivity() {
                         }
                     }
                     is MainSideEffect.StopTrackingCadence -> {
-                        cadenceTrackingService.stop()
-                        unbindService(cadenceTrackingServiceConnection)
+                        runCatching {
+                            cadenceTrackingService.stop()
+                            unbindService(cadenceTrackingServiceConnection)
+                        }
                     }
                     is MainSideEffect.LaunchMusicPlayer -> {
                         if (!isMusicPlayerServiceBinding) {
@@ -144,7 +146,10 @@ class MainActivity : BaseActivity() {
                     is MainSideEffect.QuitMusicPlayer -> {
                         if (isMusicPlayerServiceBinding) {
                             isMusicPlayerServiceBinding = false
-                            unbindService(musicPlayerServiceConnection)
+
+                            runCatching {
+                                unbindService(musicPlayerServiceConnection)
+                            }
                         }
                     }
                     is MainSideEffect.AddFavoriteMusic -> {
@@ -177,13 +182,16 @@ class MainActivity : BaseActivity() {
     }
 
     override fun onDestroy() {
-        if (isCadenceTrackingServiceBinding) {
-            unbindService(cadenceTrackingServiceConnection)
+        runCatching {
+            if (isCadenceTrackingServiceBinding) {
+                unbindService(cadenceTrackingServiceConnection)
+            }
+
+            if (isMusicPlayerServiceBinding) {
+                unbindService(musicPlayerServiceConnection)
+            }
         }
 
-        if (isMusicPlayerServiceBinding) {
-            unbindService(musicPlayerServiceConnection)
-        }
         super.onDestroy()
     }
 
