@@ -143,6 +143,7 @@ class MusicPlayerService : Service() {
 
         when (mainState.loadingMusicType) {
             TRACKING_CADENCE -> {
+                exoPlayer.repeatMode = REPEAT_MODE_OFF
                 musicLoaderService.loadMusicListByBpm(bpm = 130) // Initial bpm for warming-up
             }
             ASSIGN_CADENCE -> {
@@ -196,7 +197,11 @@ class MusicPlayerService : Service() {
             .setMediaMetadata(metadata)
             .build()
 
-        exoPlayer.addMediaItem(mediaItem)
+        if (mainState.loadingMusicType == TRACKING_CADENCE) {
+            exoPlayer.setMediaItem(mediaItem)
+        } else {
+            exoPlayer.addMediaItem(mediaItem)
+        }
     }
 
     fun skipToPrev() {
