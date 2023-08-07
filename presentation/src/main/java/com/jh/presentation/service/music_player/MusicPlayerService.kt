@@ -17,6 +17,7 @@ import com.jh.murun.domain.model.Music
 import com.jh.presentation.di.IoDispatcher
 import com.jh.presentation.di.MainDispatcher
 import com.jh.presentation.enums.LoadingMusicType.*
+import com.jh.presentation.service.cadence_tracking.CadenceTrackingService
 import com.jh.presentation.service.music_loader.MusicLoaderService
 import com.jh.presentation.service.music_loader.MusicLoaderService.MusicLoaderServiceBinder
 import com.jh.presentation.ui.main.MainState
@@ -104,11 +105,14 @@ class MusicPlayerService : Service() {
                     isLaunched = false,
                     isLoading = false,
                     isPlaying = false,
+                    isRepeatingOne = false,
                     currentMusic = null
                 )
             }
         }
     }
+
+    private var currentCadence: Int = 0
 
     inner class MusicPlayerServiceBinder : Binder() {
         fun getServiceInstance(): MusicPlayerService {
@@ -157,16 +161,26 @@ class MusicPlayerService : Service() {
 
     private fun collectMusic() {
         musicLoaderService.musicFlow.replayCache.run {
-            if (isNotEmpty()) {
+            if (isNotEmpty() && mainState.loadingMusicType != TRACKING_CADENCE) {
                 forEach { music ->
                     addMusic(music)
                 }
             }
         }
 
-        musicLoaderService.musicFlow.onEach { music ->
-            addMusic(music)
-        }.launchIn(CoroutineScope(mainDispatcher))
+        CoroutineScope(mainDispatcher).launch {
+            if (mainState.loadingMusicType == TRACKING_CADENCE) {
+                addMusic(musicLoaderService.musicFlow.first())
+            } else {
+                musicLoaderService.musicFlow.onEach { music ->
+                    if (mainState.loadingMusicType == TRACKING_CADENCE) {
+                        addMusic(music)
+                    } else {
+                        addMusic(music)
+                    }
+                }.launchIn(CoroutineScope(mainDispatcher))
+            }
+        }
     }
 
     private fun addMusic(music: Music) {
@@ -208,7 +222,7 @@ class MusicPlayerService : Service() {
             } else {
                 if (mainState.loadingMusicType == TRACKING_CADENCE) {
                     exoPlayer.clearMediaItems()
-                    musicLoaderService.loadMusicListByBpm(mainState.trackedCadence)
+                    musicLoaderService.loadMusicListByBpm(CadenceTrackingService.CADENCE)
                 }
             }
         } else {
@@ -242,6 +256,17 @@ class MusicPlayerService : Service() {
 
         override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
             eventChannel.sendEvent(MusicPlayerEvent.PlayOrPause)
+        }
+
+        override fun onPositionDiscontinuity(oldPosition: PositionInfo, newPosition: PositionInfo, reason: Int) {
+            val newCadence = CadenceTrackingService.CADENCE
+            if (reason == DISCONTINUITY_REASON_AUTO_TRANSITION) {
+                if (currentCadence != newCadence) {
+                    exoPlayer.clearMediaItems()
+                    currentCadence = newCadence
+                    musicLoaderService.loadMusicListByBpm(newCadence)
+                }
+            }
         }
     }
 

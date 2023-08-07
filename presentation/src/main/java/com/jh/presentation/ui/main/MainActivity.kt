@@ -166,9 +166,6 @@ class MainActivity : BaseActivity() {
     private fun trackCadence() {
         if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.ACTIVITY_RECOGNITION) == PackageManager.PERMISSION_GRANTED) {
             cadenceTrackingService.start(this@MainActivity)
-            cadenceTrackingService.cadenceLiveData.observe(this@MainActivity) { cadence ->
-                viewModel.onCadenceMeasured(cadence)
-            }
         } else {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 requestPermissions(arrayOf(Manifest.permission.ACTIVITY_RECOGNITION), PackageManager.PERMISSION_GRANTED)
@@ -422,7 +419,7 @@ private fun MainActivityContent(
                                 ) {
                                     Text(
                                         modifier = Modifier.align(Center),
-                                        text = "$trackedCadence",
+                                        text = "${CadenceTrackingService.CADENCE}",
                                         style = Typography.h5,
                                         color = cadenceTrackingColorState.value,
                                     )

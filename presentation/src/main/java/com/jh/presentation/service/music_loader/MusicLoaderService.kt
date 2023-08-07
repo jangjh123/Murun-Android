@@ -57,7 +57,7 @@ class MusicLoaderService : Service() {
             getMusicListByBpmUseCase(bpm = bpm).onEach { result ->
                 when (result) {
                     is ResponseState.Success -> {
-                        result.data.forEach { music ->
+                        result.data.shuffled().forEach { music ->
                             music.imageUrl?.let { musicImageUrl ->
                                 getMusicImageUseCase(musicImageUrl).collect { imageResult ->
                                     when (imageResult) {
@@ -78,6 +78,8 @@ class MusicLoaderService : Service() {
                     }
 
                     is ResponseState.Error -> {
+                        println(result.error)
+                        println(result.toString())
                         // todo : Error Handling
                     }
                 }
