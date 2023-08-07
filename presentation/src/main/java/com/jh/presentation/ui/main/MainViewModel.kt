@@ -52,9 +52,6 @@ class MainViewModel @Inject constructor(
             is MainEvent.SetAssignedCadence -> {
                 state.copy(assignedCadence = event.cadence)
             }
-            is MainEvent.SetTrackedCadence -> {
-                state.copy(trackedCadence = event.cadence)
-            }
         }
     }
 
@@ -79,7 +76,11 @@ class MainViewModel @Inject constructor(
     }
 
     fun onClickChangeRepeatMode() {
-        sendSideEffect(_sideEffectChannel, MainSideEffect.ChangeRepeatMode)
+        if (state.value.loadingMusicType == TRACKING_CADENCE) {
+            showToast("케이던스 트래킹 모드는 한 곡 반복을 사용할 수 없습니다.")
+        } else {
+            sendSideEffect(_sideEffectChannel, MainSideEffect.ChangeRepeatMode)
+        }
     }
 
     fun onClickTrackCadence() {
@@ -111,10 +112,6 @@ class MainViewModel @Inject constructor(
 
     fun onClickFavorite() {
         sendSideEffect(_sideEffectChannel, MainSideEffect.GoToFavorite)
-    }
-
-    fun onCadenceMeasured(cadence: Int) {
-        sendEvent(eventChannel, MainEvent.SetTrackedCadence(cadence))
     }
 
     fun onClickAddFavoriteMusic() {

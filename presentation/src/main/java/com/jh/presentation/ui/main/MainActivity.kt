@@ -132,8 +132,10 @@ class MainActivity : BaseActivity() {
                         }
                     }
                     is MainSideEffect.StopTrackingCadence -> {
-                        cadenceTrackingService.stop()
-                        unbindService(cadenceTrackingServiceConnection)
+                        runCatching {
+                            cadenceTrackingService.stop()
+                            unbindService(cadenceTrackingServiceConnection)
+                        }
                     }
                     is MainSideEffect.LaunchMusicPlayer -> {
                         if (!isMusicPlayerServiceBinding) {
@@ -144,7 +146,10 @@ class MainActivity : BaseActivity() {
                     is MainSideEffect.QuitMusicPlayer -> {
                         if (isMusicPlayerServiceBinding) {
                             isMusicPlayerServiceBinding = false
-                            unbindService(musicPlayerServiceConnection)
+
+                            runCatching {
+                                unbindService(musicPlayerServiceConnection)
+                            }
                         }
                     }
                     is MainSideEffect.AddFavoriteMusic -> {
@@ -161,9 +166,6 @@ class MainActivity : BaseActivity() {
     private fun trackCadence() {
         if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.ACTIVITY_RECOGNITION) == PackageManager.PERMISSION_GRANTED) {
             cadenceTrackingService.start(this@MainActivity)
-            cadenceTrackingService.cadenceLiveData.observe(this@MainActivity) { cadence ->
-                viewModel.onCadenceMeasured(cadence)
-            }
         } else {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 requestPermissions(arrayOf(Manifest.permission.ACTIVITY_RECOGNITION), PackageManager.PERMISSION_GRANTED)
@@ -177,13 +179,16 @@ class MainActivity : BaseActivity() {
     }
 
     override fun onDestroy() {
-        if (isCadenceTrackingServiceBinding) {
-            unbindService(cadenceTrackingServiceConnection)
+        runCatching {
+            if (isCadenceTrackingServiceBinding) {
+                unbindService(cadenceTrackingServiceConnection)
+            }
+
+            if (isMusicPlayerServiceBinding) {
+                unbindService(musicPlayerServiceConnection)
+            }
         }
 
-        if (isMusicPlayerServiceBinding) {
-            unbindService(musicPlayerServiceConnection)
-        }
         super.onDestroy()
     }
 
@@ -340,28 +345,28 @@ private fun MainActivityContent(
                     val iconColorState = animateColorAsState(targetValue = if (isRunning) MainColor else Color.LightGray)
 
                     Icon(
-                        modifier = Modifier.clickableWithoutRipple { viewModel.onClickSkipToPrev() },
+                        modifier = Modifier.clickableWithoutRipple { if (playerUiState.value.isLaunched) viewModel.onClickSkipToPrev() else Unit },
                         painter = painterResource(id = R.drawable.ic_skip_prev),
                         contentDescription = "skipToPrevIcon",
                         tint = iconColorState.value
                     )
 
                     Icon(
-                        modifier = Modifier.clickableWithoutRipple { viewModel.onClickPlayOrPause() },
+                        modifier = Modifier.clickableWithoutRipple { if (playerUiState.value.isLaunched) viewModel.onClickPlayOrPause() else Unit },
                         painter = painterResource(id = if (player.isPlaying) R.drawable.ic_pause else R.drawable.ic_play),
                         contentDescription = "playOrPauseIcon",
                         tint = iconColorState.value
                     )
 
                     Icon(
-                        modifier = Modifier.clickableWithoutRipple { viewModel.onClickSkipToNext() },
+                        modifier = Modifier.clickableWithoutRipple { if (playerUiState.value.isLaunched) viewModel.onClickSkipToNext() else Unit },
                         painter = painterResource(id = R.drawable.ic_skip_next),
                         contentDescription = "skipToNextIcon",
                         tint = iconColorState.value
                     )
 
                     Icon(
-                        modifier = Modifier.clickableWithoutRipple { viewModel.onClickChangeRepeatMode() },
+                        modifier = Modifier.clickableWithoutRipple { if (playerUiState.value.isLaunched) viewModel.onClickChangeRepeatMode() else Unit },
                         painter = painterResource(id = if (player.isRepeatingOne) R.drawable.ic_repeat_one else R.drawable.ic_repeat_all),
                         contentDescription = "repeatIcon",
                         tint = iconColorState.value
@@ -414,7 +419,7 @@ private fun MainActivityContent(
                                 ) {
                                     Text(
                                         modifier = Modifier.align(Center),
-                                        text = "$trackedCadence",
+                                        text = "${CadenceTrackingService.CADENCE}",
                                         style = Typography.h5,
                                         color = cadenceTrackingColorState.value,
                                     )
