@@ -101,6 +101,7 @@ class MusicPlayerService : Service() {
             }
             is MusicPlayerEvent.Quit -> {
                 state.copy(
+                    isLaunched = false,
                     isLoading = false,
                     isPlaying = false,
                     currentMusic = null

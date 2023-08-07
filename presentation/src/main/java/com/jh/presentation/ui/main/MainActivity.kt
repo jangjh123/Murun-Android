@@ -340,28 +340,28 @@ private fun MainActivityContent(
                     val iconColorState = animateColorAsState(targetValue = if (isRunning) MainColor else Color.LightGray)
 
                     Icon(
-                        modifier = Modifier.clickableWithoutRipple { viewModel.onClickSkipToPrev() },
+                        modifier = Modifier.clickableWithoutRipple { if (playerUiState.value.isLaunched) viewModel.onClickSkipToPrev() else Unit },
                         painter = painterResource(id = R.drawable.ic_skip_prev),
                         contentDescription = "skipToPrevIcon",
                         tint = iconColorState.value
                     )
 
                     Icon(
-                        modifier = Modifier.clickableWithoutRipple { viewModel.onClickPlayOrPause() },
+                        modifier = Modifier.clickableWithoutRipple { if (playerUiState.value.isLaunched) viewModel.onClickPlayOrPause() else Unit },
                         painter = painterResource(id = if (player.isPlaying) R.drawable.ic_pause else R.drawable.ic_play),
                         contentDescription = "playOrPauseIcon",
                         tint = iconColorState.value
                     )
 
                     Icon(
-                        modifier = Modifier.clickableWithoutRipple { viewModel.onClickSkipToNext() },
+                        modifier = Modifier.clickableWithoutRipple { if (playerUiState.value.isLaunched) viewModel.onClickSkipToNext() else Unit },
                         painter = painterResource(id = R.drawable.ic_skip_next),
                         contentDescription = "skipToNextIcon",
                         tint = iconColorState.value
                     )
 
                     Icon(
-                        modifier = Modifier.clickableWithoutRipple { viewModel.onClickChangeRepeatMode() },
+                        modifier = Modifier.clickableWithoutRipple { if (playerUiState.value.isLaunched) viewModel.onClickChangeRepeatMode() else Unit },
                         painter = painterResource(id = if (player.isRepeatingOne) R.drawable.ic_repeat_one else R.drawable.ic_repeat_all),
                         contentDescription = "repeatIcon",
                         tint = iconColorState.value
