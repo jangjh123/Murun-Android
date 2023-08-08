@@ -261,11 +261,11 @@ class MusicPlayerService : Service() {
             eventChannel.sendEvent(MusicPlayerEvent.PlayOrPause)
         }
 
-        override fun onPositionDiscontinuity(oldPosition: PositionInfo, newPosition: PositionInfo, reason: Int) {
-            val newCadence = CadenceTrackingService.cadenceLiveData.value!!
-            if (reason == DISCONTINUITY_REASON_AUTO_TRANSITION) {
+        override fun onPlaybackStateChanged(playbackState: Int) {
+            super.onPlaybackStateChanged(playbackState)
+            if (playbackState == STATE_ENDED) {
                 exoPlayer.clearMediaItems()
-                musicLoaderService.loadMusicListByBpm(newCadence)
+                musicLoaderService.loadMusicListByBpm(CadenceTrackingService.cadenceLiveData.value!!)
             }
         }
     }
