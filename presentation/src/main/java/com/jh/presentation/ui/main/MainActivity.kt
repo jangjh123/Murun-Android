@@ -477,7 +477,7 @@ private fun MainActivityContent(
                                         ) {
                                             TextField(
                                                 value = cadenceAssignTextState.value,
-                                                onValueChange = { cadenceAssignTextState.value = it },
+                                                onValueChange = { cadenceAssignTextState.value = it.filter { it.isDigit() } },
                                                 placeholder = {
                                                     Text(
                                                         modifier = Modifier.fillMaxWidth(),
@@ -487,7 +487,7 @@ private fun MainActivityContent(
                                                     )
                                                 },
                                                 textStyle = Typography.h6,
-                                                keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Decimal),
+                                                keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
                                                 keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
                                                 singleLine = true,
                                                 colors = TextFieldDefaults.textFieldColors(
