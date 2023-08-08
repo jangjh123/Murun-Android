@@ -15,5 +15,6 @@ data class Music(
     val duration: Long,
     val imageUrl: String? = null,
     var image: ByteArray? = null,
-    val url: String?
+    val url: String?,
+    var newIndex: Int? = null
 ) : BaseModel

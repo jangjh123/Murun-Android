@@ -78,8 +78,6 @@ class MusicLoaderService : Service() {
                     }
 
                     is ResponseState.Error -> {
-                        println(result.error)
-                        println(result.toString())
                         // todo : Error Handling
                     }
                 }
