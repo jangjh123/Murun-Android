@@ -214,7 +214,11 @@ private fun FavoriteActivityContent(
                         }
 
                         if (lifecycleEvent.value == Lifecycle.Event.ON_PAUSE && isReordered.value) {
-                            viewModel.onReordered(musics.value)
+                            viewModel.onReordered(musics.value.apply {
+                                forEachIndexed { index, music ->
+                                    music.newIndex = index
+                                }
+                            })
                         }
 
                         LazyColumn(
