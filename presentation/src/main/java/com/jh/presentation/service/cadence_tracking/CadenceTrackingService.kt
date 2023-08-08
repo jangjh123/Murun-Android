@@ -9,6 +9,8 @@ import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.Binder
 import android.os.IBinder
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import com.jh.presentation.di.DefaultDispatcher
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.*
@@ -20,8 +22,8 @@ class CadenceTrackingService : Service(), SensorEventListener {
     @DefaultDispatcher
     lateinit var defaultDispatcher: CoroutineDispatcher
     private lateinit var sensorManager: SensorManager
-    private var stepCount = 0
     private lateinit var cadenceUpdatingJob: Job
+    private var stepCount = 0
 
     inner class CadenceTrackingServiceBinder : Binder() {
         fun getServiceInstance(): CadenceTrackingService {
@@ -35,10 +37,6 @@ class CadenceTrackingService : Service(), SensorEventListener {
 
     override fun onSensorChanged(event: SensorEvent?) {
         if (event!!.sensor.type == Sensor.TYPE_STEP_COUNTER) {
-            if (stepCount == 0) {
-                calculateCadence()
-            }
-
             stepCount++
         }
     }
@@ -48,8 +46,9 @@ class CadenceTrackingService : Service(), SensorEventListener {
     private fun calculateCadence() {
         cadenceUpdatingJob = CoroutineScope(defaultDispatcher).launch {
             delay(60000L)
-            CADENCE = stepCount
+            _cadenceLiveData.postValue(stepCount)
             stepCount = 0
+            calculateCadence()
         }
     }
 
@@ -57,16 +56,19 @@ class CadenceTrackingService : Service(), SensorEventListener {
         sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
         val sensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
         sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL)
+        calculateCadence()
     }
 
     fun stop() {
         sensorManager.unregisterListener(this)
         cadenceUpdatingJob.cancel()
         stepCount = 0
-        CADENCE = 0
+        _cadenceLiveData.postValue(stepCount)
     }
 
     companion object {
-        var CADENCE = 0
+        private val _cadenceLiveData = MutableLiveData(0)
+        val cadenceLiveData: LiveData<Int>
+            get() = _cadenceLiveData
     }
 }

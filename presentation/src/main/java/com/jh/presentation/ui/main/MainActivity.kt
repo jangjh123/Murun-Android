@@ -36,6 +36,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.layout.ContentScale.Companion.Crop
 import androidx.compose.ui.layout.ContentScale.Companion.FillBounds
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -100,11 +101,13 @@ class MainActivity : BaseActivity() {
         override fun onServiceDisconnected(name: ComponentName?) {}
     }
 
+    private val trackedCadence = mutableStateOf(0)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         initComposeUi {
-            MainActivityContent(playerUiState)
+            MainActivityContent(playerUiState, trackedCadence)
         }
 
         repeatOnStarted {
@@ -134,6 +137,7 @@ class MainActivity : BaseActivity() {
                     is MainSideEffect.StopTrackingCadence -> {
                         runCatching {
                             cadenceTrackingService.stop()
+                            isCadenceTrackingServiceBinding = false
                             unbindService(cadenceTrackingServiceConnection)
                         }
                     }
@@ -164,6 +168,10 @@ class MainActivity : BaseActivity() {
     }
 
     private fun trackCadence() {
+        CadenceTrackingService.cadenceLiveData.observe(this) {
+            trackedCadence.value = it
+        }
+
         if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.ACTIVITY_RECOGNITION) == PackageManager.PERMISSION_GRANTED) {
             cadenceTrackingService.start(this@MainActivity)
         } else {
@@ -207,11 +215,16 @@ class MainActivity : BaseActivity() {
 @Composable
 private fun MainActivityContent(
     playerUiState: MutableState<MusicPlayerState>,
+    trackedCadence: MutableState<Int>,
     viewModel: MainViewModel = hiltViewModel()
 ) {
     val focusManager = LocalFocusManager.current
     val cadenceAssignTextState = remember { mutableStateOf("") }
     val player = playerUiState.value
+
+    CadenceTrackingService.cadenceLiveData.observe(LocalContext.current as MainActivity) {
+        trackedCadence.value = it
+    }
 
     with(viewModel.state.collectAsStateWithLifecycle().value) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -419,7 +432,7 @@ private fun MainActivityContent(
                                 ) {
                                     Text(
                                         modifier = Modifier.align(Center),
-                                        text = "${CadenceTrackingService.CADENCE}",
+                                        text = "${trackedCadence.value}",
                                         style = Typography.h5,
                                         color = cadenceTrackingColorState.value,
                                     )

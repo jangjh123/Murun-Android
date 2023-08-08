@@ -112,8 +112,6 @@ class MusicPlayerService : Service() {
         }
     }
 
-    private var currentCadence: Int = 0
-
     inner class MusicPlayerServiceBinder : Binder() {
         fun getServiceInstance(): MusicPlayerService {
             return this@MusicPlayerService
@@ -227,7 +225,7 @@ class MusicPlayerService : Service() {
             } else {
                 if (mainState.loadingMusicType == TRACKING_CADENCE) {
                     exoPlayer.clearMediaItems()
-                    musicLoaderService.loadMusicListByBpm(CadenceTrackingService.CADENCE)
+                    musicLoaderService.loadMusicListByBpm(CadenceTrackingService.cadenceLiveData.value!!)
                 }
             }
         } else {
@@ -264,13 +262,10 @@ class MusicPlayerService : Service() {
         }
 
         override fun onPositionDiscontinuity(oldPosition: PositionInfo, newPosition: PositionInfo, reason: Int) {
-            val newCadence = CadenceTrackingService.CADENCE
+            val newCadence = CadenceTrackingService.cadenceLiveData.value!!
             if (reason == DISCONTINUITY_REASON_AUTO_TRANSITION) {
-                if (currentCadence != newCadence) {
-                    exoPlayer.clearMediaItems()
-                    currentCadence = newCadence
-                    musicLoaderService.loadMusicListByBpm(newCadence)
-                }
+                exoPlayer.clearMediaItems()
+                musicLoaderService.loadMusicListByBpm(newCadence)
             }
         }
     }
