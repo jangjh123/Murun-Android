@@ -57,6 +57,10 @@ class MusicLoaderService : Service() {
             getMusicListByBpmUseCase(bpm = bpm).onEach { result ->
                 when (result) {
                     is ResponseState.Success -> {
+                        if (result.data.isEmpty()) {
+                            loadMusicListByBpm(130)
+                        }
+
                         result.data.shuffled().forEach { music ->
                             music.imageUrl?.let { musicImageUrl ->
                                 getMusicImageUseCase(musicImageUrl).collect { imageResult ->

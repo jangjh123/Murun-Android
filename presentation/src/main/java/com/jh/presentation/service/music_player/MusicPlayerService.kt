@@ -197,6 +197,8 @@ class MusicPlayerService : Service() {
 
         if (mainState.loadingMusicType == TRACKING_CADENCE) {
             exoPlayer.setMediaItem(mediaItem)
+            exoPlayer.playWhenReady
+            exoPlayer.play()
         } else {
             exoPlayer.addMediaItem(mediaItem)
         }
@@ -264,7 +266,6 @@ class MusicPlayerService : Service() {
         override fun onPlaybackStateChanged(playbackState: Int) {
             super.onPlaybackStateChanged(playbackState)
             if (playbackState == STATE_ENDED) {
-                exoPlayer.clearMediaItems()
                 musicLoaderService.loadMusicListByBpm(CadenceTrackingService.cadenceLiveData.value!!)
             }
         }
