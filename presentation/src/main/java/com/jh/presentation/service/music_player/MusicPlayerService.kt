@@ -126,6 +126,7 @@ class MusicPlayerService : Service() {
                 musicLoaderServiceConnection,
                 Context.BIND_AUTO_CREATE
             )
+
             eventChannel.sendEvent(MusicPlayerEvent.Launch)
         }
 
@@ -137,6 +138,7 @@ class MusicPlayerService : Service() {
     }
 
     private fun initPlayer() {
+        musicLoaderService.setLoadingMusicType(mainState.loadingMusicType)
         collectMusic()
 
         when (mainState.loadingMusicType) {
@@ -167,16 +169,18 @@ class MusicPlayerService : Service() {
             }
         }
 
-        CoroutineScope(mainDispatcher).launch {
-            if (mainState.loadingMusicType == TRACKING_CADENCE) {
-                addMusic(musicLoaderService.musicFlow.first())
-            } else {
+        if (mainState.loadingMusicType == TRACKING_CADENCE) {
+            CoroutineScope(mainDispatcher).launch {
                 musicLoaderService.musicFlow.onEach { music ->
-                    if (mainState.loadingMusicType == TRACKING_CADENCE) {
-                        addMusic(music)
-                    } else {
+                    if (exoPlayer.currentMediaItem == null) {
                         addMusic(music)
                     }
+                }.launchIn(CoroutineScope(mainDispatcher))
+            }
+        } else {
+            CoroutineScope(mainDispatcher).launch {
+                musicLoaderService.musicFlow.onEach { music ->
+                    addMusic(music)
                 }.launchIn(CoroutineScope(mainDispatcher))
             }
         }
@@ -196,9 +200,8 @@ class MusicPlayerService : Service() {
             .build()
 
         if (mainState.loadingMusicType == TRACKING_CADENCE) {
+            exoPlayer.clearMediaItems()
             exoPlayer.setMediaItem(mediaItem)
-            exoPlayer.playWhenReady
-            exoPlayer.play()
         } else {
             exoPlayer.addMediaItem(mediaItem)
         }
@@ -266,6 +269,7 @@ class MusicPlayerService : Service() {
         override fun onPlaybackStateChanged(playbackState: Int) {
             super.onPlaybackStateChanged(playbackState)
             if (playbackState == STATE_ENDED) {
+                exoPlayer.clearMediaItems()
                 musicLoaderService.loadMusicListByBpm(CadenceTrackingService.cadenceLiveData.value!!)
             }
         }
