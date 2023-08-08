@@ -78,7 +78,7 @@ class MusicLoaderService : Service() {
                     }
 
                     is ResponseState.Error -> {
-                        // todo : Error Handling
+                        loadMusicListByBpm(130)
                     }
                 }
             }.launchIn(CoroutineScope(ioDispatcher))
