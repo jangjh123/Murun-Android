@@ -45,8 +45,8 @@ class CadenceTrackingService : Service(), SensorEventListener {
 
     private fun calculateCadence() {
         cadenceUpdatingJob = CoroutineScope(defaultDispatcher).launch {
-            delay(60000L)
-            _cadenceLiveData.postValue(stepCount)
+            delay(20000L)
+            _cadenceLiveData.postValue(stepCount * 3)
             stepCount = 0
             calculateCadence()
         }
