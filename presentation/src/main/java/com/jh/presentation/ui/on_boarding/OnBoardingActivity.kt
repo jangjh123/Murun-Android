@@ -3,6 +3,7 @@ package com.jh.presentation.ui.on_boarding
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import androidx.activity.viewModels
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -18,32 +19,39 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.google.accompanist.pager.ExperimentalPagerApi
 import com.google.accompanist.pager.HorizontalPager
-import com.jh.murun.R
+import com.jh.murun.presentation.R
 import com.jh.presentation.base.BaseActivity
-import com.jh.presentation.base.BaseViewModel
 import com.jh.presentation.ui.MurunSpacer
 import com.jh.presentation.ui.RoundedCornerButton
 import com.jh.presentation.ui.main.MainActivity
+import com.jh.presentation.ui.repeatOnStarted
 import com.jh.presentation.ui.theme.*
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.collectLatest
 
+@AndroidEntryPoint
 class OnBoardingActivity : BaseActivity() {
-    override val viewModel: BaseViewModel
-        get() = TODO("Not yet implemented")
+    override val viewModel: OnBoardingViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         initComposeUi {
             OnBoardingActivityContent(
-                onClickStart = {
-                    startActivity(MainActivity.newIntent(this@OnBoardingActivity))
-                    finish()
-                }
+                viewModel = viewModel
             )
         }
-    }
 
-    override fun setupCollect() {
-
+        repeatOnStarted {
+            viewModel.sideEffectChannelFlow.collectLatest { sideEffect ->
+                when(sideEffect) {
+                    is OnBoardingSideEffect.GoToMainActivity -> {
+                        startActivity(MainActivity.newIntent(this@OnBoardingActivity, null))
+                        finish()
+                    }
+                }
+            }
+        }
     }
 
     companion object {
@@ -55,8 +63,8 @@ class OnBoardingActivity : BaseActivity() {
 
 @OptIn(ExperimentalPagerApi::class)
 @Composable
-private inline fun OnBoardingActivityContent(
-    crossinline onClickStart: () -> Unit
+private fun OnBoardingActivityContent(
+    viewModel: OnBoardingViewModel
 ) {
     val painterResources = arrayOf(
         painterResource(id = R.drawable.on_boarding_image_0),
@@ -129,9 +137,7 @@ private inline fun OnBoardingActivityContent(
                     backgroundColor = MainColor,
                     text = "뮤런과 함께 달리기",
                     textColor = White,
-                    onClick = {
-                        onClickStart()
-                    }
+                    onClick = { viewModel.onClickGoToMain() }
                 )
             }
         }
