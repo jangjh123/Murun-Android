@@ -112,8 +112,6 @@ class MusicPlayerService : Service() {
         }
     }
 
-    private var currentCadence: Int = 0
-
     inner class MusicPlayerServiceBinder : Binder() {
         fun getServiceInstance(): MusicPlayerService {
             return this@MusicPlayerService
@@ -128,6 +126,7 @@ class MusicPlayerService : Service() {
                 musicLoaderServiceConnection,
                 Context.BIND_AUTO_CREATE
             )
+
             eventChannel.sendEvent(MusicPlayerEvent.Launch)
         }
 
@@ -139,6 +138,7 @@ class MusicPlayerService : Service() {
     }
 
     private fun initPlayer() {
+        musicLoaderService.setLoadingMusicType(mainState.loadingMusicType)
         collectMusic()
 
         when (mainState.loadingMusicType) {
@@ -169,16 +169,18 @@ class MusicPlayerService : Service() {
             }
         }
 
-        CoroutineScope(mainDispatcher).launch {
-            if (mainState.loadingMusicType == TRACKING_CADENCE) {
-                addMusic(musicLoaderService.musicFlow.first())
-            } else {
+        if (mainState.loadingMusicType == TRACKING_CADENCE) {
+            CoroutineScope(mainDispatcher).launch {
                 musicLoaderService.musicFlow.onEach { music ->
-                    if (mainState.loadingMusicType == TRACKING_CADENCE) {
-                        addMusic(music)
-                    } else {
+                    if (exoPlayer.currentMediaItem == null) {
                         addMusic(music)
                     }
+                }.launchIn(CoroutineScope(mainDispatcher))
+            }
+        } else {
+            CoroutineScope(mainDispatcher).launch {
+                musicLoaderService.musicFlow.onEach { music ->
+                    addMusic(music)
                 }.launchIn(CoroutineScope(mainDispatcher))
             }
         }
@@ -198,6 +200,7 @@ class MusicPlayerService : Service() {
             .build()
 
         if (mainState.loadingMusicType == TRACKING_CADENCE) {
+            exoPlayer.clearMediaItems()
             exoPlayer.setMediaItem(mediaItem)
         } else {
             exoPlayer.addMediaItem(mediaItem)
@@ -227,7 +230,7 @@ class MusicPlayerService : Service() {
             } else {
                 if (mainState.loadingMusicType == TRACKING_CADENCE) {
                     exoPlayer.clearMediaItems()
-                    musicLoaderService.loadMusicListByBpm(CadenceTrackingService.CADENCE)
+                    musicLoaderService.loadMusicListByBpm(CadenceTrackingService.cadenceLiveData.value!!)
                 }
             }
         } else {
@@ -263,14 +266,11 @@ class MusicPlayerService : Service() {
             eventChannel.sendEvent(MusicPlayerEvent.PlayOrPause)
         }
 
-        override fun onPositionDiscontinuity(oldPosition: PositionInfo, newPosition: PositionInfo, reason: Int) {
-            val newCadence = CadenceTrackingService.CADENCE
-            if (reason == DISCONTINUITY_REASON_AUTO_TRANSITION) {
-                if (currentCadence != newCadence) {
-                    exoPlayer.clearMediaItems()
-                    currentCadence = newCadence
-                    musicLoaderService.loadMusicListByBpm(newCadence)
-                }
+        override fun onPlaybackStateChanged(playbackState: Int) {
+            super.onPlaybackStateChanged(playbackState)
+            if (playbackState == STATE_ENDED) {
+                exoPlayer.clearMediaItems()
+                musicLoaderService.loadMusicListByBpm(CadenceTrackingService.cadenceLiveData.value!!)
             }
         }
     }
