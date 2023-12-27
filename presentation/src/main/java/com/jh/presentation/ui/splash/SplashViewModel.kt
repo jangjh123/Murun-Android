@@ -40,7 +40,7 @@ class SplashViewModel @Inject constructor(
     override val effect: SharedFlow<Effect> = _effect.asSharedFlow()
 
     override fun event(event: SplashContract.Event) = when (event) {
-        OnStarted -> checkToSkipOnBoarding()
+        is OnStarted -> checkToSkipOnBoarding()
     }
 
     private fun checkToSkipOnBoarding() {

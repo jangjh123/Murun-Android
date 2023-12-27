@@ -11,7 +11,7 @@ class FavoriteRepositoryImpl @Inject constructor(
     private val musicDao: MusicDao
 ) : FavoriteRepository {
 
-    override suspend fun readAllMusics(): Flow<List<Music>?> {
+    override fun readAllMusics(): Flow<List<Music>?> {
         return flow {
             runCatching {
                 musicDao.readAllMusic()
@@ -35,7 +35,7 @@ class FavoriteRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun deleteMusicFromFavoriteList(music: Music): Flow<Boolean> {
+    override fun deleteMusicFromFavoriteList(music: Music): Flow<Boolean> {
         return flow {
             runCatching {
                 musicDao.deleteMusic(music.id)

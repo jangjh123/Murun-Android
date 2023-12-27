@@ -1,7 +1,5 @@
 package com.jh.presentation.ui.main.favorite
 
-import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.ModalBottomSheetValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jh.murun.domain.model.Music
@@ -9,99 +7,116 @@ import com.jh.murun.domain.use_case.favorite.DeleteFavoriteMusicUseCase
 import com.jh.murun.domain.use_case.favorite.GetFavoriteListUseCase
 import com.jh.murun.domain.use_case.favorite.UpdateReorderedFavoriteMusicListUseCase
 import com.jh.presentation.di.IoDispatcher
-import com.jh.presentation.ui.sendEvent
-import com.jh.presentation.ui.sendSideEffect
+import com.jh.presentation.di.MainImmediateDispatcher
+import com.jh.presentation.ui.main.favorite.FavoriteContract.Effect
+import com.jh.presentation.ui.main.favorite.FavoriteContract.Effect.StartRunning
+import com.jh.presentation.ui.main.favorite.FavoriteContract.Event
+import com.jh.presentation.ui.main.favorite.FavoriteContract.Event.OnClickDeleteMusic
+import com.jh.presentation.ui.main.favorite.FavoriteContract.Event.OnClickHideMusicOption
+import com.jh.presentation.ui.main.favorite.FavoriteContract.Event.OnClickShowMusicOption
+import com.jh.presentation.ui.main.favorite.FavoriteContract.Event.OnClickStartRunning
+import com.jh.presentation.ui.main.favorite.FavoriteContract.Event.OnStarted
+import com.jh.presentation.ui.main.favorite.FavoriteContract.State
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.plus
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
 class FavoriteViewModel @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+    @MainImmediateDispatcher private val mainImmediateDispatcher: CoroutineDispatcher,
     private val getFavoriteListUseCase: GetFavoriteListUseCase,
     private val deleteFavoriteMusicUseCase: DeleteFavoriteMusicUseCase,
     private val updateReorderedFavoriteMusicListUseCase: UpdateReorderedFavoriteMusicListUseCase
-) : ViewModel() {
+) : FavoriteContract, ViewModel() {
+    private val _state = MutableStateFlow(State())
+    override val state: StateFlow<State> = _state.asStateFlow()
 
-    private val eventChannel = Channel<FavoriteEvent>()
-    private val _sideEffectChannel = Channel<FavoriteSideEffect>()
-    val sideEffectChannelFlow = _sideEffectChannel.receiveAsFlow()
+    private val _effect = MutableSharedFlow<Effect>()
+    override val effect: SharedFlow<Effect> = _effect.asSharedFlow()
 
-    val state: StateFlow<FavoriteState> = eventChannel.receiveAsFlow()
-        .runningFold(FavoriteState(), ::reduceState)
-        .stateIn(viewModelScope, SharingStarted.Eagerly, FavoriteState())
+    override fun event(event: Event) = when (event) {
+        is OnStarted -> {
+            onStarted()
+        }
 
-    @OptIn(ExperimentalMaterialApi::class)
-    private fun reduceState(state: FavoriteState, event: FavoriteEvent): FavoriteState {
-        return when (event) {
-            is FavoriteEvent.ShowMusicOption -> {
-                state.copy(bottomSheetStateValue = ModalBottomSheetValue.Expanded, chosenMusic = event.music)
-            }
-            is FavoriteEvent.HideMusicOption -> {
-                state.copy(bottomSheetStateValue = ModalBottomSheetValue.Hidden)
-            }
-            is FavoriteEvent.InitBottomSheetState -> {
-                state.copy(bottomSheetStateValue = null)
-            }
-            is FavoriteEvent.LoadFavoriteList -> {
-                state.copy(isLoading = true)
-            }
-            is FavoriteEvent.FavoriteListLoaded -> {
-                state.copy(isLoading = false, favoriteList = event.favoriteList)
-            }
-            is FavoriteEvent.DeleteMusic -> {
-                state.copy(isLoading = true)
-            }
+        is OnClickShowMusicOption -> {
+            onClickShowMusicOption(event.music)
+        }
+
+        is OnClickHideMusicOption -> {
+            onClickHideMusicOption()
+        }
+
+        is OnClickDeleteMusic -> {
+            onClickDeleteMusic()
+        }
+
+        is OnClickStartRunning -> {
+            onClickStartRunning()
         }
     }
 
-    init {
+    private fun onStarted() {
+        _state.update {
+            it.copy(isLoading = true)
+        }
+
         loadFavoriteList()
     }
 
-    private fun loadFavoriteList() {
-        sendEvent(eventChannel, FavoriteEvent.LoadFavoriteList)
-        viewModelScope.launch(ioDispatcher) {
-            getFavoriteListUseCase().onEach {
-                if (it != null) {
-                    eventChannel.send(FavoriteEvent.FavoriteListLoaded(it))
-                } else {
-                    // TODO : Error Handling
-                }
-            }.launchIn(viewModelScope)
+    private fun onClickShowMusicOption(music: Music) {
+        _state.update {
+            it.copy(
+                isBottomSheetShowing = true,
+                chosenMusic = music
+            )
         }
     }
 
-    fun onClickShowMusicOption(music: Music) {
-        sendEvent(eventChannel, FavoriteEvent.ShowMusicOption(music))
+    private fun onClickHideMusicOption() {
+        _state.update {
+            it.copy(
+                isBottomSheetShowing = false,
+                chosenMusic = null
+            )
+        }
     }
 
-    fun onClickHideMusicOption() {
-        sendEvent(eventChannel, FavoriteEvent.HideMusicOption)
+    private fun loadFavoriteList() {
+        getFavoriteListUseCase().onEach { favoriteList ->
+            withContext(mainImmediateDispatcher) {
+                if (favoriteList.isNullOrEmpty()) {
+                    // todo: 예외 처리
+                } else {
+                    _state.update {
+                        it.copy(
+                            isLoading = false,
+                            favoriteList = favoriteList
+                        )
+                    }
+                }
+            }
+        }.catch {
+            // todo: 예외 처리
+        }.launchIn(viewModelScope + ioDispatcher)
     }
 
-    fun onInitBottomSheetState() {
-        sendEvent(eventChannel, FavoriteEvent.InitBottomSheetState)
-    }
-
-    fun onClickGoToMain() {
-        sendSideEffect(_sideEffectChannel, FavoriteSideEffect.StartRunning)
-    }
-
-    fun onClickDeleteMusic() {
-        sendSideEffect(eventChannel, FavoriteEvent.DeleteMusic)
+    private fun onClickDeleteMusic() {
         deleteMusic()
-    }
-
-    fun onReordered(list: List<Music>) {
-        sendSideEffect(_sideEffectChannel, FavoriteSideEffect.UpdateReorderedFavoriteList(list))
-    }
-
-    fun showToast(text: String) {
-        sendSideEffect(_sideEffectChannel, FavoriteSideEffect.ShowToast(text))
     }
 
     fun updateReorderedFavoriteList(musics: List<Music>) {
@@ -111,20 +126,26 @@ class FavoriteViewModel @Inject constructor(
     }
 
     private fun deleteMusic() {
-        viewModelScope.launch(ioDispatcher) {
-            state.value.chosenMusic?.let {
-                deleteFavoriteMusicUseCase(it).onEach { result ->
-                    when (result) {
-                        true -> {
-                            sendEvent(eventChannel, FavoriteEvent.HideMusicOption)
-                            loadFavoriteList()
-                        }
-                        false -> {
-                            // TODO : Error Handling
-                        }
+        state.value.chosenMusic?.let { music ->
+            deleteFavoriteMusicUseCase(music).onEach { isDeleted ->
+                when (isDeleted) {
+                    true -> {
+                        loadFavoriteList()
                     }
-                }.launchIn(viewModelScope)
-            }
+
+                    false -> {
+                        // todo : 예외 처리
+                    }
+                }
+            }.catch {
+                // todo : 예외 처리
+            }.launchIn(viewModelScope + ioDispatcher)
+        }
+    }
+
+    private fun onClickStartRunning() {
+        viewModelScope.launch {
+            _effect.emit(StartRunning)
         }
     }
 }
