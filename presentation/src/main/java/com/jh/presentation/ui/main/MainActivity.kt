@@ -116,24 +116,30 @@ class MainActivity : BaseActivity() {
                     is MainSideEffect.SkipToPrev -> {
                         musicPlayerService.skipToPrev()
                     }
+
                     is MainSideEffect.PlayOrPause -> {
                         musicPlayerService.playOrPause()
                     }
+
                     is MainSideEffect.SkipToNext -> {
                         musicPlayerService.skipToNext()
                     }
+
                     is MainSideEffect.ChangeRepeatMode -> {
                         musicPlayerService.changeRepeatMode()
                     }
+
                     is MainSideEffect.GoToFavorite -> {
                         startActivity(FavoriteActivity.newIntent(this@MainActivity))
                     }
+
                     is MainSideEffect.TrackCadence -> {
                         if (!isCadenceTrackingServiceBinding) {
                             isCadenceTrackingServiceBinding = true
                             bindService(Intent(this@MainActivity, CadenceTrackingService::class.java), cadenceTrackingServiceConnection, Context.BIND_AUTO_CREATE)
                         }
                     }
+
                     is MainSideEffect.StopTrackingCadence -> {
                         runCatching {
                             cadenceTrackingService.stop()
@@ -141,12 +147,14 @@ class MainActivity : BaseActivity() {
                             unbindService(cadenceTrackingServiceConnection)
                         }
                     }
+
                     is MainSideEffect.LaunchMusicPlayer -> {
                         if (!isMusicPlayerServiceBinding) {
                             isMusicPlayerServiceBinding = true
                             bindService(Intent(this@MainActivity, MusicPlayerService::class.java), musicPlayerServiceConnection, Context.BIND_AUTO_CREATE)
                         }
                     }
+
                     is MainSideEffect.QuitMusicPlayer -> {
                         if (isMusicPlayerServiceBinding) {
                             isMusicPlayerServiceBinding = false
@@ -156,9 +164,11 @@ class MainActivity : BaseActivity() {
                             }
                         }
                     }
+
                     is MainSideEffect.AddFavoriteMusic -> {
                         viewModel.addFavoriteMusic(playerUiState.value.currentMusic)
                     }
+
                     is MainSideEffect.ShowToast -> {
                         Toast.makeText(this@MainActivity, sideEffect.text, Toast.LENGTH_SHORT).show()
                     }
@@ -203,7 +213,10 @@ class MainActivity : BaseActivity() {
     companion object {
         const val KEY_IS_RUNNING_STARTED = "isRunningStarted"
 
-        fun newIntent(context: Context, isRunningStarted: Boolean?): Intent {
+        fun newIntent(
+            context: Context,
+            isRunningStarted: Boolean
+        ): Intent {
             return Intent(context, MainActivity::class.java).apply {
                 putExtra(KEY_IS_RUNNING_STARTED, isRunningStarted)
             }
@@ -540,6 +553,7 @@ private fun MainActivityContent(
                                                 TRACKING_CADENCE -> {
                                                     viewModel.onClickStartRunning(null)
                                                 }
+
                                                 ASSIGN_CADENCE -> {
                                                     if (cadenceAssignTextState.value.isNotEmpty() &&
                                                         cadenceAssignTextState.value.toInt() in 60..180
@@ -547,9 +561,11 @@ private fun MainActivityContent(
                                                         viewModel.onClickStartRunning(cadenceAssignTextState.value.toInt())
                                                     }
                                                 }
+
                                                 NONE -> {
                                                     viewModel.showToast("케이던스 타입을 지정해 주세요.")
                                                 }
+
                                                 FAVORITE_LIST -> Unit
                                             }
                                         }
