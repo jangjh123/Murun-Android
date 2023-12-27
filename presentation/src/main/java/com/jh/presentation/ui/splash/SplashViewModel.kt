@@ -1,9 +1,9 @@
 package com.jh.presentation.ui.splash
 
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jh.murun.domain.use_case.splash.GetToSkipOnBoardingUseCase
 import com.jh.murun.domain.use_case.splash.SetToSkipOnBoardingUseCase
-import com.jh.presentation.base.BaseViewModel
 import com.jh.presentation.di.IoDispatcher
 import com.jh.presentation.ui.sendSideEffect
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,7 +19,7 @@ class SplashViewModel @Inject constructor(
     private val getToSkipOnBoardingUseCase: GetToSkipOnBoardingUseCase,
     private val setToSkipOnBoardingUseCase: SetToSkipOnBoardingUseCase,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher
-) : BaseViewModel() {
+) : ViewModel() {
 
     private val _sideEffectChannel = Channel<SplashSideEffect>()
     val sideEffectChannelFlow = _sideEffectChannel.receiveAsFlow()
