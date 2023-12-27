@@ -1,11 +1,11 @@
 package com.jh.presentation.ui.main
 
 import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.common.MediaItem
 import com.jh.murun.domain.model.Music
 import com.jh.murun.domain.use_case.favorite.AddFavoriteMusicUseCase
-import com.jh.presentation.base.BaseViewModel
 import com.jh.presentation.di.IoDispatcher
 import com.jh.presentation.enums.LoadingMusicType.*
 import com.jh.presentation.ui.sendEvent
@@ -22,7 +22,7 @@ class MainViewModel @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     private val savedStateHandle: SavedStateHandle,
     private val addFavoriteMusicUseCase: AddFavoriteMusicUseCase
-) : BaseViewModel() {
+) : ViewModel() {
 
     private val eventChannel = Channel<MainEvent>()
     private val _sideEffectChannel = Channel<MainSideEffect>()

@@ -2,12 +2,12 @@ package com.jh.presentation.ui.main.favorite
 
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.ModalBottomSheetValue
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jh.murun.domain.model.Music
 import com.jh.murun.domain.use_case.favorite.DeleteFavoriteMusicUseCase
 import com.jh.murun.domain.use_case.favorite.GetFavoriteListUseCase
 import com.jh.murun.domain.use_case.favorite.UpdateReorderedFavoriteMusicListUseCase
-import com.jh.presentation.base.BaseViewModel
 import com.jh.presentation.di.IoDispatcher
 import com.jh.presentation.ui.sendEvent
 import com.jh.presentation.ui.sendSideEffect
@@ -24,7 +24,7 @@ class FavoriteViewModel @Inject constructor(
     private val getFavoriteListUseCase: GetFavoriteListUseCase,
     private val deleteFavoriteMusicUseCase: DeleteFavoriteMusicUseCase,
     private val updateReorderedFavoriteMusicListUseCase: UpdateReorderedFavoriteMusicListUseCase
-) : BaseViewModel() {
+) : ViewModel() {
 
     private val eventChannel = Channel<FavoriteEvent>()
     private val _sideEffectChannel = Channel<FavoriteSideEffect>()
