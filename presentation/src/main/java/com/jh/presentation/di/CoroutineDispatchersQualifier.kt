@@ -8,7 +8,7 @@ annotation class IoDispatcher
 
 @Retention(AnnotationRetention.RUNTIME)
 @Qualifier
-annotation class MainDispatcher
+annotation class MainImmediateDispatcher
 
 @Retention(AnnotationRetention.RUNTIME)
 @Qualifier
