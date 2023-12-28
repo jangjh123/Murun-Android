@@ -10,33 +10,34 @@ import android.os.IBinder
 import androidx.core.os.bundleOf
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
-import androidx.media3.common.Player.*
+import androidx.media3.common.Player.Listener
+import androidx.media3.common.Player.REPEAT_MODE_ALL
+import androidx.media3.common.Player.STATE_ENDED
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import com.jh.murun.domain.model.Music
 import com.jh.presentation.di.IoDispatcher
-import com.jh.presentation.di.MainDispatcher
-import com.jh.presentation.enums.LoadingMusicType.*
-import com.jh.presentation.service.cadence_tracking.CadenceTrackingService
+import com.jh.presentation.di.MainImmediateDispatcher
 import com.jh.presentation.service.music_loader.MusicLoaderService
 import com.jh.presentation.service.music_loader.MusicLoaderService.MusicLoaderServiceBinder
-import com.jh.presentation.ui.main.MainState
-import com.jh.presentation.ui.sendEvent
 import com.jh.presentation.util.CustomNotificationManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.runningFold
+import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
 @UnstableApi
 @AndroidEntryPoint
 class MusicPlayerService : Service() {
     @Inject
-    @MainDispatcher
+    @MainImmediateDispatcher
     lateinit var mainDispatcher: CoroutineDispatcher
 
     @Inject
@@ -69,8 +70,6 @@ class MusicPlayerService : Service() {
         override fun onServiceDisconnected(name: ComponentName?) {}
     }
 
-    private lateinit var mainState: MainState
-
     private val eventChannel = Channel<MusicPlayerEvent>()
     val state: StateFlow<MusicPlayerState> = eventChannel.receiveAsFlow()
         .runningFold(MusicPlayerState(), ::reduceState)
@@ -85,21 +84,26 @@ class MusicPlayerService : Service() {
             is MusicPlayerEvent.Launch -> {
                 state.copy(isLoading = true, isLaunched = true)
             }
+
             is MusicPlayerEvent.LoadMusic -> {
                 state.copy(isLoading = true)
             }
+
             is MusicPlayerEvent.PlayOrPause -> {
                 state.copy(isPlaying = !state.isPlaying)
             }
+
             is MusicPlayerEvent.MusicChanged -> {
                 state.copy(
                     isLoading = false,
                     currentMusic = event.currentMediaItem
                 )
             }
+
             is MusicPlayerEvent.RepeatModeChanged -> {
                 state.copy(isRepeatingOne = !state.isRepeatingOne)
             }
+
             is MusicPlayerEvent.Quit -> {
                 state.copy(
                     isLaunched = false,
@@ -127,33 +131,36 @@ class MusicPlayerService : Service() {
                 Context.BIND_AUTO_CREATE
             )
 
-            eventChannel.sendEvent(MusicPlayerEvent.Launch)
+//            eventChannel.sendEvent(MusicPlayerEvent.Launch)
         }
 
         return MusicPlayerServiceBinder()
     }
 
-    fun setState(mainState: MainState) {
-        this.mainState = mainState
-    }
+//    fun setState(mainState: MainState) {
+//        this.mainState = mainState
+//    }
 
     private fun initPlayer() {
-        musicLoaderService.setLoadingMusicType(mainState.loadingMusicType)
+//        musicLoaderService.setLoadingMusicType(mainState.loadingMusicType)
         collectMusic()
 
-        when (mainState.loadingMusicType) {
-            TRACKING_CADENCE -> {
-                exoPlayer.repeatMode = REPEAT_MODE_OFF
-                musicLoaderService.loadMusicListByBpm(bpm = 130) // Initial bpm for warming-up
-            }
-            ASSIGN_CADENCE -> {
-                musicLoaderService.loadMusicListByBpm(bpm = mainState.assignedCadence)
-            }
-            FAVORITE_LIST -> {
-                musicLoaderService.loadFavoriteList()
-            }
-            NONE -> Unit
-        }
+//        when (mainState.loadingMusicType) {
+//            TRACKING_CADENCE -> {
+//                exoPlayer.repeatMode = REPEAT_MODE_OFF
+//                musicLoaderService.loadMusicListByBpm(bpm = 130) // Initial bpm for warming-up
+//            }
+//
+//            ASSIGN_CADENCE -> {
+//                musicLoaderService.loadMusicListByBpm(bpm = mainState.assignedCadence)
+//            }
+//
+//            FAVORITE_LIST -> {
+//                musicLoaderService.loadFavoriteList()
+//            }
+//
+//            NONE -> Unit
+//        }
 
         notificationManager.showNotification()
         exoPlayer.prepare()
@@ -162,132 +169,132 @@ class MusicPlayerService : Service() {
 
     private fun collectMusic() {
         musicLoaderService.musicFlow.replayCache.run {
-            if (isNotEmpty() && mainState.loadingMusicType != TRACKING_CADENCE) {
-                forEach { music ->
-                    addMusic(music)
-                }
-            }
-        }
-
-        if (mainState.loadingMusicType == TRACKING_CADENCE) {
-            CoroutineScope(mainDispatcher).launch {
-                musicLoaderService.musicFlow.onEach { music ->
-                    if (exoPlayer.currentMediaItem == null) {
-                        addMusic(music)
-                    }
-                }.launchIn(CoroutineScope(mainDispatcher))
-            }
-        } else {
-            CoroutineScope(mainDispatcher).launch {
-                musicLoaderService.musicFlow.onEach { music ->
-                    addMusic(music)
-                }.launchIn(CoroutineScope(mainDispatcher))
-            }
+//            if (isNotEmpty() && mainState.loadingMusicType != TRACKING_CADENCE) {
+//                forEach { music ->
+//                    addMusic(music)
+//                }
         }
     }
 
-    private fun addMusic(music: Music) {
-        val metadata = MediaMetadata.Builder()
-            .setTitle(music.title)
-            .setArtist(music.artist)
-            .setArtworkData(music.image, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
-            .setExtras(bundleOf(Pair("music", music)))
-            .build()
+//        if (mainState.loadingMusicType == TRACKING_CADENCE) {
+//            CoroutineScope(mainDispatcher).launch {
+//                musicLoaderService.musicFlow.onEach { music ->
+//                    if (exoPlayer.currentMediaItem == null) {
+//                        addMusic(music)
+//                    }
+//                }.launchIn(CoroutineScope(mainDispatcher))
+//            }
+//        } else {
+//            CoroutineScope(mainDispatcher).launch {
+//                musicLoaderService.musicFlow.onEach { music ->
+//                    addMusic(music)
+//                }.launchIn(CoroutineScope(mainDispatcher))
+//            }
+//        }
+}
 
-        val mediaItem = MediaItem.Builder()
-            .setUri(music.url)
-            .setMediaMetadata(metadata)
-            .build()
+private fun addMusic(music: Music) {
+    val metadata = MediaMetadata.Builder()
+        .setTitle(music.title)
+        .setArtist(music.artist)
+        .setArtworkData(music.image, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
+        .setExtras(bundleOf(Pair("music", music)))
+        .build()
 
-        if (mainState.loadingMusicType == TRACKING_CADENCE) {
-            exoPlayer.clearMediaItems()
-            exoPlayer.setMediaItem(mediaItem)
-        } else {
-            exoPlayer.addMediaItem(mediaItem)
+    val mediaItem = MediaItem.Builder()
+        .setUri(music.url)
+        .setMediaMetadata(metadata)
+        .build()
+
+//        if (mainState.loadingMusicType == TRACKING_CADENCE) {
+//            exoPlayer.clearMediaItems()
+//            exoPlayer.setMediaItem(mediaItem)
+//        } else {
+//            exoPlayer.addMediaItem(mediaItem)
+//        }
+}
+
+fun skipToPrev() {
+//        if (exoPlayer.repeatMode == REPEAT_MODE_ALL) {
+//            exoPlayer.seekToPreviousMediaItem()
+//        } else {
+//            exoPlayer.seekTo(0L)
+//        }
+}
+
+fun playOrPause() {
+//        if (exoPlayer.isPlaying) {
+//            exoPlayer.pause()
+//        } else {
+//            exoPlayer.play()
+//        }
+}
+
+fun skipToNext() {
+//        if (exoPlayer.repeatMode == REPEAT_MODE_ALL) {
+//            if (exoPlayer.hasNextMediaItem()) {
+//                exoPlayer.seekToNext()
+//            } else {
+//                if (mainState.loadingMusicType == TRACKING_CADENCE) {
+//                    exoPlayer.clearMediaItems()
+//                    musicLoaderService.loadMusicListByBpm(CadenceTrackingService.cadenceLiveData.value!!)
+//                }
+//            }
+//        } else {
+//            exoPlayer.seekTo(0L)
+//        }
+}
+
+fun changeRepeatMode() {
+//        if (exoPlayer.repeatMode == REPEAT_MODE_ALL) {
+//            exoPlayer.repeatMode = REPEAT_MODE_ONE
+//        } else {
+//            exoPlayer.repeatMode = REPEAT_MODE_ALL
+//        }
+
+//        eventChannel.sendEvent(MusicPlayerEvent.RepeatModeChanged)
+}
+
+private val playerListener = object : Listener {
+    override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+        mediaItem?.let {
+            super.onMediaItemTransition(mediaItem, reason)
+//                notificationManager.refreshNotification()
+//
+//                CoroutineScope(mainDispatcher).launch {
+//                    eventChannel.sendEvent(
+//                        MusicPlayerEvent.MusicChanged(exoPlayer.currentMediaItem)
+//                    )
+//                }
         }
     }
 
-    fun skipToPrev() {
-        if (exoPlayer.repeatMode == REPEAT_MODE_ALL) {
-            exoPlayer.seekToPreviousMediaItem()
-        } else {
-            exoPlayer.seekTo(0L)
-        }
+    override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+//            eventChannel.sendEvent(MusicPlayerEvent.PlayOrPause)
     }
 
-    fun playOrPause() {
-        if (exoPlayer.isPlaying) {
-            exoPlayer.pause()
-        } else {
-            exoPlayer.play()
+    override fun onPlaybackStateChanged(playbackState: Int) {
+        super.onPlaybackStateChanged(playbackState)
+        if (playbackState == STATE_ENDED) {
+//                exoPlayer.clearMediaItems()
+//                musicLoaderService.loadMusicListByBpm(CadenceTrackingService.cadenceLiveData.value!!)
         }
-    }
-
-    fun skipToNext() {
-        if (exoPlayer.repeatMode == REPEAT_MODE_ALL) {
-            if (exoPlayer.hasNextMediaItem()) {
-                exoPlayer.seekToNext()
-            } else {
-                if (mainState.loadingMusicType == TRACKING_CADENCE) {
-                    exoPlayer.clearMediaItems()
-                    musicLoaderService.loadMusicListByBpm(CadenceTrackingService.cadenceLiveData.value!!)
-                }
-            }
-        } else {
-            exoPlayer.seekTo(0L)
-        }
-    }
-
-    fun changeRepeatMode() {
-        if (exoPlayer.repeatMode == REPEAT_MODE_ALL) {
-            exoPlayer.repeatMode = REPEAT_MODE_ONE
-        } else {
-            exoPlayer.repeatMode = REPEAT_MODE_ALL
-        }
-
-        eventChannel.sendEvent(MusicPlayerEvent.RepeatModeChanged)
-    }
-
-    private val playerListener = object : Listener {
-        override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-            mediaItem?.let {
-                super.onMediaItemTransition(mediaItem, reason)
-                notificationManager.refreshNotification()
-
-                CoroutineScope(mainDispatcher).launch {
-                    eventChannel.sendEvent(
-                        MusicPlayerEvent.MusicChanged(exoPlayer.currentMediaItem)
-                    )
-                }
-            }
-        }
-
-        override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
-            eventChannel.sendEvent(MusicPlayerEvent.PlayOrPause)
-        }
-
-        override fun onPlaybackStateChanged(playbackState: Int) {
-            super.onPlaybackStateChanged(playbackState)
-            if (playbackState == STATE_ENDED) {
-                exoPlayer.clearMediaItems()
-                musicLoaderService.loadMusicListByBpm(CadenceTrackingService.cadenceLiveData.value!!)
-            }
-        }
-    }
-
-    override fun onUnbind(intent: Intent?): Boolean {
-        eventChannel.sendEvent(MusicPlayerEvent.Quit)
-        exoPlayer.stop()
-        notificationManager.dismissNotification()
-
-        if (isMusicLoaderServiceBinding) {
-            isMusicLoaderServiceBinding = false
-
-            runCatching {
-                unbindService(musicLoaderServiceConnection)
-            }
-        }
-
-        return super.onUnbind(intent)
     }
 }
+
+//    override fun onUnbind(intent: Intent?): Boolean {
+//        eventChannel.sendEvent(MusicPlayerEvent.Quit)
+//        exoPlayer.stop()
+//        notificationManager.dismissNotification()
+//
+//        if (isMusicLoaderServiceBinding) {
+//            isMusicLoaderServiceBinding = false
+//
+//            runCatching {
+//                unbindService(musicLoaderServiceConnection)
+//            }
+//        }
+//
+//        return super.onUnbind(intent)
+//    }
+//}
