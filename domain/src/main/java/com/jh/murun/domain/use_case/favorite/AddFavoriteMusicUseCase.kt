@@ -8,5 +8,5 @@ import javax.inject.Inject
 class AddFavoriteMusicUseCase @Inject constructor(
     private val favoriteRepository: FavoriteRepository
 ) {
-    suspend operator fun invoke(music: Music) : Flow<Boolean> = favoriteRepository.insertMusicToFavoriteList(music)
+    operator fun invoke(music: Music): Flow<Boolean> = favoriteRepository.insertMusicToFavoriteList(music)
 }

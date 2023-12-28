@@ -10,7 +10,7 @@ import com.jh.murun.domain.use_case.favorite.GetFavoriteListUseCase
 import com.jh.murun.domain.use_case.music.GetMusicImageUseCase
 import com.jh.murun.domain.use_case.music.GetMusicListByBpmUseCase
 import com.jh.presentation.di.IoDispatcher
-import com.jh.presentation.di.MainDispatcher
+import com.jh.presentation.di.MainImmediateDispatcher
 import com.jh.presentation.enums.LoadingMusicType
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineDispatcher
@@ -26,7 +26,7 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class MusicLoaderService : Service() {
     @Inject
-    @MainDispatcher
+    @MainImmediateDispatcher
     lateinit var mainDispatcher: CoroutineDispatcher
 
     @Inject

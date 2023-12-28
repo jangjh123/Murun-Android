@@ -68,6 +68,7 @@ import com.jh.presentation.ui.theme.MainColor
 import com.jh.presentation.ui.theme.Shapes
 import com.jh.presentation.ui.theme.SubColor
 import com.jh.presentation.ui.theme.Typography
+import com.jh.presentation.util.convertImage
 import kotlinx.coroutines.flow.collectLatest
 import org.burnoutcrew.reorderable.ReorderableItem
 import org.burnoutcrew.reorderable.detectReorderAfterLongPress
@@ -333,5 +334,3 @@ fun FavoriteScreen(viewModel: FavoriteViewModel = hiltViewModel()) {
         }
     }
 }
-
-private fun convertImage(byteArray: ByteArray): ImageBitmap = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size).asImageBitmap()

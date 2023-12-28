@@ -23,7 +23,7 @@ class FavoriteRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun insertMusicToFavoriteList(music: Music): Flow<Boolean> {
+    override fun insertMusicToFavoriteList(music: Music): Flow<Boolean> {
         return flow {
             runCatching {
                 musicDao.insertMusic(music)
