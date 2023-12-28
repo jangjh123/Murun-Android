@@ -42,12 +42,16 @@ fun SplashScreen(viewModel: SplashViewModel = hiltViewModel()) {
                             isRunningStarted = false
                         )
                     )
+
+                    context.finish()
                 }
 
                 is SplashContract.Effect.NoSkipOnBoarding -> {
                     context.startActivity(
                         OnBoardingActivity.newIntent(context)
                     )
+
+                    context.finish()
                 }
             }
         }

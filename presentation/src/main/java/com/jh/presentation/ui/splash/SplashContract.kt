@@ -12,7 +12,6 @@ interface SplashContract : BaseContract<SplashContract.State, SplashContract.Eve
     }
 
     sealed interface Effect {
-
         object SkipOnBoarding : Effect
 
         object NoSkipOnBoarding : Effect
