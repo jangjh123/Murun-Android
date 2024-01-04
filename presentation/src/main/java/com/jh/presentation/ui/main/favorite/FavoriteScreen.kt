@@ -1,6 +1,5 @@
 package com.jh.presentation.ui.main.favorite
 
-import android.graphics.BitmapFactory
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.Image
@@ -27,15 +26,15 @@ import androidx.compose.material.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -60,6 +59,8 @@ import com.jh.presentation.ui.main.favorite.FavoriteContract.Event.OnClickDelete
 import com.jh.presentation.ui.main.favorite.FavoriteContract.Event.OnClickHideMusicOption
 import com.jh.presentation.ui.main.favorite.FavoriteContract.Event.OnClickShowMusicOption
 import com.jh.presentation.ui.main.favorite.FavoriteContract.Event.OnClickStartRunning
+import com.jh.presentation.ui.main.favorite.FavoriteContract.Event.OnFavoriteListReordered
+import com.jh.presentation.ui.main.favorite.FavoriteContract.Event.OnStarted
 import com.jh.presentation.ui.theme.DarkFilter0
 import com.jh.presentation.ui.theme.Gray0
 import com.jh.presentation.ui.theme.Gray1
@@ -94,11 +95,7 @@ fun FavoriteScreen(viewModel: FavoriteViewModel = hiltViewModel()) {
                 }
 
                 is ShowToast -> {
-                    Toast.makeText(
-                        context,
-                        effect.text,
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    Toast.makeText(context, effect.text, Toast.LENGTH_SHORT).show()
                 }
 
                 is UpdateReorderedFavoriteList -> {
@@ -106,6 +103,10 @@ fun FavoriteScreen(viewModel: FavoriteViewModel = hiltViewModel()) {
                 }
             }
         }
+    }
+
+    LaunchedEffect(Unit) {
+        event(OnStarted)
     }
 
     val bottomSheetState = rememberModalBottomSheetState(initialValue = ModalBottomSheetValue.Hidden)
@@ -211,12 +212,12 @@ fun FavoriteScreen(viewModel: FavoriteViewModel = hiltViewModel()) {
 
                 if (!isLoading) {
                     Box(modifier = Modifier.fillMaxSize()) {
-                        val isReordered = remember { mutableStateOf(false) }
+                        var isReordered by remember { mutableStateOf(false) }
                         val musics = remember { mutableStateOf(favoriteList) }
                         val reorderableState = rememberReorderableLazyListState(onMove = { from, to ->
                             musics.value = musics.value.toMutableList().apply {
                                 add(to.index, removeAt(from.index))
-                                isReordered.value = true
+                                isReordered = true
                             }
                         })
                         val lifecycle = LocalLifecycleOwner.current.lifecycle
@@ -234,13 +235,13 @@ fun FavoriteScreen(viewModel: FavoriteViewModel = hiltViewModel()) {
                             }
                         }
 
-//                        if (lifecycleEvent.value == Lifecycle.Event.ON_PAUSE && isReordered.value) {
-//                            viewModel.onReordered(musics.value.apply {
-//                                forEachIndexed { index, music ->
-//                                    music.newIndex = index
-//                                }
-//                            })
-//                        } todo : 수정 필요
+                        if (lifecycleEvent.value == Lifecycle.Event.ON_PAUSE && isReordered) {
+                            event(OnFavoriteListReordered(musics.value.apply {
+                                forEachIndexed { index, music ->
+                                    music.newIndex = index
+                                }
+                            }))
+                        }
 
                         LazyColumn(
                             modifier = Modifier
