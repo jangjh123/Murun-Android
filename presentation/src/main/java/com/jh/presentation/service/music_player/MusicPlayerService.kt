@@ -55,8 +55,6 @@ class MusicPlayerService : LifecycleService() {
         exoPlayer.apply {
             val musicPlayerListener = MusicPlayerListener(
                 notificationManager = notificationManager,
-                onMediaItemChanged = {},
-                onPlayStateChanged = {},
                 onMusicEnded = {
                     if (::musicLoaderService.isInitialized) {
                         musicLoaderService.loadMusicByBpm()

@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
 import com.jh.presentation.base.BaseActivity
 import com.jh.presentation.enums.LoadingMusicType.*
@@ -21,13 +20,10 @@ import com.jh.presentation.service.cadence_tracking.CadenceTrackingService
 import com.jh.presentation.service.cadence_tracking.CadenceTrackingService.CadenceTrackingServiceBinder
 import com.jh.presentation.service.music_player.MusicPlayerService
 import com.jh.presentation.service.music_player.MusicPlayerService.MusicPlayerServiceBinder
-import com.jh.presentation.service.music_player.MusicPlayerState
+import com.jh.presentation.service.music_player.MusicPlayerStateManager.musicPlayerState
 import com.jh.presentation.ui.*
 import com.jh.presentation.ui.theme.*
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @AndroidEntryPoint
@@ -53,13 +49,10 @@ class MainActivity : BaseActivity() {
         override fun onServiceDisconnected(name: ComponentName?) {}
     }
 
-    private val _musicPlayerState = MutableStateFlow(MusicPlayerState())
-    val musicPlayerState: StateFlow<MusicPlayerState> = _musicPlayerState.asStateFlow()
-
     @Composable
     override fun InitComposeUi() {
         MainScreen(
-            musicPlayerState = musicPlayerState.collectAsStateWithLifecycle().value,
+            musicPlayerState = musicPlayerState.value,
             onTrackCadence = { trackCadence() },
             onAssignCadence = { assignCadence() },
             onStopTrackCadence = {}
