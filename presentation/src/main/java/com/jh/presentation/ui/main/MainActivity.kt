@@ -53,9 +53,13 @@ class MainActivity : BaseActivity() {
     override fun InitComposeUi() {
         MainScreen(
             musicPlayerState = musicPlayerState.value,
-            onTrackCadence = { trackCadence() },
-            onAssignCadence = { assignCadence() },
-            onStopTrackCadence = {}
+            onClickTrackCadence = { trackCadence() },
+            onClickAssignCadence = { assignCadence() },
+            onClickSkipToPrev = {},
+            onClickPlayOrPause = {},
+            onClickSkipToNext = {},
+            onClickChangeRepeatMode = {},
+            onQuitRunning = {}
         )
     }
 

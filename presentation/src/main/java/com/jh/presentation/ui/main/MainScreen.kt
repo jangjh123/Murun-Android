@@ -1,5 +1,6 @@
 package com.jh.presentation.ui.main
 
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -38,17 +39,14 @@ import com.jh.presentation.base.use
 import com.jh.presentation.enums.LoadingMusicType.*
 import com.jh.presentation.service.music_player.MusicPlayerState
 import com.jh.presentation.ui.*
-import com.jh.presentation.ui.main.MainContract.Effect.AddFavoriteMusic
 import com.jh.presentation.ui.main.MainContract.Effect.AssignCadence
 import com.jh.presentation.ui.main.MainContract.Effect.ChangeRepeatMode
 import com.jh.presentation.ui.main.MainContract.Effect.GoToFavorite
-import com.jh.presentation.ui.main.MainContract.Effect.LaunchMusicPlayer
 import com.jh.presentation.ui.main.MainContract.Effect.PlayOrPause
-import com.jh.presentation.ui.main.MainContract.Effect.QuitMusicPlayer
+import com.jh.presentation.ui.main.MainContract.Effect.QuitRunning
 import com.jh.presentation.ui.main.MainContract.Effect.ShowToast
 import com.jh.presentation.ui.main.MainContract.Effect.SkipToNext
 import com.jh.presentation.ui.main.MainContract.Effect.SkipToPrev
-import com.jh.presentation.ui.main.MainContract.Effect.StopTrackingCadence
 import com.jh.presentation.ui.main.MainContract.Effect.TrackCadence
 import com.jh.presentation.ui.main.MainContract.Event.OnClickAddFavoriteMusic
 import com.jh.presentation.ui.main.MainContract.Event.OnClickAssignCadence
@@ -59,19 +57,24 @@ import com.jh.presentation.ui.main.MainContract.Event.OnClickSkipToNext
 import com.jh.presentation.ui.main.MainContract.Event.OnClickSkipToPrev
 import com.jh.presentation.ui.main.MainContract.Event.OnClickStartRunning
 import com.jh.presentation.ui.main.MainContract.Event.OnClickTrackCadence
-import com.jh.presentation.ui.main.MainContract.Event.OnLongClickStopRunning
+import com.jh.presentation.ui.main.MainContract.Event.OnLongClickQuitRunning
+import com.jh.presentation.ui.main.favorite.FavoriteActivity
 import com.jh.presentation.ui.theme.*
 import com.jh.presentation.util.convertImage
 import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun MainScreen(
+inline fun MainScreen(
     musicPlayerState: MusicPlayerState,
     viewModel: MainViewModel = hiltViewModel(),
-    onTrackCadence: () -> Unit,
-    onAssignCadence: () -> Unit,
-    onStopTrackCadence: () -> Unit,
+    crossinline onClickTrackCadence: () -> Unit,
+    crossinline onClickAssignCadence: () -> Unit,
+    crossinline onClickSkipToPrev: () -> Unit,
+    crossinline onClickPlayOrPause: () -> Unit,
+    crossinline onClickSkipToNext: () -> Unit,
+    crossinline onClickChangeRepeatMode: () -> Unit,
+    crossinline onQuitRunning: () -> Unit
 ) {
     val (state, event, effect) = use(viewModel)
     val context = LocalContext.current as ComponentActivity
@@ -82,51 +85,39 @@ fun MainScreen(
         effect.collectLatest { effect ->
             when (effect) {
                 is GoToFavorite -> {
-
+                    context.startActivity(FavoriteActivity.newIntent(context))
                 }
 
                 is TrackCadence -> {
-                    onTrackCadence()
+                    onClickTrackCadence()
                 }
 
                 is AssignCadence -> {
-                    onAssignCadence()
-                }
-
-                is StopTrackingCadence -> {
-                    onStopTrackCadence()
-                }
-
-                is LaunchMusicPlayer -> {
-
-                }
-
-                is QuitMusicPlayer -> {
-
-                }
-
-                is ChangeRepeatMode -> {
-
+                    onClickAssignCadence()
                 }
 
                 is SkipToPrev -> {
-
+                    onClickSkipToPrev()
                 }
 
                 is PlayOrPause -> {
-
+                    onClickPlayOrPause()
                 }
 
                 is SkipToNext -> {
-
+                    onClickSkipToNext()
                 }
 
-                is AddFavoriteMusic -> {
+                is ChangeRepeatMode -> {
+                    onClickChangeRepeatMode()
+                }
 
+                is QuitRunning -> {
+                    onQuitRunning()
                 }
 
                 is ShowToast -> {
-
+                    Toast.makeText(context, effect.text, Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -231,7 +222,7 @@ fun MainScreen(
                                     modifier = Modifier
                                         .size(20.dp)
                                         .align(Center)
-                                        .clickableWithoutRipple { event(OnClickAddFavoriteMusic) },
+                                        .clickableWithoutRipple { event(OnClickAddFavoriteMusic(musicPlayerState.currentMediaItem)) },
                                     painter = painterResource(id = R.drawable.ic_add),
                                     contentDescription = "favoriteIcon",
                                     tint = Red
@@ -442,7 +433,7 @@ fun MainScreen(
                                     interactionSource = MutableInteractionSource(),
                                     indication = null,
                                     onClick = { event(OnClickStartRunning) },
-                                    onLongClick = { event(OnLongClickStopRunning) }
+                                    onLongClick = { event(OnLongClickQuitRunning) }
                                 ),
                             borderColor = buttonBorderColorState.value,
                             backgroundColor = buttonBackgroundColorState.value,

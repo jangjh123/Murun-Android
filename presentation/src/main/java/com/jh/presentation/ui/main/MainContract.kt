@@ -1,5 +1,6 @@
 package com.jh.presentation.ui.main
 
+import androidx.media3.common.MediaItem
 import com.jh.presentation.base.BaseContract
 import com.jh.presentation.enums.LoadingMusicType
 
@@ -20,9 +21,9 @@ interface MainContract : BaseContract<MainContract.State, MainContract.Event, Ma
 
         object OnClickStartRunning : Event
 
-        object OnLongClickStopRunning : Event
+        object OnLongClickQuitRunning : Event
 
-        object OnClickAddFavoriteMusic : Event
+        data class OnClickAddFavoriteMusic(val mediaItem: MediaItem) : Event
 
         object OnClickSkipToPrev : Event
 
@@ -40,12 +41,6 @@ interface MainContract : BaseContract<MainContract.State, MainContract.Event, Ma
 
         object AssignCadence : Effect
 
-        object StopTrackingCadence : Effect
-
-        object LaunchMusicPlayer : Effect
-
-        object QuitMusicPlayer : Effect
-
         object ChangeRepeatMode : Effect
 
         object SkipToPrev : Effect
@@ -54,7 +49,7 @@ interface MainContract : BaseContract<MainContract.State, MainContract.Event, Ma
 
         object SkipToNext : Effect
 
-        object AddFavoriteMusic : Effect
+        object QuitRunning : Effect
 
         data class ShowToast(val text: String) : Effect
     }
