@@ -1,6 +1,5 @@
 package com.jh.presentation.service.cadence_tracking
 
-import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.hardware.Sensor
@@ -9,20 +8,23 @@ import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.Binder
 import android.os.IBinder
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.LifecycleService
+import androidx.lifecycle.lifecycleScope
 import com.jh.presentation.di.DefaultDispatcher
+import com.jh.presentation.service.music_loader.MusicLoaderService
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
-class CadenceTrackingService : Service(), SensorEventListener {
+class CadenceTrackingService : LifecycleService(), SensorEventListener {
     @Inject
     @DefaultDispatcher
     lateinit var defaultDispatcher: CoroutineDispatcher
+
     private lateinit var sensorManager: SensorManager
-    private lateinit var cadenceUpdatingJob: Job
     private var stepCount = 0
 
     inner class CadenceTrackingServiceBinder : Binder() {
@@ -31,22 +33,26 @@ class CadenceTrackingService : Service(), SensorEventListener {
         }
     }
 
-    override fun onBind(intent: Intent?): IBinder {
+    override fun onBind(intent: Intent): IBinder {
+        super.onBind(intent)
+
         return CadenceTrackingServiceBinder()
     }
 
     override fun onSensorChanged(event: SensorEvent?) {
-        if (event!!.sensor.type == Sensor.TYPE_STEP_COUNTER) {
-            stepCount++
+        event?.let {
+            if (it.sensor.type == Sensor.TYPE_STEP_COUNTER) {
+                stepCount++
+            }
         }
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
 
     private fun calculateCadence() {
-        cadenceUpdatingJob = CoroutineScope(defaultDispatcher).launch {
+        lifecycleScope.launch(defaultDispatcher) {
             delay(20000L)
-            _cadenceLiveData.postValue(stepCount * 3)
+            MusicLoaderService.CADENCE = stepCount * 3
             stepCount = 0
             calculateCadence()
         }
@@ -61,14 +67,11 @@ class CadenceTrackingService : Service(), SensorEventListener {
 
     fun stop() {
         sensorManager.unregisterListener(this)
-        cadenceUpdatingJob.cancel()
         stepCount = 0
-        _cadenceLiveData.postValue(stepCount)
     }
 
-    companion object {
-        private val _cadenceLiveData = MutableLiveData(0)
-        val cadenceLiveData: LiveData<Int>
-            get() = _cadenceLiveData
+    override fun onUnbind(intent: Intent?): Boolean {
+        // todo : 언바인딩
+        return super.onUnbind(intent)
     }
 }

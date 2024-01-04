@@ -9,14 +9,25 @@ import com.jh.murun.domain.use_case.favorite.AddFavoriteMusicUseCase
 import com.jh.presentation.di.IoDispatcher
 import com.jh.presentation.di.MainImmediateDispatcher
 import com.jh.presentation.enums.LoadingMusicType.ASSIGN_CADENCE
+import com.jh.presentation.enums.LoadingMusicType.NONE
 import com.jh.presentation.enums.LoadingMusicType.TRACKING_CADENCE
 import com.jh.presentation.ui.main.MainContract.Effect
+import com.jh.presentation.ui.main.MainContract.Effect.AssignCadence
+import com.jh.presentation.ui.main.MainContract.Effect.ChangeRepeatMode
 import com.jh.presentation.ui.main.MainContract.Effect.GoToFavorite
+import com.jh.presentation.ui.main.MainContract.Effect.PlayOrPause
+import com.jh.presentation.ui.main.MainContract.Effect.QuitMusicPlayer
 import com.jh.presentation.ui.main.MainContract.Effect.ShowToast
+import com.jh.presentation.ui.main.MainContract.Effect.SkipToNext
+import com.jh.presentation.ui.main.MainContract.Effect.SkipToPrev
 import com.jh.presentation.ui.main.MainContract.Effect.TrackCadence
 import com.jh.presentation.ui.main.MainContract.Event.OnClickAddFavoriteMusic
 import com.jh.presentation.ui.main.MainContract.Event.OnClickAssignCadence
+import com.jh.presentation.ui.main.MainContract.Event.OnClickChangeRepeatMode
 import com.jh.presentation.ui.main.MainContract.Event.OnClickFavorite
+import com.jh.presentation.ui.main.MainContract.Event.OnClickPlayOrPause
+import com.jh.presentation.ui.main.MainContract.Event.OnClickSkipToNext
+import com.jh.presentation.ui.main.MainContract.Event.OnClickSkipToPrev
 import com.jh.presentation.ui.main.MainContract.Event.OnClickStartRunning
 import com.jh.presentation.ui.main.MainContract.Event.OnClickTrackCadence
 import com.jh.presentation.ui.main.MainContract.Event.OnLongClickStopRunning
@@ -68,11 +79,27 @@ class MainViewModel @Inject constructor(
         }
 
         is OnLongClickStopRunning -> {
-
+            onLongClickStopRunning()
         }
 
         is OnClickAddFavoriteMusic -> {
+            onClickAddFavoriteMusic()
+        }
 
+        is OnClickSkipToPrev -> {
+            onClickSkipToPrev()
+        }
+
+        is OnClickPlayOrPause -> {
+            onClickPlayOrPause()
+        }
+
+        is OnClickSkipToNext -> {
+            onClickSkipToNext()
+        }
+
+        is OnClickChangeRepeatMode -> {
+            onClickChangeRepeatMode()
         }
     }
 
@@ -107,6 +134,52 @@ class MainViewModel @Inject constructor(
             _state.update {
                 it.copy(assignedCadence = state.value.assignedCadence)
             }
+
+            viewModelScope.launch {
+                _effect.emit(AssignCadence)
+            }
+        }
+    }
+
+    private fun onLongClickStopRunning() {
+        _state.update {
+            it.copy(
+                assignedCadence = 0,
+                loadingMusicType = NONE,
+                isRunning = false,
+            )
+        }
+
+        viewModelScope.launch {
+            _effect.emit(QuitMusicPlayer)
+        }
+    }
+
+    private fun onClickAddFavoriteMusic() {
+
+    }
+
+    private fun onClickSkipToPrev() {
+        viewModelScope.launch {
+            _effect.emit(SkipToPrev)
+        }
+    }
+
+    private fun onClickPlayOrPause() {
+        viewModelScope.launch {
+            _effect.emit(PlayOrPause)
+        }
+    }
+
+    private fun onClickSkipToNext() {
+        viewModelScope.launch {
+            _effect.emit(SkipToNext)
+        }
+    }
+
+    private fun onClickChangeRepeatMode() {
+        viewModelScope.launch {
+            _effect.emit(ChangeRepeatMode)
         }
     }
 
@@ -160,17 +233,39 @@ class MainViewModel @Inject constructor(
 //        sendSideEffect(_sideEffectChannel, MainSideEffect.LaunchMusicPlayer)
 //    }
 
+//    if (!isRunning) {
+//                                            when (loadingMusicType) {
+//                                                NONE -> {
+//                                                    viewModel.showToast("케이던스 타입을 지정해 주세요.")
+//                                                }
+//
+//                                                TRACKING_CADENCE -> {
+//                                                    event(OnClickStartRunning)
+//                                                }
+//
+//                                                ASSIGN_CADENCE -> {
+//                                                    if (cadenceAssignTextState.value.isNotEmpty() &&
+//                                                        cadenceAssignTextState.value.toInt() in 60..180
+//                                                    ) {
+//                                                        viewModel.onClickStartRunning(cadenceAssignTextState.value.toInt())
+//                                                    }
+//                                                }
+//
+//                                                FAVORITE_LIST -> Unit
+//                                            }
+//                                        }
+
     private fun addFavoriteMusic(mediaItem: MediaItem?) {
-        mediaItem?.mediaMetadata?.extras?.get(MEDIA_TYPE).let { music ->
-            addFavoriteMusicUseCase(music as Music).onEach { result ->
+        mediaItem?.mediaMetadata?.extras?.get(METADATA_KEY_MUSIC).let { music ->
+            addFavoriteMusicUseCase(music as Music).onEach { isSuccess ->
                 withContext(mainImmediateDispatcher) {
-                    _effect.emit(ShowToast(if (result) "곡을 리스트에 추가하였습니다." else "곡을 리스트에 저장할 수 없습니다."))
+                    _effect.emit(ShowToast(if (isSuccess) "곡을 리스트에 추가하였습니다." else "곡을 리스트에 저장할 수 없습니다."))
                 }
             }.launchIn(viewModelScope + ioDispatcher)
         }
     }
 
     companion object {
-        private const val MEDIA_TYPE = "music"
+        private const val METADATA_KEY_MUSIC = "music"
     }
 }

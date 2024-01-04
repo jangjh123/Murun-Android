@@ -47,7 +47,6 @@ class SplashViewModel @Inject constructor(
 
     private fun checkToSkipOnBoarding() {
         getToSkipOnBoardingUseCase().onEach { isSkippable ->
-            println(isSkippable)
             withContext(mainImmediateDispatcher) {
                 when (isSkippable) {
                     true -> {

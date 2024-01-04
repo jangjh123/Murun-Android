@@ -1,4 +1,4 @@
-package com.jh.presentation.util
+package com.jh.presentation.service.music_player
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -10,7 +10,6 @@ import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaStyleNotificationHelper
 import com.jh.murun.presentation.R
-import com.jh.presentation.service.music_player.MusicPlayerService
 
 @UnstableApi
 class CustomNotificationManager(
@@ -47,14 +46,16 @@ class CustomNotificationManager(
     private fun createNotificationChannel() {
         if (notificationManager.getNotificationChannel(CHANNEL_ID) == null) {
             val notificationChannel =
-                NotificationChannel(CHANNEL_ID, "channelId", NotificationManager.IMPORTANCE_LOW)
-            notificationChannel.description = "Channel-Description"
+                NotificationChannel(CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_LOW)
+            notificationChannel.description = CHANNEL_DESC
             notificationManager.createNotificationChannel(notificationChannel)
         }
     }
 
     companion object {
-        private const val CHANNEL_ID = "musicChannel"
+        private const val CHANNEL_ID = "music_channel"
+        private const val CHANNEL_NAME = "channel_name"
+        private const val CHANNEL_DESC = "channel_desc"
         private const val NOTIFICATION_ID = 202303
     }
 }

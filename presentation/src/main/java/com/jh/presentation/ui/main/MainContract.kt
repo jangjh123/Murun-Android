@@ -23,12 +23,22 @@ interface MainContract : BaseContract<MainContract.State, MainContract.Event, Ma
         object OnLongClickStopRunning : Event
 
         object OnClickAddFavoriteMusic : Event
+
+        object OnClickSkipToPrev : Event
+
+        object OnClickPlayOrPause : Event
+
+        object OnClickSkipToNext : Event
+
+        object OnClickChangeRepeatMode : Event
     }
 
     sealed interface Effect {
         object GoToFavorite : Effect
 
         object TrackCadence : Effect
+
+        object AssignCadence : Effect
 
         object StopTrackingCadence : Effect
 
