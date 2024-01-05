@@ -5,23 +5,24 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.os.IBinder
-import androidx.lifecycle.LifecycleService
 import androidx.media3.common.Player.REPEAT_MODE_ALL
 import androidx.media3.common.Player.REPEAT_MODE_OFF
 import androidx.media3.common.Player.REPEAT_MODE_ONE
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.session.MediaSession
+import androidx.media3.session.MediaSessionService
 import com.jh.presentation.service.music_loader.MusicLoaderService
 import com.jh.presentation.service.music_loader.MusicLoaderService.MusicLoaderServiceBinder
 import com.jh.presentation.service.music_player.MusicPlayerStateManager.initializeMusicPlayerState
 import com.jh.presentation.service.music_player.MusicPlayerStateManager.musicPlayerState
 import com.jh.presentation.service.music_player.MusicPlayerStateManager.updateMusicPlayerState
-import com.jh.presentation.service.notification.PlayerNotificationManager
 
 @UnstableApi
-class MusicPlayerService : LifecycleService() {
+class MusicPlayerService : MediaSessionService() {
     private val exoPlayer: ExoPlayer by lazy { ExoPlayer.Builder(this@MusicPlayerService).build() }
-    private val notificationManager by lazy { PlayerNotificationManager(this@MusicPlayerService, exoPlayer) }
+    private var mediaSession: MediaSession? = null
+
     private lateinit var musicLoaderService: MusicLoaderService
     private val musicLoaderServiceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
@@ -33,6 +34,13 @@ class MusicPlayerService : LifecycleService() {
 
         override fun onServiceDisconnected(name: ComponentName?) {}
     }
+
+    override fun onCreate() {
+        super.onCreate()
+        mediaSession = MediaSession.Builder(this@MusicPlayerService, exoPlayer).build()
+    }
+
+    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
@@ -66,7 +74,6 @@ class MusicPlayerService : LifecycleService() {
     private fun initMusicPlayer() {
         exoPlayer.apply {
             val musicPlayerListener = MusicPlayerListener(
-                notificationManager = notificationManager,
                 onMusicEnded = {
                     if (::musicLoaderService.isInitialized) {
                         musicLoaderService.loadMusicByBpm()
@@ -79,8 +86,6 @@ class MusicPlayerService : LifecycleService() {
             repeatMode = REPEAT_MODE_OFF
             playWhenReady = true
         }
-
-        notificationManager.showNotification()
     }
 
     private fun skipToPrev() {
@@ -131,9 +136,12 @@ class MusicPlayerService : LifecycleService() {
     }
 
     private fun quitRunning() {
-        exoPlayer.stop()
+        mediaSession?.run {
+            release()
+            mediaSession = null
+        }
+
         exoPlayer.release()
-        notificationManager.dismissNotification()
         initializeMusicPlayerState()
 
         try {
@@ -141,6 +149,11 @@ class MusicPlayerService : LifecycleService() {
         } catch (e: Exception) {
             e.printStackTrace()
         }
+    }
+
+    override fun onDestroy() {
+        quitRunning()
+        super.onDestroy()
     }
 
     companion object {
