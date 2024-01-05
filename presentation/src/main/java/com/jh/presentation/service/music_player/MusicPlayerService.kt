@@ -4,7 +4,6 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
-import android.os.Binder
 import android.os.IBinder
 import androidx.lifecycle.LifecycleService
 import androidx.media3.common.Player.REPEAT_MODE_ALL
@@ -35,11 +34,20 @@ class MusicPlayerService : LifecycleService() {
         override fun onServiceDisconnected(name: ComponentName?) {}
     }
 
-    override fun onBind(intent: Intent): IBinder {
-        super.onBind(intent)
-        init()
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        super.onStartCommand(intent, flags, startId)
+        intent?.extras?.getString(KEY_COMMAND)?.let { command ->
+            when (command) {
+                COMMAND_START -> init()
+                COMMAND_SKIP_TO_PREV -> skipToPrev()
+                COMMAND_PLAY_OR_PAUSE -> playOrPause()
+                COMMAND_SKIP_TO_NEXT -> skipToNext()
+                COMMAND_CHANGE_REPEAT_MODE -> changeRepeatMode()
+                COMMAND_QUIT_RUNNING -> quitRunning()
+            }
+        }
 
-        return MusicPlayerServiceBinder()
+        return START_STICKY
     }
 
     private fun init() {
@@ -75,7 +83,7 @@ class MusicPlayerService : LifecycleService() {
         notificationManager.showNotification()
     }
 
-    fun skipToPrev() {
+    private fun skipToPrev() {
         if (exoPlayer.repeatMode == REPEAT_MODE_ONE) {
             exoPlayer.seekTo(0L)
         } else {
@@ -83,7 +91,7 @@ class MusicPlayerService : LifecycleService() {
         }
     }
 
-    fun playOrPause() {
+    private fun playOrPause() {
         if (exoPlayer.isPlaying) {
             exoPlayer.pause()
         } else {
@@ -91,7 +99,7 @@ class MusicPlayerService : LifecycleService() {
         }
     }
 
-    fun skipToNext() {
+    private fun skipToNext() {
         if (exoPlayer.repeatMode == REPEAT_MODE_ONE) {
             exoPlayer.seekTo(0L)
         } else if (exoPlayer.hasNextMediaItem()) {
@@ -101,7 +109,7 @@ class MusicPlayerService : LifecycleService() {
         }
     }
 
-    fun changeRepeatMode() {
+    private fun changeRepeatMode() {
         if (exoPlayer.repeatMode == REPEAT_MODE_ONE) {
             if (musicPlayerState.value.isFavoriteList) {
                 exoPlayer.repeatMode = REPEAT_MODE_ALL
@@ -122,7 +130,7 @@ class MusicPlayerService : LifecycleService() {
         }
     }
 
-    fun quitRunning() {
+    private fun quitRunning() {
         exoPlayer.stop()
         exoPlayer.release()
         notificationManager.dismissNotification()
@@ -135,13 +143,18 @@ class MusicPlayerService : LifecycleService() {
         }
     }
 
-    inner class MusicPlayerServiceBinder : Binder() {
-        fun getServiceInstance(): MusicPlayerService {
-            return this@MusicPlayerService
-        }
-    }
-
     companion object {
-        fun newIntent(context: Context): Intent = Intent(context, MusicPlayerService::class.java)
+        private const val KEY_COMMAND = "key_command"
+
+        const val COMMAND_START = "command_start"
+        const val COMMAND_SKIP_TO_PREV = "command_skip_to_prev"
+        const val COMMAND_PLAY_OR_PAUSE = "command_play_or_pause"
+        const val COMMAND_SKIP_TO_NEXT = "command_skip_to_next"
+        const val COMMAND_CHANGE_REPEAT_MODE = "command_change_repeat_mode"
+        const val COMMAND_QUIT_RUNNING = "command_quit_running"
+
+        fun newIntent(context: Context, command: String? = null): Intent = Intent(context, MusicPlayerService::class.java).apply {
+            putExtra(KEY_COMMAND, command)
+        }
     }
 }

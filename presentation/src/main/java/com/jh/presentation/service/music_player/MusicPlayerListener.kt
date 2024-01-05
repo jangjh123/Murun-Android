@@ -12,10 +12,9 @@ class MusicPlayerListener(
     private val onMusicEnded: () -> Unit
 ) : Player.Listener {
     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+        super.onMediaItemTransition(mediaItem, reason)
         mediaItem?.let {
-            super.onMediaItemTransition(mediaItem, reason)
             notificationManager.refreshNotification()
-
             updateMusicPlayerState {
                 it.copy(currentMediaItem = mediaItem)
             }
