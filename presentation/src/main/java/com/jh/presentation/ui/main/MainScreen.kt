@@ -348,7 +348,7 @@ inline fun MainScreen(
                                 ) {
                                     Text(
                                         modifier = Modifier.align(Center),
-                                        text = "", // cadence
+                                        text = "", // todo : cadence
                                         style = Typography.h5,
                                         color = cadenceTrackingColorState.value,
                                     )
