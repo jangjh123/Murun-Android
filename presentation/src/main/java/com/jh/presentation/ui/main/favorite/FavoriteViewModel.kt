@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.jh.murun.domain.model.Music
 import com.jh.murun.domain.use_case.favorite.DeleteFavoriteMusicUseCase
 import com.jh.murun.domain.use_case.favorite.GetFavoriteListUseCase
-import com.jh.murun.domain.use_case.favorite.UpdateReorderedFavoriteMusicListUseCase
+import com.jh.murun.domain.use_case.favorite.UpdateReorderedFavoriteListUseCase
 import com.jh.presentation.di.IoDispatcher
 import com.jh.presentation.di.MainImmediateDispatcher
 import com.jh.presentation.ui.main.favorite.FavoriteContract.Effect
@@ -15,6 +15,7 @@ import com.jh.presentation.ui.main.favorite.FavoriteContract.Event.OnClickDelete
 import com.jh.presentation.ui.main.favorite.FavoriteContract.Event.OnClickHideMusicOption
 import com.jh.presentation.ui.main.favorite.FavoriteContract.Event.OnClickShowMusicOption
 import com.jh.presentation.ui.main.favorite.FavoriteContract.Event.OnClickStartRunning
+import com.jh.presentation.ui.main.favorite.FavoriteContract.Event.OnFavoriteListReordered
 import com.jh.presentation.ui.main.favorite.FavoriteContract.Event.OnStarted
 import com.jh.presentation.ui.main.favorite.FavoriteContract.State
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -40,7 +41,7 @@ class FavoriteViewModel @Inject constructor(
     @MainImmediateDispatcher private val mainImmediateDispatcher: CoroutineDispatcher,
     private val getFavoriteListUseCase: GetFavoriteListUseCase,
     private val deleteFavoriteMusicUseCase: DeleteFavoriteMusicUseCase,
-    private val updateReorderedFavoriteMusicListUseCase: UpdateReorderedFavoriteMusicListUseCase
+    private val updateReorderedFavoriteListUseCase: UpdateReorderedFavoriteListUseCase
 ) : FavoriteContract, ViewModel() {
     private val _state = MutableStateFlow(State())
     override val state: StateFlow<State> = _state.asStateFlow()
@@ -51,6 +52,10 @@ class FavoriteViewModel @Inject constructor(
     override fun event(event: Event) = when (event) {
         is OnStarted -> {
             onStarted()
+        }
+
+        is OnFavoriteListReordered -> {
+            onFavoriteListReordered(event.reorderedFavoriteList)
         }
 
         is OnClickShowMusicOption -> {
@@ -78,6 +83,12 @@ class FavoriteViewModel @Inject constructor(
         loadFavoriteList()
     }
 
+    private fun onFavoriteListReordered(reorderedFavoriteList: List<Music>) {
+        viewModelScope.launch(ioDispatcher) {
+            updateReorderedFavoriteListUseCase(reorderedFavoriteList)
+        }
+    }
+
     private fun onClickShowMusicOption(music: Music) {
         _state.update {
             it.copy(
@@ -99,13 +110,14 @@ class FavoriteViewModel @Inject constructor(
     private fun loadFavoriteList() {
         getFavoriteListUseCase().onEach { favoriteList ->
             withContext(mainImmediateDispatcher) {
+                println(favoriteList)
                 if (favoriteList.isNullOrEmpty()) {
                     // todo: 예외 처리
                 } else {
                     _state.update {
                         it.copy(
                             isLoading = false,
-                            favoriteList = favoriteList
+                            favoriteList = favoriteList.sortedBy { it.newIndex }
                         )
                     }
                 }
@@ -117,12 +129,6 @@ class FavoriteViewModel @Inject constructor(
 
     private fun onClickDeleteMusic() {
         deleteMusic()
-    }
-
-    fun updateReorderedFavoriteList(musics: List<Music>) {
-        viewModelScope.launch(ioDispatcher) {
-            updateReorderedFavoriteMusicListUseCase(musics)
-        }
     }
 
     private fun deleteMusic() {

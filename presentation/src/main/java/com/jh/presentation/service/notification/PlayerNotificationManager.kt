@@ -1,4 +1,4 @@
-package com.jh.presentation.util
+package com.jh.presentation.service.notification
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -13,7 +13,7 @@ import com.jh.murun.presentation.R
 import com.jh.presentation.service.music_player.MusicPlayerService
 
 @UnstableApi
-class CustomNotificationManager(
+class PlayerNotificationManager(
     private val musicPlayerService: MusicPlayerService,
     private val player: ExoPlayer
 ) : DefaultMediaNotificationProvider(musicPlayerService) {
@@ -46,15 +46,16 @@ class CustomNotificationManager(
 
     private fun createNotificationChannel() {
         if (notificationManager.getNotificationChannel(CHANNEL_ID) == null) {
-            val notificationChannel =
-                NotificationChannel(CHANNEL_ID, "channelId", NotificationManager.IMPORTANCE_LOW)
-            notificationChannel.description = "Channel-Description"
+            val notificationChannel = NotificationChannel(CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_HIGH)
+            notificationChannel.description = CHANNEL_DESC
             notificationManager.createNotificationChannel(notificationChannel)
         }
     }
 
     companion object {
-        private const val CHANNEL_ID = "musicChannel"
+        private const val CHANNEL_ID = "music_channel"
+        private const val CHANNEL_NAME = "channel_name"
+        private const val CHANNEL_DESC = "channel_desc"
         private const val NOTIFICATION_ID = 202303
     }
 }

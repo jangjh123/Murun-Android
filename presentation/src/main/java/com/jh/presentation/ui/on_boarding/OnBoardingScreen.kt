@@ -64,6 +64,7 @@ fun OnBoardingScreen(viewModel: OnBoardingViewModel = hiltViewModel()) {
                             isRunningStarted = false
                         )
                     )
+
                     context.finish()
                 }
             }

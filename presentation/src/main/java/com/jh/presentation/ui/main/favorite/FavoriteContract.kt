@@ -14,6 +14,8 @@ interface FavoriteContract : BaseContract<FavoriteContract.State, FavoriteContra
     sealed interface Event {
         object OnStarted : Event
 
+        data class OnFavoriteListReordered(val reorderedFavoriteList: List<Music>) : Event
+
         data class OnClickShowMusicOption(val music: Music) : Event
 
         object OnClickHideMusicOption : Event

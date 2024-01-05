@@ -3,7 +3,6 @@ package com.jh.presentation.ui.splash
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jh.murun.domain.use_case.splash.GetToSkipOnBoardingUseCase
-import com.jh.murun.domain.use_case.splash.SetToSkipOnBoardingUseCase
 import com.jh.presentation.di.IoDispatcher
 import com.jh.presentation.di.MainImmediateDispatcher
 import com.jh.presentation.ui.splash.SplashContract.Effect
@@ -30,8 +29,7 @@ import javax.inject.Inject
 class SplashViewModel @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     @MainImmediateDispatcher private val mainImmediateDispatcher: CoroutineDispatcher,
-    private val getToSkipOnBoardingUseCase: GetToSkipOnBoardingUseCase,
-    private val setToSkipOnBoardingUseCase: SetToSkipOnBoardingUseCase,
+    private val getToSkipOnBoardingUseCase: GetToSkipOnBoardingUseCase
 ) : SplashContract, ViewModel() {
     private val _state = MutableStateFlow(State())
     override val state: StateFlow<State> = _state.asStateFlow()
@@ -40,7 +38,11 @@ class SplashViewModel @Inject constructor(
     override val effect: SharedFlow<Effect> = _effect.asSharedFlow()
 
     override fun event(event: SplashContract.Event) = when (event) {
-        is OnStarted -> checkToSkipOnBoarding()
+        is OnStarted -> onStarted()
+    }
+
+    private fun onStarted() {
+        checkToSkipOnBoarding()
     }
 
     private fun checkToSkipOnBoarding() {
@@ -56,16 +58,10 @@ class SplashViewModel @Inject constructor(
                     }
                 }
             }
-
-            if (!isSkippable) {
-                setToSkipOnBoardingUseCase()
-            }
         }.catch {
             withContext(mainImmediateDispatcher) {
                 _effect.emit(NoSkipOnBoarding)
             }
-
-            setToSkipOnBoardingUseCase()
         }.launchIn(viewModelScope + ioDispatcher)
     }
 }

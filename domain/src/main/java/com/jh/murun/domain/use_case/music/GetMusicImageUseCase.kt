@@ -6,5 +6,5 @@ import javax.inject.Inject
 class GetMusicImageUseCase @Inject constructor(
     private val getMusicRepository: GetMusicRepository
 ) {
-    suspend operator fun invoke(url: String) = getMusicRepository.fetchMusicImage(url)
+    operator fun invoke(url: String) = getMusicRepository.fetchMusicImage(url)
 }
