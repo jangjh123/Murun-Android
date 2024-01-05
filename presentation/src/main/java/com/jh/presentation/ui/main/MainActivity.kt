@@ -15,12 +15,11 @@ import androidx.compose.runtime.*
 import androidx.core.content.ContextCompat
 import androidx.media3.common.util.UnstableApi
 import com.jh.presentation.base.BaseActivity
-import com.jh.presentation.enums.LoadingMusicType.*
+import com.jh.presentation.enums.RunningMode.*
 import com.jh.presentation.service.cadence_tracking.CadenceTrackingService
 import com.jh.presentation.service.cadence_tracking.CadenceTrackingService.CadenceTrackingServiceBinder
 import com.jh.presentation.service.music_player.MusicPlayerService
 import com.jh.presentation.service.music_player.MusicPlayerService.MusicPlayerServiceBinder
-import com.jh.presentation.service.music_player.MusicPlayerStateManager.musicPlayerState
 import com.jh.presentation.ui.*
 import com.jh.presentation.ui.theme.*
 import dagger.hilt.android.AndroidEntryPoint
@@ -28,7 +27,6 @@ import dagger.hilt.android.AndroidEntryPoint
 @androidx.annotation.OptIn(UnstableApi::class)
 @AndroidEntryPoint
 class MainActivity : BaseActivity() {
-    private lateinit var musicPlayerService: MusicPlayerService
     private val musicPlayerServiceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             val binder = service as MusicPlayerServiceBinder
@@ -52,7 +50,6 @@ class MainActivity : BaseActivity() {
     @Composable
     override fun InitComposeUi() {
         MainScreen(
-            musicPlayerState = musicPlayerState.value,
             onClickTrackCadence = { trackCadence() },
             onClickAssignCadence = { assignCadence() },
             onClickSkipToPrev = { skipToPrev() },
@@ -99,6 +96,7 @@ class MainActivity : BaseActivity() {
 
     private fun quitRunning() {
         musicPlayerService.quitRunning()
+        unbindServices()
     }
 
     private fun bindMusicPlayerService() {
@@ -109,18 +107,17 @@ class MainActivity : BaseActivity() {
         )
     }
 
-    override fun onDestroy() {
+    private fun unbindServices() {
         try {
             unbindService(musicPlayerServiceConnection)
             unbindService(cadenceTrackingServiceConnection)
         } catch (e: Exception) {
             e.printStackTrace()
         }
-
-        super.onDestroy()
     }
 
     companion object {
+        private lateinit var musicPlayerService: MusicPlayerService
         const val KEY_IS_RUNNING_STARTED = "isRunningStarted"
 
         fun newIntent(

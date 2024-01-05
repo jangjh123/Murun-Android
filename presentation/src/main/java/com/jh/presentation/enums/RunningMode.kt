@@ -1,6 +1,6 @@
 package com.jh.presentation.enums
 
-enum class LoadingMusicType {
+enum class RunningMode {
     NONE,
     TRACKING_CADENCE,
     ASSIGN_CADENCE,

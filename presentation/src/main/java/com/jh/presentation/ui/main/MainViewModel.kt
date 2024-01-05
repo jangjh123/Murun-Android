@@ -8,9 +8,11 @@ import com.jh.murun.domain.model.Music
 import com.jh.murun.domain.use_case.favorite.AddFavoriteMusicUseCase
 import com.jh.presentation.di.IoDispatcher
 import com.jh.presentation.di.MainImmediateDispatcher
-import com.jh.presentation.enums.LoadingMusicType.ASSIGN_CADENCE
-import com.jh.presentation.enums.LoadingMusicType.NONE
-import com.jh.presentation.enums.LoadingMusicType.TRACKING_CADENCE
+import com.jh.presentation.enums.RunningMode.ASSIGN_CADENCE
+import com.jh.presentation.enums.RunningMode.NONE
+import com.jh.presentation.enums.RunningMode.TRACKING_CADENCE
+import com.jh.presentation.service.music_player.MusicPlayerStateManager.musicPlayerState
+import com.jh.presentation.service.music_player.MusicPlayerStateManager.updateMusicPlayerState
 import com.jh.presentation.ui.main.MainContract.Effect
 import com.jh.presentation.ui.main.MainContract.Effect.AssignCadence
 import com.jh.presentation.ui.main.MainContract.Effect.ChangeRepeatMode
@@ -21,6 +23,7 @@ import com.jh.presentation.ui.main.MainContract.Effect.ShowToast
 import com.jh.presentation.ui.main.MainContract.Effect.SkipToNext
 import com.jh.presentation.ui.main.MainContract.Effect.SkipToPrev
 import com.jh.presentation.ui.main.MainContract.Effect.TrackCadence
+import com.jh.presentation.ui.main.MainContract.Event.OnCadenceTyped
 import com.jh.presentation.ui.main.MainContract.Event.OnClickAddFavoriteMusic
 import com.jh.presentation.ui.main.MainContract.Event.OnClickAssignCadence
 import com.jh.presentation.ui.main.MainContract.Event.OnClickChangeRepeatMode
@@ -42,7 +45,6 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
 import kotlinx.coroutines.withContext
@@ -68,6 +70,10 @@ class MainViewModel @Inject constructor(
 
         is OnClickAssignCadence -> {
             onClickAssignCadence()
+        }
+
+        is OnCadenceTyped -> {
+            onCadenceTyped(event.typedCadence)
         }
 
         is OnClickFavorite -> {
@@ -104,14 +110,20 @@ class MainViewModel @Inject constructor(
     }
 
     private fun onClickTrackCadence() {
-        _state.update {
-            it.copy(loadingMusicType = TRACKING_CADENCE)
+        updateMusicPlayerState {
+            it.copy(runningMode = TRACKING_CADENCE)
         }
     }
 
     private fun onClickAssignCadence() {
-        _state.update {
-            it.copy(loadingMusicType = ASSIGN_CADENCE)
+        updateMusicPlayerState {
+            it.copy(runningMode = ASSIGN_CADENCE)
+        }
+    }
+
+    private fun onCadenceTyped(typedCadence: String) {
+        updateMusicPlayerState {
+            it.copy(cadence = if (typedCadence.length <= 3 && typedCadence.toInt() in 0..180) typedCadence.toInt() else 0)
         }
     }
 
@@ -122,19 +134,15 @@ class MainViewModel @Inject constructor(
     }
 
     private fun onClickStartRunning() {
-        _state.update {
-            it.copy(isRunning = true)
+        updateMusicPlayerState {
+            it.copy(isLaunched = true)
         }
 
-        if (state.value.loadingMusicType == TRACKING_CADENCE) {
+        if (musicPlayerState.value.runningMode == TRACKING_CADENCE) {
             viewModelScope.launch {
                 _effect.emit(TrackCadence)
             }
-        } else if (state.value.loadingMusicType == ASSIGN_CADENCE) {
-            _state.update {
-                it.copy(assignedCadence = state.value.assignedCadence)
-            }
-
+        } else if (musicPlayerState.value.runningMode == ASSIGN_CADENCE) {
             viewModelScope.launch {
                 _effect.emit(AssignCadence)
             }
@@ -142,11 +150,11 @@ class MainViewModel @Inject constructor(
     }
 
     private fun onLongClickQuitRunning() {
-        _state.update {
+        updateMusicPlayerState {
             it.copy(
-                assignedCadence = 0,
-                loadingMusicType = NONE,
-                isRunning = false,
+                isLaunched = false,
+                runningMode = NONE,
+                cadence = 0
             )
         }
 
@@ -166,7 +174,7 @@ class MainViewModel @Inject constructor(
     }
 
     private fun onClickSkipToPrev() {
-        if (state.value.isRunning) {
+        if (musicPlayerState.value.isLaunched) {
             viewModelScope.launch {
                 _effect.emit(SkipToPrev)
             }
@@ -174,7 +182,7 @@ class MainViewModel @Inject constructor(
     }
 
     private fun onClickPlayOrPause() {
-        if (state.value.isRunning) {
+        if (musicPlayerState.value.isLaunched) {
             viewModelScope.launch {
                 _effect.emit(PlayOrPause)
             }
@@ -182,7 +190,7 @@ class MainViewModel @Inject constructor(
     }
 
     private fun onClickSkipToNext() {
-        if (state.value.isRunning) {
+        if (musicPlayerState.value.isLaunched) {
             viewModelScope.launch {
                 _effect.emit(SkipToNext)
             }
@@ -190,7 +198,7 @@ class MainViewModel @Inject constructor(
     }
 
     private fun onClickChangeRepeatMode() {
-        if (state.value.isRunning) {
+        if (musicPlayerState.value.isLaunched) {
             viewModelScope.launch {
                 _effect.emit(ChangeRepeatMode)
             }

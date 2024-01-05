@@ -37,8 +37,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.media3.common.Player.REPEAT_MODE_ONE
 import com.jh.murun.presentation.R
 import com.jh.presentation.base.use
-import com.jh.presentation.enums.LoadingMusicType.*
-import com.jh.presentation.service.music_player.MusicPlayerState
+import com.jh.presentation.enums.RunningMode.*
+import com.jh.presentation.service.music_player.MusicPlayerStateManager.musicPlayerState
 import com.jh.presentation.ui.*
 import com.jh.presentation.ui.main.MainContract.Effect.AssignCadence
 import com.jh.presentation.ui.main.MainContract.Effect.ChangeRepeatMode
@@ -49,6 +49,7 @@ import com.jh.presentation.ui.main.MainContract.Effect.ShowToast
 import com.jh.presentation.ui.main.MainContract.Effect.SkipToNext
 import com.jh.presentation.ui.main.MainContract.Effect.SkipToPrev
 import com.jh.presentation.ui.main.MainContract.Effect.TrackCadence
+import com.jh.presentation.ui.main.MainContract.Event.OnCadenceTyped
 import com.jh.presentation.ui.main.MainContract.Event.OnClickAddFavoriteMusic
 import com.jh.presentation.ui.main.MainContract.Event.OnClickAssignCadence
 import com.jh.presentation.ui.main.MainContract.Event.OnClickChangeRepeatMode
@@ -67,7 +68,6 @@ import kotlinx.coroutines.flow.collectLatest
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 inline fun MainScreen(
-    musicPlayerState: MusicPlayerState,
     viewModel: MainViewModel = hiltViewModel(),
     crossinline onClickTrackCadence: () -> Unit,
     crossinline onClickAssignCadence: () -> Unit,
@@ -80,7 +80,6 @@ inline fun MainScreen(
     val (state, event, effect) = use(viewModel)
     val context = LocalContext.current as ComponentActivity
     val focusManager = LocalFocusManager.current
-    val cadenceAssignTextState = remember { mutableStateOf("") }
 
     LaunchedEffect(effect) {
         effect.collectLatest { effect ->
@@ -126,7 +125,7 @@ inline fun MainScreen(
 
     with(state) {
         Box(modifier = Modifier.fillMaxSize()) {
-            val bitmapByteArray = musicPlayerState.currentMediaItem?.mediaMetadata?.artworkData
+            val bitmapByteArray = musicPlayerState.value.currentMediaItem?.mediaMetadata?.artworkData
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -174,7 +173,7 @@ inline fun MainScreen(
                             contentScale = if (bitmapByteArray != null) FillBounds else Crop
                         )
 
-                        if (musicPlayerState.currentMediaItem == null) {
+                        if (musicPlayerState.value.currentMediaItem == null) {
                             Text(
                                 modifier = Modifier.align(Center),
                                 text = "No Music",
@@ -190,7 +189,7 @@ inline fun MainScreen(
                             .height(120.dp),
                         verticalArrangement = SpaceBetween
                     ) {
-                        musicPlayerState.currentMediaItem?.let { currentMediaItem ->
+                        musicPlayerState.value.currentMediaItem?.let { currentMediaItem ->
                             Column {
                                 Text(
                                     text = currentMediaItem.mediaMetadata.title.toString(),
@@ -223,7 +222,9 @@ inline fun MainScreen(
                                     modifier = Modifier
                                         .size(20.dp)
                                         .align(Center)
-                                        .clickableWithoutRipple { event(OnClickAddFavoriteMusic(musicPlayerState.currentMediaItem)) },
+                                        .clickableWithoutRipple {
+                                            event(OnClickAddFavoriteMusic(currentMediaItem))
+                                        },
                                     painter = painterResource(id = R.drawable.ic_add),
                                     contentDescription = "favoriteIcon",
                                     tint = Red
@@ -254,7 +255,10 @@ inline fun MainScreen(
                         .align(CenterHorizontally),
                     horizontalArrangement = Arrangement.spacedBy(36.dp)
                 ) {
-                    val iconColorState = animateColorAsState(targetValue = if (isRunning) MainColor else Color.LightGray)
+                    val iconColorState = animateColorAsState(
+                        targetValue = if (musicPlayerState.value.isLaunched) MainColor else Color.LightGray,
+                        label = "allIconColor"
+                    )
 
                     Icon(
                         modifier = Modifier.clickableWithoutRipple { event(OnClickSkipToPrev) },
@@ -265,7 +269,7 @@ inline fun MainScreen(
 
                     Icon(
                         modifier = Modifier.clickableWithoutRipple { event(OnClickPlayOrPause) },
-                        painter = painterResource(id = if (musicPlayerState.isPlaying) R.drawable.ic_pause else R.drawable.ic_play),
+                        painter = painterResource(id = if (musicPlayerState.value.isPlaying) R.drawable.ic_pause else R.drawable.ic_play),
                         contentDescription = "playOrPauseIcon",
                         tint = iconColorState.value
                     )
@@ -279,7 +283,7 @@ inline fun MainScreen(
 
                     Icon(
                         modifier = Modifier.clickableWithoutRipple { event(OnClickChangeRepeatMode) },
-                        painter = painterResource(id = if (musicPlayerState.repeatMode == REPEAT_MODE_ONE) R.drawable.ic_repeat_one else R.drawable.ic_repeat_all),
+                        painter = painterResource(id = if (musicPlayerState.value.repeatMode == REPEAT_MODE_ONE) R.drawable.ic_repeat_one else R.drawable.ic_repeat_all),
                         contentDescription = "repeatIcon",
                         tint = iconColorState.value
                     )
@@ -290,10 +294,23 @@ inline fun MainScreen(
                     verticalArrangement = SpaceBetween
                 ) {
                     Column {
-                        val cadenceTrackingColorState = animateColorAsState(targetValue = if (loadingMusicType == TRACKING_CADENCE) MainColor else Color.LightGray)
-                        val cadenceTrackingAlphaState = animateFloatAsState(targetValue = if (loadingMusicType == ASSIGN_CADENCE && isRunning) 0.3f else 1f)
-                        val cadenceAssignColorState = animateColorAsState(targetValue = if (loadingMusicType == ASSIGN_CADENCE) MainColor else Color.LightGray)
-                        val cadenceAssignAlphaState = animateFloatAsState(targetValue = if (loadingMusicType == ASSIGN_CADENCE && isRunning) 0.3f else 1f)
+                        val cadenceTrackingColorState = animateColorAsState(
+                            targetValue = if (musicPlayerState.value.runningMode == TRACKING_CADENCE) MainColor
+                            else Color.LightGray,
+                            label = "cadenceTrackingColor"
+                        )
+                        val cadenceTrackingAlphaState = animateFloatAsState(
+                            targetValue = if (musicPlayerState.value.runningMode == ASSIGN_CADENCE && musicPlayerState.value.isLaunched) 0.3f else 1f,
+                            label = "cadenceTrackingAlpha"
+                        )
+                        val cadenceAssignColorState = animateColorAsState(
+                            targetValue = if (musicPlayerState.value.runningMode == ASSIGN_CADENCE) MainColor else Color.LightGray,
+                            label = "cadenceAssignColor"
+                        )
+                        val cadenceAssignAlphaState = animateFloatAsState(
+                            targetValue = if (musicPlayerState.value.runningMode == ASSIGN_CADENCE && musicPlayerState.value.isLaunched) 0.3f else 1f,
+                            label = "cadenceAssignAlpha"
+                        )
 
                         Row(
                             modifier = Modifier
@@ -315,7 +332,7 @@ inline fun MainScreen(
                                     backgroundColor = Color.White,
                                     text = "케이던스 트래킹",
                                     textColor = cadenceTrackingColorState.value,
-                                    onClick = { if (!isRunning) event(OnClickTrackCadence) }
+                                    onClick = { if (!musicPlayerState.value.isLaunched) event(OnClickTrackCadence) }
                                 )
 
                                 Box(
@@ -351,7 +368,7 @@ inline fun MainScreen(
                                     backgroundColor = Color.White,
                                     text = "케이던스 입력",
                                     textColor = cadenceAssignColorState.value,
-                                    onClick = { if (!isRunning) event(OnClickAssignCadence) }
+                                    onClick = { if (!musicPlayerState.value.isLaunched) event(OnClickAssignCadence) }
                                 )
 
                                 Box(
@@ -365,10 +382,6 @@ inline fun MainScreen(
                                         .fillMaxWidth()
                                         .height(200.dp)
                                 ) {
-                                    if (cadenceAssignTextState.value.length >= 3 && cadenceAssignTextState.value.toInt() > 180) {
-                                        cadenceAssignTextState.value = ""
-                                    }
-
                                     Column(
                                         modifier = Modifier.align(Center),
                                         horizontalAlignment = CenterHorizontally
@@ -387,9 +400,11 @@ inline fun MainScreen(
                                                 )
                                             )
                                         ) {
+                                            val cadence = musicPlayerState.value.cadence
+
                                             TextField(
-                                                value = cadenceAssignTextState.value,
-                                                onValueChange = { cadenceAssignTextState.value = it.filter { it.isDigit() } },
+                                                value = if (musicPlayerState.value.runningMode == ASSIGN_CADENCE && cadence != 0) cadence.toString() else typedCadence,
+                                                onValueChange = { event(OnCadenceTyped("$typedCadence$it".filter { it.isDigit() })) },
                                                 placeholder = {
                                                     Text(
                                                         modifier = Modifier.fillMaxWidth(),
@@ -410,7 +425,7 @@ inline fun MainScreen(
                                                     unfocusedIndicatorColor = Color.Transparent,
                                                     disabledIndicatorColor = Color.Transparent,
                                                 ),
-                                                enabled = loadingMusicType == ASSIGN_CADENCE
+                                                enabled = musicPlayerState.value.runningMode == ASSIGN_CADENCE
                                             )
                                         }
                                     }
@@ -419,9 +434,18 @@ inline fun MainScreen(
                         }
                     }
 
-                    val buttonTextColorState = animateColorAsState(targetValue = if (isRunning) Red else Color.White)
-                    val buttonBackgroundColorState = animateColorAsState(targetValue = if (isRunning) Color.White else MainColor)
-                    val buttonBorderColorState = animateColorAsState(targetValue = if (isRunning) Red else MainColor)
+                    val buttonTextColorState = animateColorAsState(
+                        targetValue = if (musicPlayerState.value.isLaunched) Red else Color.White,
+                        label = "buttonTextColor"
+                    )
+                    val buttonBackgroundColorState = animateColorAsState(
+                        targetValue = if (musicPlayerState.value.isLaunched) Color.White else MainColor,
+                        label = "buttonBackgroundColor"
+                    )
+                    val buttonBorderColorState = animateColorAsState(
+                        targetValue = if (musicPlayerState.value.isLaunched) Red else MainColor,
+                        label = "buttonBorderColor"
+                    )
 
                     Box {
                         BorderedRoundedCornerButton(
@@ -438,11 +462,11 @@ inline fun MainScreen(
                                 ),
                             borderColor = buttonBorderColorState.value,
                             backgroundColor = buttonBackgroundColorState.value,
-                            text = if (isRunning) "길게 눌러 러닝 종료" else "러닝 시작",
+                            text = if (musicPlayerState.value.isLaunched) "길게 눌러 러닝 종료" else "러닝 시작",
                             textColor = buttonTextColorState.value
                         )
 
-                        if (!isRunning) {
+                        if (!musicPlayerState.value.isLaunched) {
                             FloatingActionButton(
                                 modifier = Modifier
                                     .padding(
@@ -466,7 +490,7 @@ inline fun MainScreen(
                 }
             }
 
-            if (musicPlayerState.isLoading) {
+            if (musicPlayerState.value.isLoading) {
                 LoadingScreen()
             }
         }

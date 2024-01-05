@@ -11,7 +11,7 @@ import android.os.IBinder
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import com.jh.presentation.di.DefaultDispatcher
-import com.jh.presentation.service.music_loader.MusicLoaderService
+import com.jh.presentation.service.music_player.MusicPlayerStateManager.updateMusicPlayerState
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.delay
@@ -52,7 +52,10 @@ class CadenceTrackingService : LifecycleService(), SensorEventListener {
     private fun calculateCadence() {
         lifecycleScope.launch(defaultDispatcher) {
             delay(20000L)
-            MusicLoaderService.CADENCE = stepCount * 3
+            updateMusicPlayerState {
+                it.copy(cadence = stepCount * 3)
+            }
+
             stepCount = 0
             calculateCadence()
         }

@@ -14,12 +14,15 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import com.jh.presentation.service.music_loader.MusicLoaderService
 import com.jh.presentation.service.music_loader.MusicLoaderService.MusicLoaderServiceBinder
+import com.jh.presentation.service.music_player.MusicPlayerStateManager.initializeMusicPlayerState
+import com.jh.presentation.service.music_player.MusicPlayerStateManager.musicPlayerState
 import com.jh.presentation.service.music_player.MusicPlayerStateManager.updateMusicPlayerState
+import com.jh.presentation.service.notification.PlayerNotificationManager
 
 @UnstableApi
 class MusicPlayerService : LifecycleService() {
     private val exoPlayer: ExoPlayer by lazy { ExoPlayer.Builder(this@MusicPlayerService).build() }
-    private val notificationManager by lazy { CustomNotificationManager(this@MusicPlayerService, exoPlayer) }
+    private val notificationManager by lazy { PlayerNotificationManager(this@MusicPlayerService, exoPlayer) }
     private lateinit var musicLoaderService: MusicLoaderService
     private val musicLoaderServiceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
@@ -99,9 +102,8 @@ class MusicPlayerService : LifecycleService() {
     }
 
     fun changeRepeatMode() {
-        val musicPlayerState = MusicPlayerStateManager.musicPlayerState.value
         if (exoPlayer.repeatMode == REPEAT_MODE_ONE) {
-            if (musicPlayerState.isFavoriteList) {
+            if (musicPlayerState.value.isFavoriteList) {
                 exoPlayer.repeatMode = REPEAT_MODE_ALL
                 updateMusicPlayerState {
                     it.copy(repeatMode = REPEAT_MODE_ALL)
@@ -124,6 +126,7 @@ class MusicPlayerService : LifecycleService() {
         exoPlayer.stop()
         exoPlayer.release()
         notificationManager.dismissNotification()
+        initializeMusicPlayerState()
 
         try {
             unbindService(musicLoaderServiceConnection)

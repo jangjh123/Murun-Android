@@ -2,20 +2,16 @@ package com.jh.presentation.ui.main
 
 import androidx.media3.common.MediaItem
 import com.jh.presentation.base.BaseContract
-import com.jh.presentation.enums.LoadingMusicType
 
 interface MainContract : BaseContract<MainContract.State, MainContract.Event, MainContract.Effect> {
-    data class State(
-        val isLoading: Boolean = false,
-        val assignedCadence: Int = 0,
-        val loadingMusicType: LoadingMusicType = LoadingMusicType.NONE,
-        val isRunning: Boolean = false
-    )
+    data class State(val typedCadence: String = "")
 
     sealed interface Event {
         object OnClickTrackCadence : Event
 
         object OnClickAssignCadence : Event
+
+        data class OnCadenceTyped(val typedCadence: String) : Event
 
         object OnClickFavorite : Event
 

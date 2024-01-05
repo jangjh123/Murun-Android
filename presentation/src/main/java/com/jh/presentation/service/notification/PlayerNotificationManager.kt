@@ -1,4 +1,4 @@
-package com.jh.presentation.service.music_player
+package com.jh.presentation.service.notification
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -10,9 +10,10 @@ import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaStyleNotificationHelper
 import com.jh.murun.presentation.R
+import com.jh.presentation.service.music_player.MusicPlayerService
 
 @UnstableApi
-class CustomNotificationManager(
+class PlayerNotificationManager(
     private val musicPlayerService: MusicPlayerService,
     private val player: ExoPlayer
 ) : DefaultMediaNotificationProvider(musicPlayerService) {
@@ -45,8 +46,7 @@ class CustomNotificationManager(
 
     private fun createNotificationChannel() {
         if (notificationManager.getNotificationChannel(CHANNEL_ID) == null) {
-            val notificationChannel =
-                NotificationChannel(CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_LOW)
+            val notificationChannel = NotificationChannel(CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_HIGH)
             notificationChannel.description = CHANNEL_DESC
             notificationManager.createNotificationChannel(notificationChannel)
         }

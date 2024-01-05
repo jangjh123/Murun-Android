@@ -18,6 +18,7 @@ import com.jh.murun.domain.use_case.music.GetMusicByBpmUseCase
 import com.jh.murun.domain.use_case.music.GetMusicImageUseCase
 import com.jh.presentation.di.IoDispatcher
 import com.jh.presentation.di.MainImmediateDispatcher
+import com.jh.presentation.service.music_player.MusicPlayerStateManager.musicPlayerState
 import com.jh.presentation.service.music_player.MusicPlayerStateManager.updateMusicPlayerState
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineDispatcher
@@ -66,7 +67,7 @@ class MusicLoaderService : LifecycleService() {
             it.copy(isLoading = true)
         }
 
-        getMusicByBpmUseCase(CADENCE).onEach { result ->
+        getMusicByBpmUseCase(musicPlayerState.value.cadence).onEach { result ->
             when (result) {
                 is Success -> {
                     val music = result.data
@@ -80,7 +81,10 @@ class MusicLoaderService : LifecycleService() {
                 is Failure -> {
                     when (result.error.code) {
                         STATUS_CODE_NO_MUSIC -> {
-                            CADENCE = INITIAL_CADENCE
+                            updateMusicPlayerState {
+                                it.copy(cadence = INITIAL_CADENCE)
+                            }
+
                             loadMusicByBpm()
                         }
                     }
@@ -160,6 +164,5 @@ class MusicLoaderService : LifecycleService() {
         private const val METADATA_KEY_MUSIC = "music"
         private const val INITIAL_CADENCE = 130
         private const val STATUS_CODE_NO_MUSIC = 500
-        var CADENCE = 0
     }
 }
