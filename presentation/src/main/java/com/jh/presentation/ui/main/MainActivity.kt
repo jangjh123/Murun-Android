@@ -1,6 +1,7 @@
 package com.jh.presentation.ui.main
 
 import android.Manifest
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -11,9 +12,13 @@ import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.core.content.ContextCompat
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.session.MediaController
+import androidx.media3.session.SessionToken
+import com.google.common.util.concurrent.ListenableFuture
 import com.jh.presentation.base.BaseActivity
 import com.jh.presentation.enums.RunningMode.*
 import com.jh.presentation.service.music_player.MusicPlayerService
+import com.jh.presentation.service.music_player.MusicPlayerStateManager.musicPlayerState
 import com.jh.presentation.ui.*
 import com.jh.presentation.ui.theme.*
 import dagger.hilt.android.AndroidEntryPoint
@@ -21,6 +26,8 @@ import dagger.hilt.android.AndroidEntryPoint
 @androidx.annotation.OptIn(UnstableApi::class)
 @AndroidEntryPoint
 class MainActivity : BaseActivity() {
+    private lateinit var mediaController: ListenableFuture<MediaController>
+
     @Composable
     override fun InitComposeUi() {
         MainScreen(
@@ -32,6 +39,12 @@ class MainActivity : BaseActivity() {
             onClickChangeRepeatMode = { changeRepeatMode() },
             onQuitRunning = { quitRunning() }
         )
+    }
+
+    override fun onStart() {
+        super.onStart()
+        val sessionToken = SessionToken(this, ComponentName(this, MusicPlayerService::class.java))
+        mediaController = MediaController.Builder(this, sessionToken).buildAsync()
     }
 
     private fun trackCadence() {
@@ -110,11 +123,20 @@ class MainActivity : BaseActivity() {
 
     private fun stopServices() {
         try {
+            MediaController.releaseFuture(mediaController)
             stopService(MusicPlayerService.newIntent(this@MainActivity))
 //            unbindService(cadenceTrackingServiceConnection)
         } catch (e: Exception) {
             e.printStackTrace()
         }
+    }
+
+    override fun onDestroy() {
+        if (!musicPlayerState.value.isPlaying) {
+            stopServices()
+        }
+
+        super.onDestroy()
     }
 
     companion object {
