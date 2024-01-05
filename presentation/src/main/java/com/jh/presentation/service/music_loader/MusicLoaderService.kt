@@ -18,6 +18,7 @@ import com.jh.murun.domain.use_case.music.GetMusicByBpmUseCase
 import com.jh.murun.domain.use_case.music.GetMusicImageUseCase
 import com.jh.presentation.di.IoDispatcher
 import com.jh.presentation.di.MainImmediateDispatcher
+import com.jh.presentation.service.music_player.MusicPlayerStateManager.updateMusicPlayerState
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.catch
@@ -61,6 +62,10 @@ class MusicLoaderService : LifecycleService() {
     }
 
     fun loadMusicByBpm() {
+        updateMusicPlayerState {
+            it.copy(isLoading = true)
+        }
+
         getMusicByBpmUseCase(CADENCE).onEach { result ->
             when (result) {
                 is Success -> {
@@ -98,6 +103,10 @@ class MusicLoaderService : LifecycleService() {
                             music = music.apply { image = result.data.bytes() },
                             isFavoriteList = false
                         )
+
+                        updateMusicPlayerState {
+                            it.copy(isLoading = false)
+                        }
                     }
                 }
 
@@ -145,16 +154,6 @@ class MusicLoaderService : LifecycleService() {
         }.catch {
             // todo : 에러 핸들링
         }.launchIn(lifecycleScope + ioDispatcher)
-    }
-
-    override fun onUnbind(intent: Intent?): Boolean {
-        try {
-
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-
-        return super.onUnbind(intent)
     }
 
     companion object {

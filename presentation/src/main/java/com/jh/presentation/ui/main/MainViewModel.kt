@@ -166,26 +166,34 @@ class MainViewModel @Inject constructor(
     }
 
     private fun onClickSkipToPrev() {
-        viewModelScope.launch {
-            _effect.emit(SkipToPrev)
+        if (state.value.isRunning) {
+            viewModelScope.launch {
+                _effect.emit(SkipToPrev)
+            }
         }
     }
 
     private fun onClickPlayOrPause() {
-        viewModelScope.launch {
-            _effect.emit(PlayOrPause)
+        if (state.value.isRunning) {
+            viewModelScope.launch {
+                _effect.emit(PlayOrPause)
+            }
         }
     }
 
     private fun onClickSkipToNext() {
-        viewModelScope.launch {
-            _effect.emit(SkipToNext)
+        if (state.value.isRunning) {
+            viewModelScope.launch {
+                _effect.emit(SkipToNext)
+            }
         }
     }
 
     private fun onClickChangeRepeatMode() {
-        viewModelScope.launch {
-            _effect.emit(ChangeRepeatMode)
+        if (state.value.isRunning) {
+            viewModelScope.launch {
+                _effect.emit(ChangeRepeatMode)
+            }
         }
     }
 

@@ -14,6 +14,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import com.jh.presentation.service.music_loader.MusicLoaderService
 import com.jh.presentation.service.music_loader.MusicLoaderService.MusicLoaderServiceBinder
+import com.jh.presentation.service.music_player.MusicPlayerStateManager.updateMusicPlayerState
 
 @UnstableApi
 class MusicPlayerService : LifecycleService() {
@@ -72,10 +73,10 @@ class MusicPlayerService : LifecycleService() {
     }
 
     fun skipToPrev() {
-        if (exoPlayer.repeatMode == REPEAT_MODE_ALL) {
-            exoPlayer.seekToPreviousMediaItem()
-        } else {
+        if (exoPlayer.repeatMode == REPEAT_MODE_ONE) {
             exoPlayer.seekTo(0L)
+        } else {
+            exoPlayer.seekToPreviousMediaItem()
         }
     }
 
@@ -88,30 +89,38 @@ class MusicPlayerService : LifecycleService() {
     }
 
     fun skipToNext() {
-        if (exoPlayer.repeatMode == REPEAT_MODE_ALL) {
-            if (exoPlayer.hasNextMediaItem()) {
-                exoPlayer.seekToNext()
-            }
+        if (exoPlayer.repeatMode == REPEAT_MODE_ONE) {
+            exoPlayer.seekTo(0L)
+        } else if (exoPlayer.hasNextMediaItem()) {
+            exoPlayer.seekToNext()
         } else {
             musicLoaderService.loadMusicByBpm()
         }
     }
 
     fun changeRepeatMode() {
-        if (exoPlayer.repeatMode == REPEAT_MODE_ALL) {
-            exoPlayer.repeatMode = REPEAT_MODE_ONE
+        val musicPlayerState = MusicPlayerStateManager.musicPlayerState.value
+        if (exoPlayer.repeatMode == REPEAT_MODE_ONE) {
+            if (musicPlayerState.isFavoriteList) {
+                exoPlayer.repeatMode = REPEAT_MODE_ALL
+                updateMusicPlayerState {
+                    it.copy(repeatMode = REPEAT_MODE_ALL)
+                }
+            } else {
+                exoPlayer.repeatMode = REPEAT_MODE_OFF
+                updateMusicPlayerState {
+                    it.copy(repeatMode = REPEAT_MODE_OFF)
+                }
+            }
         } else {
-            exoPlayer.repeatMode = REPEAT_MODE_ALL
+            exoPlayer.repeatMode = REPEAT_MODE_ONE
+            updateMusicPlayerState {
+                it.copy(repeatMode = REPEAT_MODE_ONE)
+            }
         }
     }
 
-    inner class MusicPlayerServiceBinder : Binder() {
-        fun getServiceInstance(): MusicPlayerService {
-            return this@MusicPlayerService
-        }
-    }
-
-    override fun onUnbind(intent: Intent?): Boolean {
+    fun quitRunning() {
         exoPlayer.stop()
         exoPlayer.release()
         notificationManager.dismissNotification()
@@ -121,8 +130,12 @@ class MusicPlayerService : LifecycleService() {
         } catch (e: Exception) {
             e.printStackTrace()
         }
+    }
 
-        return super.onUnbind(intent)
+    inner class MusicPlayerServiceBinder : Binder() {
+        fun getServiceInstance(): MusicPlayerService {
+            return this@MusicPlayerService
+        }
     }
 
     companion object {

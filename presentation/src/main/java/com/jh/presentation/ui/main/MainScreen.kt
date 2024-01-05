@@ -34,6 +34,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.media3.common.Player.REPEAT_MODE_ONE
 import com.jh.murun.presentation.R
 import com.jh.presentation.base.use
 import com.jh.presentation.enums.LoadingMusicType.*
@@ -256,29 +257,29 @@ inline fun MainScreen(
                     val iconColorState = animateColorAsState(targetValue = if (isRunning) MainColor else Color.LightGray)
 
                     Icon(
-                        modifier = Modifier.clickableWithoutRipple { if (musicPlayerState.isLaunched) event(OnClickSkipToPrev) },
+                        modifier = Modifier.clickableWithoutRipple { event(OnClickSkipToPrev) },
                         painter = painterResource(id = R.drawable.ic_skip_prev),
                         contentDescription = "skipToPrevIcon",
                         tint = iconColorState.value
                     )
 
                     Icon(
-                        modifier = Modifier.clickableWithoutRipple { if (musicPlayerState.isLaunched) event(OnClickPlayOrPause) },
+                        modifier = Modifier.clickableWithoutRipple { event(OnClickPlayOrPause) },
                         painter = painterResource(id = if (musicPlayerState.isPlaying) R.drawable.ic_pause else R.drawable.ic_play),
                         contentDescription = "playOrPauseIcon",
                         tint = iconColorState.value
                     )
 
                     Icon(
-                        modifier = Modifier.clickableWithoutRipple { if (musicPlayerState.isLaunched) event(OnClickSkipToNext) },
+                        modifier = Modifier.clickableWithoutRipple { event(OnClickSkipToNext) },
                         painter = painterResource(id = R.drawable.ic_skip_next),
                         contentDescription = "skipToNextIcon",
                         tint = iconColorState.value
                     )
 
                     Icon(
-                        modifier = Modifier.clickableWithoutRipple { if (musicPlayerState.isLaunched) event(OnClickChangeRepeatMode) },
-                        painter = painterResource(id = if (musicPlayerState.isRepeatingOne) R.drawable.ic_repeat_one else R.drawable.ic_repeat_all),
+                        modifier = Modifier.clickableWithoutRipple { event(OnClickChangeRepeatMode) },
+                        painter = painterResource(id = if (musicPlayerState.repeatMode == REPEAT_MODE_ONE) R.drawable.ic_repeat_one else R.drawable.ic_repeat_all),
                         contentDescription = "repeatIcon",
                         tint = iconColorState.value
                     )

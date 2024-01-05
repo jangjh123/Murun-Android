@@ -3,6 +3,7 @@ package com.jh.presentation.service.music_player
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
+import com.jh.presentation.service.music_player.MusicPlayerStateManager.updateMusicPlayerState
 import com.jh.presentation.ui.main.MainActivity
 
 @UnstableApi
@@ -15,14 +16,14 @@ class MusicPlayerListener(
             super.onMediaItemTransition(mediaItem, reason)
             notificationManager.refreshNotification()
 
-            MusicPlayerStateManager.update {
+            updateMusicPlayerState {
                 it.copy(currentMediaItem = mediaItem)
             }
         }
     }
 
     override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
-        MusicPlayerStateManager.update {
+        updateMusicPlayerState {
             it.copy(isPlaying = playWhenReady)
         }
     }

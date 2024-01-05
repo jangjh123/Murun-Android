@@ -55,11 +55,11 @@ class MainActivity : BaseActivity() {
             musicPlayerState = musicPlayerState.value,
             onClickTrackCadence = { trackCadence() },
             onClickAssignCadence = { assignCadence() },
-            onClickSkipToPrev = {},
-            onClickPlayOrPause = {},
-            onClickSkipToNext = {},
-            onClickChangeRepeatMode = {},
-            onQuitRunning = {}
+            onClickSkipToPrev = { skipToPrev() },
+            onClickPlayOrPause = { playOrPause() },
+            onClickSkipToNext = { skipToNext() },
+            onClickChangeRepeatMode = { changeRepeatMode() },
+            onQuitRunning = { quitRunning() }
         )
     }
 
@@ -81,6 +81,26 @@ class MainActivity : BaseActivity() {
         bindMusicPlayerService()
     }
 
+    private fun skipToPrev() {
+        musicPlayerService.skipToPrev()
+    }
+
+    private fun playOrPause() {
+        musicPlayerService.playOrPause()
+    }
+
+    private fun skipToNext() {
+        musicPlayerService.skipToNext()
+    }
+
+    private fun changeRepeatMode() {
+        musicPlayerService.changeRepeatMode()
+    }
+
+    private fun quitRunning() {
+        musicPlayerService.quitRunning()
+    }
+
     private fun bindMusicPlayerService() {
         bindService(
             MusicPlayerService.newIntent(this@MainActivity),
@@ -91,8 +111,8 @@ class MainActivity : BaseActivity() {
 
     override fun onDestroy() {
         try {
-            unbindService(cadenceTrackingServiceConnection)
             unbindService(musicPlayerServiceConnection)
+            unbindService(cadenceTrackingServiceConnection)
         } catch (e: Exception) {
             e.printStackTrace()
         }
