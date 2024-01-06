@@ -8,20 +8,15 @@ import retrofit2.http.Query
 import retrofit2.http.Url
 
 interface ApiService {
-    @GET("song")
-    suspend fun fetchMusicList(
+    @GET("song/random")
+    suspend fun fetchMusicByBpm(
         @Query("bpm") bpm: Int
-    ): Response<List<MusicResponse>>
+    ): Response<MusicResponse>
 
     @GET("song")
     suspend fun fetchMusicById(
         @Query("uuid") id: String
     ): Response<MusicResponse>
-
-    @GET
-    suspend fun fetchMusicFile(
-        @Url url: String
-    ): Response<ResponseBody>
 
     @GET
     suspend fun fetchMusicImage(

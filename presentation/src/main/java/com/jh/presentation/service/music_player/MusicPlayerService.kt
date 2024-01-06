@@ -1,221 +1,111 @@
 package com.jh.presentation.service.music_player
 
-import android.app.Service
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
-import android.os.Binder
 import android.os.IBinder
-import androidx.core.os.bundleOf
-import androidx.media3.common.MediaItem
-import androidx.media3.common.MediaMetadata
-import androidx.media3.common.Player.*
+import androidx.media3.common.Player.REPEAT_MODE_ALL
+import androidx.media3.common.Player.REPEAT_MODE_OFF
+import androidx.media3.common.Player.REPEAT_MODE_ONE
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
-import com.jh.murun.domain.model.Music
-import com.jh.presentation.di.IoDispatcher
-import com.jh.presentation.di.MainDispatcher
-import com.jh.presentation.enums.LoadingMusicType.*
-import com.jh.presentation.service.cadence_tracking.CadenceTrackingService
+import androidx.media3.session.MediaSession
+import androidx.media3.session.MediaSessionService
 import com.jh.presentation.service.music_loader.MusicLoaderService
 import com.jh.presentation.service.music_loader.MusicLoaderService.MusicLoaderServiceBinder
-import com.jh.presentation.ui.main.MainState
-import com.jh.presentation.ui.sendEvent
-import com.jh.presentation.util.CustomNotificationManager
-import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
-import javax.inject.Inject
+import com.jh.presentation.service.music_player.MusicPlayerStateManager.initializeMusicPlayerState
+import com.jh.presentation.service.music_player.MusicPlayerStateManager.musicPlayerState
+import com.jh.presentation.service.music_player.MusicPlayerStateManager.updateMusicPlayerState
 
 @UnstableApi
-@AndroidEntryPoint
-class MusicPlayerService : Service() {
-    @Inject
-    @MainDispatcher
-    lateinit var mainDispatcher: CoroutineDispatcher
-
-    @Inject
-    @IoDispatcher
-    lateinit var ioDispatcher: CoroutineDispatcher
-
-    private val exoPlayer: ExoPlayer by lazy {
-        ExoPlayer.Builder(this@MusicPlayerService).build().apply {
-            addListener(playerListener)
-            repeatMode = REPEAT_MODE_ALL
-        }
-    }
-
-    private val notificationManager by lazy {
-        CustomNotificationManager(
-            this@MusicPlayerService,
-            exoPlayer
-        )
-    }
+class MusicPlayerService : MediaSessionService() {
+    private val exoPlayer: ExoPlayer by lazy { ExoPlayer.Builder(this@MusicPlayerService).build() }
+    private var mediaSession: MediaSession? = null
 
     private lateinit var musicLoaderService: MusicLoaderService
-    private var isMusicLoaderServiceBinding = false
     private val musicLoaderServiceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-            val binder: MusicLoaderServiceBinder = service as MusicLoaderServiceBinder
+            val binder = service as MusicLoaderServiceBinder
             musicLoaderService = binder.getServiceInstance()
-            initPlayer()
+            musicLoaderService.exoPlayer = exoPlayer
+
+            if (musicPlayerState.value.isFavoriteList) {
+                musicLoaderService.loadFavoriteList()
+            } else {
+                musicLoaderService.loadMusicByBpm()
+            }
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {}
     }
 
-    private lateinit var mainState: MainState
+    override fun onCreate() {
+        super.onCreate()
+        mediaSession = MediaSession.Builder(this@MusicPlayerService, exoPlayer).build()
+    }
 
-    private val eventChannel = Channel<MusicPlayerEvent>()
-    val state: StateFlow<MusicPlayerState> = eventChannel.receiveAsFlow()
-        .runningFold(MusicPlayerState(), ::reduceState)
-        .stateIn(
-            CoroutineScope(Dispatchers.Main.immediate),
-            SharingStarted.Eagerly,
-            MusicPlayerState()
+    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        super.onStartCommand(intent, flags, startId)
+        intent?.extras?.getString(KEY_COMMAND)?.let { command ->
+            when (command) {
+                COMMAND_START -> init()
+                COMMAND_SKIP_TO_PREV -> skipToPrev()
+                COMMAND_PLAY_OR_PAUSE -> playOrPause()
+                COMMAND_SKIP_TO_NEXT -> skipToNext()
+                COMMAND_CHANGE_REPEAT_MODE -> changeRepeatMode()
+                COMMAND_QUIT_RUNNING -> quitRunning()
+            }
+        }
+
+        return START_STICKY
+    }
+
+    private fun init() {
+        initMusicPlayer()
+        bindMusicLoaderService()
+    }
+
+    private fun bindMusicLoaderService() {
+        bindService(
+            Intent(this@MusicPlayerService, MusicLoaderService::class.java),
+            musicLoaderServiceConnection,
+            Context.BIND_AUTO_CREATE
         )
-
-    private fun reduceState(state: MusicPlayerState, event: MusicPlayerEvent): MusicPlayerState {
-        return when (event) {
-            is MusicPlayerEvent.Launch -> {
-                state.copy(isLoading = true, isLaunched = true)
-            }
-            is MusicPlayerEvent.LoadMusic -> {
-                state.copy(isLoading = true)
-            }
-            is MusicPlayerEvent.PlayOrPause -> {
-                state.copy(isPlaying = !state.isPlaying)
-            }
-            is MusicPlayerEvent.MusicChanged -> {
-                state.copy(
-                    isLoading = false,
-                    currentMusic = event.currentMediaItem
-                )
-            }
-            is MusicPlayerEvent.RepeatModeChanged -> {
-                state.copy(isRepeatingOne = !state.isRepeatingOne)
-            }
-            is MusicPlayerEvent.Quit -> {
-                state.copy(
-                    isLaunched = false,
-                    isLoading = false,
-                    isPlaying = false,
-                    isRepeatingOne = false,
-                    currentMusic = null
-                )
-            }
-        }
     }
 
-    inner class MusicPlayerServiceBinder : Binder() {
-        fun getServiceInstance(): MusicPlayerService {
-            return this@MusicPlayerService
-        }
-    }
-
-    override fun onBind(intent: Intent?): IBinder {
-        if (!isMusicLoaderServiceBinding) {
-            isMusicLoaderServiceBinding = true
-            bindService(
-                Intent(this@MusicPlayerService, MusicLoaderService::class.java),
-                musicLoaderServiceConnection,
-                Context.BIND_AUTO_CREATE
+    private fun initMusicPlayer() {
+        exoPlayer.apply {
+            val musicPlayerListener = MusicPlayerListener(
+                onMusicEnded = {
+                    if (::musicLoaderService.isInitialized) {
+                        musicLoaderService.loadMusicByBpm()
+                    }
+                }
             )
 
-            eventChannel.sendEvent(MusicPlayerEvent.Launch)
+            addListener(musicPlayerListener)
+            prepare()
+            repeatMode = REPEAT_MODE_OFF
+            playWhenReady = true
         }
 
-        return MusicPlayerServiceBinder()
-    }
-
-    fun setState(mainState: MainState) {
-        this.mainState = mainState
-    }
-
-    private fun initPlayer() {
-        musicLoaderService.setLoadingMusicType(mainState.loadingMusicType)
-        collectMusic()
-
-        when (mainState.loadingMusicType) {
-            TRACKING_CADENCE -> {
-                exoPlayer.repeatMode = REPEAT_MODE_OFF
-                musicLoaderService.loadMusicListByBpm(bpm = 130) // Initial bpm for warming-up
-            }
-            ASSIGN_CADENCE -> {
-                musicLoaderService.loadMusicListByBpm(bpm = mainState.assignedCadence)
-            }
-            FAVORITE_LIST -> {
-                musicLoaderService.loadFavoriteList()
-            }
-            NONE -> Unit
-        }
-
-        notificationManager.showNotification()
-        exoPlayer.prepare()
-        exoPlayer.playWhenReady = true
-    }
-
-    private fun collectMusic() {
-        musicLoaderService.musicFlow.replayCache.run {
-            if (isNotEmpty() && mainState.loadingMusicType != TRACKING_CADENCE) {
-                forEach { music ->
-                    addMusic(music)
-                }
-            }
-        }
-
-        if (mainState.loadingMusicType == TRACKING_CADENCE) {
-            CoroutineScope(mainDispatcher).launch {
-                musicLoaderService.musicFlow.onEach { music ->
-                    if (exoPlayer.currentMediaItem == null) {
-                        addMusic(music)
-                    }
-                }.launchIn(CoroutineScope(mainDispatcher))
-            }
-        } else {
-            CoroutineScope(mainDispatcher).launch {
-                musicLoaderService.musicFlow.onEach { music ->
-                    addMusic(music)
-                }.launchIn(CoroutineScope(mainDispatcher))
-            }
+        updateMusicPlayerState {
+            it.copy(isLaunched = true)
         }
     }
 
-    private fun addMusic(music: Music) {
-        val metadata = MediaMetadata.Builder()
-            .setTitle(music.title)
-            .setArtist(music.artist)
-            .setArtworkData(music.image, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
-            .setExtras(bundleOf(Pair("music", music)))
-            .build()
-
-        val mediaItem = MediaItem.Builder()
-            .setUri(music.url)
-            .setMediaMetadata(metadata)
-            .build()
-
-        if (mainState.loadingMusicType == TRACKING_CADENCE) {
-            exoPlayer.clearMediaItems()
-            exoPlayer.setMediaItem(mediaItem)
-        } else {
-            exoPlayer.addMediaItem(mediaItem)
-        }
-    }
-
-    fun skipToPrev() {
-        if (exoPlayer.repeatMode == REPEAT_MODE_ALL) {
-            exoPlayer.seekToPreviousMediaItem()
-        } else {
+    private fun skipToPrev() {
+        if (exoPlayer.repeatMode == REPEAT_MODE_ONE) {
             exoPlayer.seekTo(0L)
+        } else {
+            exoPlayer.seekToPreviousMediaItem()
         }
     }
 
-    fun playOrPause() {
+    private fun playOrPause() {
         if (exoPlayer.isPlaying) {
             exoPlayer.pause()
         } else {
@@ -223,71 +113,74 @@ class MusicPlayerService : Service() {
         }
     }
 
-    fun skipToNext() {
-        if (exoPlayer.repeatMode == REPEAT_MODE_ALL) {
-            if (exoPlayer.hasNextMediaItem()) {
+    private fun skipToNext() {
+        if (exoPlayer.repeatMode == REPEAT_MODE_ONE) {
+            exoPlayer.seekTo(0L)
+        } else if (exoPlayer.hasNextMediaItem()) {
+            exoPlayer.seekToNext()
+        } else {
+            if (musicPlayerState.value.isFavoriteList) {
                 exoPlayer.seekToNext()
             } else {
-                if (mainState.loadingMusicType == TRACKING_CADENCE) {
-                    exoPlayer.clearMediaItems()
-                    musicLoaderService.loadMusicListByBpm(CadenceTrackingService.cadenceLiveData.value!!)
-                }
+                musicLoaderService.loadMusicByBpm()
             }
-        } else {
-            exoPlayer.seekTo(0L)
         }
     }
 
-    fun changeRepeatMode() {
-        if (exoPlayer.repeatMode == REPEAT_MODE_ALL) {
+    private fun changeRepeatMode() {
+        if (exoPlayer.repeatMode == REPEAT_MODE_ONE) {
+            if (musicPlayerState.value.isFavoriteList) {
+                exoPlayer.repeatMode = REPEAT_MODE_ALL
+                updateMusicPlayerState {
+                    it.copy(repeatMode = REPEAT_MODE_ALL)
+                }
+            } else {
+                exoPlayer.repeatMode = REPEAT_MODE_OFF
+                updateMusicPlayerState {
+                    it.copy(repeatMode = REPEAT_MODE_OFF)
+                }
+            }
+        } else {
             exoPlayer.repeatMode = REPEAT_MODE_ONE
-        } else {
-            exoPlayer.repeatMode = REPEAT_MODE_ALL
-        }
-
-        eventChannel.sendEvent(MusicPlayerEvent.RepeatModeChanged)
-    }
-
-    private val playerListener = object : Listener {
-        override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-            mediaItem?.let {
-                super.onMediaItemTransition(mediaItem, reason)
-                notificationManager.refreshNotification()
-
-                CoroutineScope(mainDispatcher).launch {
-                    eventChannel.sendEvent(
-                        MusicPlayerEvent.MusicChanged(exoPlayer.currentMediaItem)
-                    )
-                }
-            }
-        }
-
-        override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
-            eventChannel.sendEvent(MusicPlayerEvent.PlayOrPause)
-        }
-
-        override fun onPlaybackStateChanged(playbackState: Int) {
-            super.onPlaybackStateChanged(playbackState)
-            if (playbackState == STATE_ENDED) {
-                exoPlayer.clearMediaItems()
-                musicLoaderService.loadMusicListByBpm(CadenceTrackingService.cadenceLiveData.value!!)
+            updateMusicPlayerState {
+                it.copy(repeatMode = REPEAT_MODE_ONE)
             }
         }
     }
 
-    override fun onUnbind(intent: Intent?): Boolean {
-        eventChannel.sendEvent(MusicPlayerEvent.Quit)
-        exoPlayer.stop()
-        notificationManager.dismissNotification()
-
-        if (isMusicLoaderServiceBinding) {
-            isMusicLoaderServiceBinding = false
-
-            runCatching {
-                unbindService(musicLoaderServiceConnection)
-            }
+    private fun quitRunning() {
+        mediaSession?.run {
+            release()
+            mediaSession = null
         }
 
-        return super.onUnbind(intent)
+        exoPlayer.release()
+        initializeMusicPlayerState()
+
+        try {
+            unbindService(musicLoaderServiceConnection)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    override fun onDestroy() {
+        quitRunning()
+        super.onDestroy()
+    }
+
+    companion object {
+        private const val KEY_COMMAND = "key_command"
+
+        const val COMMAND_START = "command_start"
+        const val COMMAND_SKIP_TO_PREV = "command_skip_to_prev"
+        const val COMMAND_PLAY_OR_PAUSE = "command_play_or_pause"
+        const val COMMAND_SKIP_TO_NEXT = "command_skip_to_next"
+        const val COMMAND_CHANGE_REPEAT_MODE = "command_change_repeat_mode"
+        const val COMMAND_QUIT_RUNNING = "command_quit_running"
+
+        fun newIntent(context: Context, command: String? = null): Intent = Intent(context, MusicPlayerService::class.java).apply {
+            putExtra(KEY_COMMAND, command)
+        }
     }
 }

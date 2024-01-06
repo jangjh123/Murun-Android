@@ -8,5 +8,5 @@ import javax.inject.Inject
 class DeleteFavoriteMusicUseCase @Inject constructor(
     private val favoriteRepository: FavoriteRepository
 ) {
-    suspend operator fun invoke(music: Music): Flow<Boolean> = favoriteRepository.deleteMusicFromFavoriteList(music)
+    operator fun invoke(music: Music): Flow<Boolean> = favoriteRepository.deleteMusicFromFavoriteList(music)
 }

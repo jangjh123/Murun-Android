@@ -1,147 +1,223 @@
 package com.jh.presentation.ui.main
 
 import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.common.MediaItem
 import com.jh.murun.domain.model.Music
 import com.jh.murun.domain.use_case.favorite.AddFavoriteMusicUseCase
-import com.jh.presentation.base.BaseViewModel
 import com.jh.presentation.di.IoDispatcher
-import com.jh.presentation.enums.LoadingMusicType.*
-import com.jh.presentation.ui.sendEvent
-import com.jh.presentation.ui.sendSideEffect
+import com.jh.presentation.di.MainImmediateDispatcher
+import com.jh.presentation.enums.RunningMode.ASSIGN_CADENCE
+import com.jh.presentation.enums.RunningMode.NONE
+import com.jh.presentation.enums.RunningMode.TRACKING_CADENCE
+import com.jh.presentation.service.music_player.MusicPlayerStateManager.musicPlayerState
+import com.jh.presentation.service.music_player.MusicPlayerStateManager.updateMusicPlayerState
+import com.jh.presentation.ui.main.MainContract.Effect
+import com.jh.presentation.ui.main.MainContract.Effect.AssignCadence
+import com.jh.presentation.ui.main.MainContract.Effect.ChangeRepeatMode
+import com.jh.presentation.ui.main.MainContract.Effect.GoToFavorite
+import com.jh.presentation.ui.main.MainContract.Effect.PlayFavoriteList
+import com.jh.presentation.ui.main.MainContract.Effect.PlayOrPause
+import com.jh.presentation.ui.main.MainContract.Effect.QuitRunning
+import com.jh.presentation.ui.main.MainContract.Effect.ShowToast
+import com.jh.presentation.ui.main.MainContract.Effect.SkipToNext
+import com.jh.presentation.ui.main.MainContract.Effect.SkipToPrev
+import com.jh.presentation.ui.main.MainContract.Effect.TrackCadence
+import com.jh.presentation.ui.main.MainContract.Event.OnCadenceTyped
+import com.jh.presentation.ui.main.MainContract.Event.OnClickAddFavoriteMusic
+import com.jh.presentation.ui.main.MainContract.Event.OnClickAssignCadence
+import com.jh.presentation.ui.main.MainContract.Event.OnClickChangeRepeatMode
+import com.jh.presentation.ui.main.MainContract.Event.OnClickFavorite
+import com.jh.presentation.ui.main.MainContract.Event.OnClickPlayOrPause
+import com.jh.presentation.ui.main.MainContract.Event.OnClickSkipToNext
+import com.jh.presentation.ui.main.MainContract.Event.OnClickSkipToPrev
+import com.jh.presentation.ui.main.MainContract.Event.OnClickStartRunning
+import com.jh.presentation.ui.main.MainContract.Event.OnClickTrackCadence
+import com.jh.presentation.ui.main.MainContract.Event.OnGetFavoriteActivityResult
+import com.jh.presentation.ui.main.MainContract.Event.OnLongClickQuitRunning
+import com.jh.presentation.ui.main.MainContract.State
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.plus
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+    @MainImmediateDispatcher private val mainImmediateDispatcher: CoroutineDispatcher,
     private val savedStateHandle: SavedStateHandle,
     private val addFavoriteMusicUseCase: AddFavoriteMusicUseCase
-) : BaseViewModel() {
+) : MainContract, ViewModel() {
+    private val _state = MutableStateFlow(State())
+    override val state: StateFlow<State> = _state.asStateFlow()
 
-    private val eventChannel = Channel<MainEvent>()
-    private val _sideEffectChannel = Channel<MainSideEffect>()
-    val sideEffectChannelFlow = _sideEffectChannel.receiveAsFlow()
+    private val _effect = MutableSharedFlow<Effect>()
+    override val effect: SharedFlow<Effect> = _effect.asSharedFlow()
 
-    val state: StateFlow<MainState> = eventChannel.receiveAsFlow()
-        .runningFold(MainState(), ::reduceState)
-        .stateIn(viewModelScope, SharingStarted.Eagerly, MainState())
+    override fun event(event: MainContract.Event) = when (event) {
+        is OnClickTrackCadence -> {
+            onClickTrackCadence()
+        }
 
-    private fun reduceState(state: MainState, event: MainEvent): MainState {
-        return when (event) {
-            is MainEvent.TrackCadence -> {
-                state.copy(loadingMusicType = TRACKING_CADENCE)
-            }
-            is MainEvent.AssignCadence -> {
-                state.copy(loadingMusicType = ASSIGN_CADENCE)
-            }
-            is MainEvent.PlayFavoriteList -> {
-                state.copy(loadingMusicType = FAVORITE_LIST)
-            }
-            is MainEvent.StartRunning -> {
-                state.copy(isRunning = true)
-            }
-            is MainEvent.StopRunning -> {
-                state.copy(isRunning = false)
-            }
-            is MainEvent.SetAssignedCadence -> {
-                state.copy(assignedCadence = event.cadence)
+        is OnClickAssignCadence -> {
+            onClickAssignCadence()
+        }
+
+        is OnCadenceTyped -> {
+            onCadenceTyped(event.typedCadence)
+        }
+
+        is OnClickFavorite -> {
+            onClickFavorite()
+        }
+
+        is OnGetFavoriteActivityResult -> {
+            onGetFavoriteActivityResult()
+        }
+
+        is OnClickStartRunning -> {
+            onClickStartRunning()
+        }
+
+        is OnLongClickQuitRunning -> {
+            onLongClickQuitRunning()
+        }
+
+        is OnClickAddFavoriteMusic -> {
+            onClickAddFavoriteMusic(event.mediaItem)
+        }
+
+        is OnClickSkipToPrev -> {
+            onClickSkipToPrev()
+        }
+
+        is OnClickPlayOrPause -> {
+            onClickPlayOrPause()
+        }
+
+        is OnClickSkipToNext -> {
+            onClickSkipToNext()
+        }
+
+        is OnClickChangeRepeatMode -> {
+            onClickChangeRepeatMode()
+        }
+    }
+
+    private fun onClickTrackCadence() {
+        updateMusicPlayerState {
+            it.copy(runningMode = TRACKING_CADENCE)
+        }
+    }
+
+    private fun onClickAssignCadence() {
+        updateMusicPlayerState {
+            it.copy(runningMode = ASSIGN_CADENCE)
+        }
+    }
+
+    private fun onCadenceTyped(typedCadence: String) {
+        updateMusicPlayerState {
+            it.copy(cadence = if (typedCadence.length in 1..3 && typedCadence.toInt() in 0..180) typedCadence.toInt() else 0)
+        }
+    }
+
+    private fun onClickFavorite() {
+        viewModelScope.launch {
+            _effect.emit(GoToFavorite)
+        }
+    }
+
+    private fun onGetFavoriteActivityResult() {
+        viewModelScope.launch {
+            _effect.emit(PlayFavoriteList)
+        }
+    }
+
+    private fun onClickStartRunning() {
+        viewModelScope.launch {
+            when (musicPlayerState.value.runningMode) {
+                TRACKING_CADENCE -> {
+                    _effect.emit(TrackCadence)
+                }
+                ASSIGN_CADENCE -> {
+                    _effect.emit(AssignCadence)
+                }
+                else -> {
+                    _effect.emit(ShowToast("케이던스 설정 방식을 선택해 주세요."))
+                }
             }
         }
     }
 
-    fun getIsStartedRunningWithFavoriteList() {
-        if (savedStateHandle.get<Boolean>(MainActivity.KEY_IS_RUNNING_STARTED) == true) {
-            sendEvent(eventChannel, MainEvent.PlayFavoriteList)
-            startRunning()
-            savedStateHandle.remove<Boolean>(MainActivity.KEY_IS_RUNNING_STARTED)
+    private fun onLongClickQuitRunning() {
+        updateMusicPlayerState {
+            it.copy(
+                isLaunched = false,
+                runningMode = NONE,
+                cadence = 0
+            )
+        }
+
+        viewModelScope.launch {
+            _effect.emit(QuitRunning)
         }
     }
 
-    fun onClickSkipToPrev() {
-        sendSideEffect(_sideEffectChannel, MainSideEffect.SkipToPrev)
-    }
-
-    fun onClickPlayOrPause() {
-        sendSideEffect(_sideEffectChannel, MainSideEffect.PlayOrPause)
-    }
-
-    fun onClickSkipToNext() {
-        sendSideEffect(_sideEffectChannel, MainSideEffect.SkipToNext)
-    }
-
-    fun onClickChangeRepeatMode() {
-        if (state.value.loadingMusicType == TRACKING_CADENCE) {
-            showToast("케이던스 트래킹 모드는 한 곡 반복을 사용할 수 없습니다.")
-        } else {
-            sendSideEffect(_sideEffectChannel, MainSideEffect.ChangeRepeatMode)
+    private fun onClickAddFavoriteMusic(mediaItem: MediaItem) {
+        mediaItem.mediaMetadata.extras?.get(METADATA_KEY_MUSIC).let { music ->
+            addFavoriteMusicUseCase(music as Music).onEach { isSuccess ->
+                withContext(mainImmediateDispatcher) {
+                    _effect.emit(ShowToast(if (isSuccess) "곡을 리스트에 추가하였습니다." else "곡을 리스트에 저장할 수 없습니다."))
+                }
+            }.launchIn(viewModelScope + ioDispatcher)
         }
     }
 
-    fun onClickTrackCadence() {
-        sendEvent(eventChannel, MainEvent.TrackCadence)
-    }
-
-    fun onClickAssignCadence() {
-        sendEvent(eventChannel, MainEvent.AssignCadence)
-    }
-
-    fun onClickStartRunning(cadence: Int?) {
-        startRunning()
-
-        if (state.value.loadingMusicType == TRACKING_CADENCE) {
-            sendSideEffect(_sideEffectChannel, MainSideEffect.TrackCadence)
-        } else if (state.value.loadingMusicType == ASSIGN_CADENCE) {
-            sendEvent(eventChannel, MainEvent.SetAssignedCadence(cadence!!))
-        }
-    }
-
-    fun onClickStopRunning() {
-        sendEvent(eventChannel, MainEvent.StopRunning)
-        sendSideEffect(_sideEffectChannel, MainSideEffect.QuitMusicPlayer)
-
-        if (state.value.loadingMusicType == TRACKING_CADENCE) {
-            sendSideEffect(_sideEffectChannel, MainSideEffect.StopTrackingCadence)
-        }
-    }
-
-    fun onClickFavorite() {
-        sendSideEffect(_sideEffectChannel, MainSideEffect.GoToFavorite)
-    }
-
-    fun onClickAddFavoriteMusic() {
-        sendSideEffect(_sideEffectChannel, MainSideEffect.AddFavoriteMusic)
-    }
-
-    fun showToast(text: String) {
-        sendSideEffect(_sideEffectChannel, MainSideEffect.ShowToast(text))
-    }
-
-    private fun startRunning() {
-        sendEvent(eventChannel, MainEvent.StartRunning)
-        sendSideEffect(_sideEffectChannel, MainSideEffect.LaunchMusicPlayer)
-    }
-
-    fun addFavoriteMusic(mediaItem: MediaItem?) {
-        mediaItem?.mediaMetadata?.extras?.get("music").let { music ->
-            viewModelScope.launch(ioDispatcher) {
-                addFavoriteMusicUseCase(music as Music).onEach { result ->
-                    when (result) {
-                        true -> {
-                            showToast("곡을 리스트에 추가하였습니다.")
-                        }
-
-                        false -> {
-                            showToast("곡을 리스트에 저장할 수 없습니다.")
-                        }
-                    }
-                }.launchIn(viewModelScope)
+    private fun onClickSkipToPrev() {
+        if (musicPlayerState.value.isLaunched) {
+            viewModelScope.launch {
+                _effect.emit(SkipToPrev)
             }
         }
+    }
+
+    private fun onClickPlayOrPause() {
+        if (musicPlayerState.value.isLaunched) {
+            viewModelScope.launch {
+                _effect.emit(PlayOrPause)
+            }
+        }
+    }
+
+    private fun onClickSkipToNext() {
+        if (musicPlayerState.value.isLaunched) {
+            viewModelScope.launch {
+                _effect.emit(SkipToNext)
+            }
+        }
+    }
+
+    private fun onClickChangeRepeatMode() {
+        if (musicPlayerState.value.isLaunched) {
+            viewModelScope.launch {
+                _effect.emit(ChangeRepeatMode)
+            }
+        }
+    }
+
+    companion object {
+        private const val METADATA_KEY_MUSIC = "music"
     }
 }

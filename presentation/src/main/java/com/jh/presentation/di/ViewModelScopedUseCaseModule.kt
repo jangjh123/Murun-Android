@@ -5,7 +5,7 @@ import com.jh.murun.domain.repository.SplashRepository
 import com.jh.murun.domain.use_case.favorite.AddFavoriteMusicUseCase
 import com.jh.murun.domain.use_case.favorite.DeleteFavoriteMusicUseCase
 import com.jh.murun.domain.use_case.favorite.GetFavoriteListUseCase
-import com.jh.murun.domain.use_case.favorite.UpdateReorderedFavoriteMusicListUseCase
+import com.jh.murun.domain.use_case.favorite.UpdateReorderedFavoriteListUseCase
 import com.jh.murun.domain.use_case.splash.GetToSkipOnBoardingUseCase
 import com.jh.murun.domain.use_case.splash.SetToSkipOnBoardingUseCase
 import dagger.Module
@@ -40,5 +40,5 @@ object ViewModelScopedUseCaseModule {
 
     @ViewModelScoped
     @Provides
-    fun provideUpdateReorderedFavoriteListUseCase(favoriteRepository: FavoriteRepository) = UpdateReorderedFavoriteMusicListUseCase(favoriteRepository)
+    fun provideUpdateReorderedFavoriteListUseCase(favoriteRepository: FavoriteRepository) = UpdateReorderedFavoriteListUseCase(favoriteRepository)
 }

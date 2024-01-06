@@ -6,5 +6,5 @@ import javax.inject.Inject
 class GetFavoriteListUseCase @Inject constructor(
     private val favoriteRepository: FavoriteRepository
 ) {
-    suspend operator fun invoke() = favoriteRepository.readAllMusics()
+    operator fun invoke() = favoriteRepository.readAllMusics()
 }

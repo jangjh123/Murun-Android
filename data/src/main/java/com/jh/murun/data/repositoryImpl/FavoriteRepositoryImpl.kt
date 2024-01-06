@@ -11,7 +11,7 @@ class FavoriteRepositoryImpl @Inject constructor(
     private val musicDao: MusicDao
 ) : FavoriteRepository {
 
-    override suspend fun readAllMusics(): Flow<List<Music>?> {
+    override fun readAllMusics(): Flow<List<Music>?> {
         return flow {
             runCatching {
                 musicDao.readAllMusic()
@@ -23,7 +23,7 @@ class FavoriteRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun insertMusicToFavoriteList(music: Music): Flow<Boolean> {
+    override fun insertMusicToFavoriteList(music: Music): Flow<Boolean> {
         return flow {
             runCatching {
                 musicDao.insertMusic(music)
@@ -35,7 +35,7 @@ class FavoriteRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun deleteMusicFromFavoriteList(music: Music): Flow<Boolean> {
+    override fun deleteMusicFromFavoriteList(music: Music): Flow<Boolean> {
         return flow {
             runCatching {
                 musicDao.deleteMusic(music.id)
@@ -47,11 +47,18 @@ class FavoriteRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun updateReorderedFavoriteList(musics: List<Music>) {
-        runCatching {
-            musicDao.deleteAllMusic()
-        }.onSuccess {
-            musicDao.insertAllMusic(musics)
+    override suspend fun updateReorderedFavoriteList(musicList: List<Music>) {
+        try {
+            musicList.forEach { music ->
+                music.newIndex?.let {
+                    musicDao.updateNewIndex(
+                        newIndex = it,
+                        id = music.id
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 }

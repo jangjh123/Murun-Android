@@ -1,40 +1,67 @@
 package com.jh.presentation.ui.splash
 
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jh.murun.domain.use_case.splash.GetToSkipOnBoardingUseCase
-import com.jh.murun.domain.use_case.splash.SetToSkipOnBoardingUseCase
-import com.jh.presentation.base.BaseViewModel
 import com.jh.presentation.di.IoDispatcher
-import com.jh.presentation.ui.sendSideEffect
+import com.jh.presentation.di.MainImmediateDispatcher
+import com.jh.presentation.ui.splash.SplashContract.Effect
+import com.jh.presentation.ui.splash.SplashContract.Effect.NoSkipOnBoarding
+import com.jh.presentation.ui.splash.SplashContract.Effect.SkipOnBoarding
+import com.jh.presentation.ui.splash.SplashContract.Event.OnStarted
+import com.jh.presentation.ui.splash.SplashContract.State
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.receiveAsFlow
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.plus
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
 class SplashViewModel @Inject constructor(
-    private val getToSkipOnBoardingUseCase: GetToSkipOnBoardingUseCase,
-    private val setToSkipOnBoardingUseCase: SetToSkipOnBoardingUseCase,
-    @IoDispatcher private val ioDispatcher: CoroutineDispatcher
-) : BaseViewModel() {
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+    @MainImmediateDispatcher private val mainImmediateDispatcher: CoroutineDispatcher,
+    private val getToSkipOnBoardingUseCase: GetToSkipOnBoardingUseCase
+) : SplashContract, ViewModel() {
+    private val _state = MutableStateFlow(State())
+    override val state: StateFlow<State> = _state.asStateFlow()
 
-    private val _sideEffectChannel = Channel<SplashSideEffect>()
-    val sideEffectChannelFlow = _sideEffectChannel.receiveAsFlow()
+    private val _effect = MutableSharedFlow<Effect>()
+    override val effect: SharedFlow<Effect> = _effect.asSharedFlow()
 
-    fun checkToSkipOnBoarding() {
-        viewModelScope.launch(ioDispatcher) {
-            when (getToSkipOnBoardingUseCase().first()) {
-                true -> {
-                    sendSideEffect(_sideEffectChannel, SplashSideEffect.SkipOnBoarding)
-                }
-                false -> {
-                    sendSideEffect(_sideEffectChannel, SplashSideEffect.NoSkipOnBoarding)
-                    setToSkipOnBoardingUseCase()
+    override fun event(event: SplashContract.Event) = when (event) {
+        is OnStarted -> onStarted()
+    }
+
+    private fun onStarted() {
+        checkToSkipOnBoarding()
+    }
+
+    private fun checkToSkipOnBoarding() {
+        getToSkipOnBoardingUseCase().onEach { isSkippable ->
+            withContext(mainImmediateDispatcher) {
+                when (isSkippable) {
+                    true -> {
+                        _effect.emit(SkipOnBoarding)
+                    }
+
+                    false -> {
+                        _effect.emit(NoSkipOnBoarding)
+                    }
                 }
             }
-        }
+        }.catch {
+            withContext(mainImmediateDispatcher) {
+                _effect.emit(NoSkipOnBoarding)
+            }
+        }.launchIn(viewModelScope + ioDispatcher)
     }
 }
