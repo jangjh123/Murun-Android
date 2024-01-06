@@ -146,13 +146,17 @@ class MainViewModel @Inject constructor(
     }
 
     private fun onClickStartRunning() {
-        if (musicPlayerState.value.runningMode == TRACKING_CADENCE) {
-            viewModelScope.launch {
-                _effect.emit(TrackCadence)
-            }
-        } else if (musicPlayerState.value.runningMode == ASSIGN_CADENCE) {
-            viewModelScope.launch {
-                _effect.emit(AssignCadence)
+        viewModelScope.launch {
+            when (musicPlayerState.value.runningMode) {
+                TRACKING_CADENCE -> {
+                    _effect.emit(TrackCadence)
+                }
+                ASSIGN_CADENCE -> {
+                    _effect.emit(AssignCadence)
+                }
+                else -> {
+                    _effect.emit(ShowToast("케이던스 설정 방식을 선택해 주세요."))
+                }
             }
         }
     }

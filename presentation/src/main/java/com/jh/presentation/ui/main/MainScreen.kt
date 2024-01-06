@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment.Companion.BottomCenter
 import androidx.compose.ui.Alignment.Companion.BottomEnd
 import androidx.compose.ui.Alignment.Companion.Center
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
+import androidx.compose.ui.Alignment.Companion.TopCenter
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
@@ -33,6 +34,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -85,6 +87,7 @@ inline fun MainScreen(
     val (state, event, effect) = use(viewModel)
     val context = LocalContext.current as ComponentActivity
     val focusManager = LocalFocusManager.current
+    val musicPlayerState = musicPlayerState.value
 
     val favoriteListLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult(),
@@ -143,7 +146,7 @@ inline fun MainScreen(
 
     with(state) {
         Box(modifier = Modifier.fillMaxSize()) {
-            val bitmapByteArray = musicPlayerState.value.currentMediaItem?.mediaMetadata?.artworkData
+            val bitmapByteArray = musicPlayerState.currentMediaItem?.mediaMetadata?.artworkData
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -191,7 +194,7 @@ inline fun MainScreen(
                             contentScale = if (bitmapByteArray != null) FillBounds else Crop
                         )
 
-                        if (musicPlayerState.value.currentMediaItem == null) {
+                        if (musicPlayerState.currentMediaItem == null) {
                             Text(
                                 modifier = Modifier.align(Center),
                                 text = "No Music",
@@ -207,7 +210,7 @@ inline fun MainScreen(
                             .height(120.dp),
                         verticalArrangement = SpaceBetween
                     ) {
-                        musicPlayerState.value.currentMediaItem?.let { currentMediaItem ->
+                        musicPlayerState.currentMediaItem?.let { currentMediaItem ->
                             Column {
                                 Text(
                                     text = currentMediaItem.mediaMetadata.title.toString(),
@@ -274,7 +277,7 @@ inline fun MainScreen(
                     horizontalArrangement = Arrangement.spacedBy(36.dp)
                 ) {
                     val iconColorState = animateColorAsState(
-                        targetValue = if (musicPlayerState.value.isLaunched) MainColor else Color.LightGray,
+                        targetValue = if (musicPlayerState.isLaunched) MainColor else Color.LightGray,
                         label = "allIconColor"
                     )
 
@@ -287,7 +290,7 @@ inline fun MainScreen(
 
                     Icon(
                         modifier = Modifier.clickableWithoutRipple { event(OnClickPlayOrPause) },
-                        painter = painterResource(id = if (musicPlayerState.value.isPlaying) R.drawable.ic_pause else R.drawable.ic_play),
+                        painter = painterResource(id = if (musicPlayerState.isPlaying) R.drawable.ic_pause else R.drawable.ic_play),
                         contentDescription = "playOrPauseIcon",
                         tint = iconColorState.value
                     )
@@ -301,7 +304,7 @@ inline fun MainScreen(
 
                     Icon(
                         modifier = Modifier.clickableWithoutRipple { event(OnClickChangeRepeatMode) },
-                        painter = painterResource(id = if (musicPlayerState.value.repeatMode == REPEAT_MODE_ONE) R.drawable.ic_repeat_one else R.drawable.ic_repeat_all),
+                        painter = painterResource(id = if (musicPlayerState.repeatMode == REPEAT_MODE_ONE) R.drawable.ic_repeat_one else R.drawable.ic_repeat_all),
                         contentDescription = "repeatIcon",
                         tint = iconColorState.value
                     )
@@ -313,20 +316,20 @@ inline fun MainScreen(
                 ) {
                     Column {
                         val cadenceTrackingColorState = animateColorAsState(
-                            targetValue = if (musicPlayerState.value.runningMode == TRACKING_CADENCE) MainColor
+                            targetValue = if (musicPlayerState.runningMode == TRACKING_CADENCE) MainColor
                             else Color.LightGray,
                             label = "cadenceTrackingColor"
                         )
                         val cadenceTrackingAlphaState = animateFloatAsState(
-                            targetValue = if (musicPlayerState.value.runningMode == ASSIGN_CADENCE && musicPlayerState.value.isLaunched) 0.3f else 1f,
+                            targetValue = if (musicPlayerState.runningMode == ASSIGN_CADENCE && musicPlayerState.isLaunched) 0.3f else 1f,
                             label = "cadenceTrackingAlpha"
                         )
                         val cadenceAssignColorState = animateColorAsState(
-                            targetValue = if (musicPlayerState.value.runningMode == ASSIGN_CADENCE) MainColor else Color.LightGray,
+                            targetValue = if (musicPlayerState.runningMode == ASSIGN_CADENCE) MainColor else Color.LightGray,
                             label = "cadenceAssignColor"
                         )
                         val cadenceAssignAlphaState = animateFloatAsState(
-                            targetValue = if (musicPlayerState.value.runningMode == ASSIGN_CADENCE && musicPlayerState.value.isLaunched) 0.3f else 1f,
+                            targetValue = if (musicPlayerState.runningMode == ASSIGN_CADENCE && musicPlayerState.isLaunched) 0.3f else 1f,
                             label = "cadenceAssignAlpha"
                         )
 
@@ -336,155 +339,146 @@ inline fun MainScreen(
                                 .fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-
-                            Column(
+                            Box(
                                 modifier = Modifier
-                                    .weight(1f)
-                                    .alpha(cadenceTrackingAlphaState.value)
-                            ) {
-                                BorderedRoundedCornerButton(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(48.dp),
-                                    borderColor = cadenceTrackingColorState.value,
-                                    backgroundColor = Color.White,
-                                    text = "케이던스 트래킹",
-                                    textColor = cadenceTrackingColorState.value,
-                                    onClick = { if (!musicPlayerState.value.isLaunched) event(OnClickTrackCadence) }
-                                )
-
-                                Box(
-                                    modifier = Modifier
-                                        .padding(top = 12.dp)
-                                        .border(
-                                            shape = Shapes.large,
-                                            width = 1.dp,
-                                            color = cadenceTrackingColorState.value,
-                                        )
-                                        .fillMaxWidth()
-                                        .height(200.dp)
-                                ) {
-                                    Text(
-                                        modifier = Modifier.align(Center),
-                                        text = "", // todo : cadence
-                                        style = Typography.h5,
+                                    .border(
+                                        shape = Shapes.large,
+                                        width = 1.dp,
                                         color = cadenceTrackingColorState.value,
                                     )
-                                }
-                            }
-
-                            Column(
-                                modifier = Modifier
                                     .weight(1f)
-                                    .alpha(cadenceAssignAlphaState.value)
+                                    .height(200.dp)
+                                    .alpha(cadenceTrackingAlphaState.value)
+                                    .clickableWithoutRipple { if (!musicPlayerState.isLaunched) event(OnClickTrackCadence) }
                             ) {
-                                BorderedRoundedCornerButton(
+                                Text(
                                     modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(48.dp),
-                                    borderColor = cadenceAssignColorState.value,
-                                    backgroundColor = Color.White,
-                                    text = "케이던스 입력",
-                                    textColor = cadenceAssignColorState.value,
-                                    onClick = { if (!musicPlayerState.value.isLaunched) event(OnClickAssignCadence) }
+                                        .padding(12.dp)
+                                        .align(TopCenter),
+                                    text = "케이던스 트래킹하기",
+                                    color = cadenceTrackingColorState.value
                                 )
 
-                                Box(
+                                Text(
+                                    modifier = Modifier.align(Center),
+                                    text = if (musicPlayerState.runningMode == TRACKING_CADENCE && musicPlayerState.isLaunched) "${musicPlayerState.cadence}" else "0",
+                                    style = Typography.h5,
+                                    color = cadenceTrackingColorState.value
+                                )
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .border(
+                                        shape = Shapes.large,
+                                        width = 1.dp,
+                                        color = cadenceAssignColorState.value,
+                                    )
+                                    .weight(1f)
+                                    .height(200.dp)
+                                    .alpha(cadenceTrackingAlphaState.value)
+                                    .clickableWithoutRipple { if (!musicPlayerState.isLaunched) event(OnClickAssignCadence) }
+                            ) {
+                                Text(
                                     modifier = Modifier
-                                        .padding(top = 12.dp)
-                                        .border(
-                                            shape = Shapes.large,
-                                            width = 1.dp,
-                                            color = cadenceAssignColorState.value,
-                                        )
-                                        .fillMaxWidth()
-                                        .height(200.dp)
+                                        .padding(12.dp)
+                                        .align(TopCenter),
+                                    text = "케이던스 지정하기",
+                                    color = cadenceAssignColorState.value
+                                )
+
+                                Column(
+                                    modifier = Modifier.align(Center),
+                                    horizontalAlignment = CenterHorizontally
                                 ) {
-                                    Column(
-                                        modifier = Modifier.align(Center),
-                                        horizontalAlignment = CenterHorizontally
-                                    ) {
-                                        Text(
-                                            text = "60 이상 180 이하",
-                                            style = Typography.body1,
-                                            color = Gray3
+                                    Text(
+                                        text = "60 이상 180 이하",
+                                        style = Typography.body1,
+                                        color = cadenceAssignColorState.value
+                                    )
+
+                                    CompositionLocalProvider(
+                                        LocalTextSelectionColors.provides(
+                                            TextSelectionColors(
+                                                handleColor = MainColor,
+                                                backgroundColor = Gray0
+                                            )
                                         )
+                                    ) {
+                                        val cadence = musicPlayerState.cadence
 
-                                        CompositionLocalProvider(
-                                            LocalTextSelectionColors.provides(
-                                                TextSelectionColors(
-                                                    handleColor = MainColor,
-                                                    backgroundColor = Gray0
+                                        TextField(
+                                            value = if (musicPlayerState.runningMode == ASSIGN_CADENCE && cadence != 0) cadence.toString() else typedCadence,
+                                            onValueChange = { event(OnCadenceTyped("$typedCadence$it".filter { it.isDigit() })) },
+                                            placeholder = {
+                                                Text(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    text = "입력",
+                                                    style = Typography.h6,
+                                                    color = cadenceAssignColorState.value,
                                                 )
-                                            )
-                                        ) {
-                                            val cadence = musicPlayerState.value.cadence
-
-                                            TextField(
-                                                value = if (musicPlayerState.value.runningMode == ASSIGN_CADENCE && cadence != 0) cadence.toString() else typedCadence,
-                                                onValueChange = { event(OnCadenceTyped("$typedCadence$it".filter { it.isDigit() })) },
-                                                placeholder = {
-                                                    Text(
-                                                        modifier = Modifier.fillMaxWidth(),
-                                                        text = "입력",
-                                                        style = Typography.h6,
-                                                        color = cadenceAssignColorState.value,
-                                                    )
-                                                },
-                                                textStyle = Typography.h6,
-                                                keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
-                                                keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
-                                                singleLine = true,
-                                                colors = TextFieldDefaults.textFieldColors(
-                                                    textColor = MainColor,
-                                                    backgroundColor = Color.White,
-                                                    cursorColor = MainColor,
-                                                    focusedIndicatorColor = Color.Transparent,
-                                                    unfocusedIndicatorColor = Color.Transparent,
-                                                    disabledIndicatorColor = Color.Transparent,
-                                                ),
-                                                enabled = musicPlayerState.value.runningMode == ASSIGN_CADENCE
-                                            )
-                                        }
+                                            },
+                                            textStyle = Typography.h6,
+                                            keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
+                                            keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+                                            singleLine = true,
+                                            colors = TextFieldDefaults.textFieldColors(
+                                                textColor = MainColor,
+                                                backgroundColor = Color.White,
+                                                cursorColor = MainColor,
+                                                focusedIndicatorColor = Color.Transparent,
+                                                unfocusedIndicatorColor = Color.Transparent,
+                                                disabledIndicatorColor = Color.Transparent,
+                                            ),
+                                            enabled = musicPlayerState.runningMode == ASSIGN_CADENCE && !musicPlayerState.isLaunched
+                                        )
                                     }
                                 }
                             }
                         }
                     }
-
                     val buttonTextColorState = animateColorAsState(
-                        targetValue = if (musicPlayerState.value.isLaunched) Red else Color.White,
+                        targetValue = if (musicPlayerState.isLaunched) Red else Color.White,
                         label = "buttonTextColor"
                     )
                     val buttonBackgroundColorState = animateColorAsState(
-                        targetValue = if (musicPlayerState.value.isLaunched) Color.White else MainColor,
+                        targetValue = if (musicPlayerState.isLaunched) Color.White else MainColor,
                         label = "buttonBackgroundColor"
                     )
                     val buttonBorderColorState = animateColorAsState(
-                        targetValue = if (musicPlayerState.value.isLaunched) Red else MainColor,
+                        targetValue = if (musicPlayerState.isLaunched) Red else MainColor,
                         label = "buttonBorderColor"
                     )
 
                     Box {
-                        BorderedRoundedCornerButton(
-                            modifier = Modifier
-                                .padding(all = 12.dp)
-                                .fillMaxWidth()
-                                .height(48.dp)
-                                .align(BottomCenter)
-                                .combinedClickable(
-                                    interactionSource = MutableInteractionSource(),
-                                    indication = null,
-                                    onClick = { event(OnClickStartRunning) },
-                                    onLongClick = { event(OnLongClickQuitRunning) }
-                                ),
-                            borderColor = buttonBorderColorState.value,
-                            backgroundColor = buttonBackgroundColorState.value,
-                            text = if (musicPlayerState.value.isLaunched) "길게 눌러 러닝 종료" else "러닝 시작",
-                            textColor = buttonTextColorState.value
-                        )
+                        Column(
+                            modifier = Modifier.align(BottomCenter),
+                            horizontalAlignment = CenterHorizontally
+                        ) {
+                            Text(
+                                text = "케이던스에 해당하는 음악이 없는 경우\n케이던스가 130으로 조정됩니다.",
+                                color = Gray3,
+                                textAlign = TextAlign.Center)
 
-                        if (!musicPlayerState.value.isLaunched) {
+                            BorderedRoundedCornerButton(
+                                modifier = Modifier
+                                    .padding(all = 12.dp)
+                                    .fillMaxWidth()
+                                    .height(48.dp)
+                                    .combinedClickable(
+                                        interactionSource = MutableInteractionSource(),
+                                        indication = null,
+                                        onClick = { event(OnClickStartRunning) },
+                                        onLongClick = { event(OnLongClickQuitRunning) }
+                                    ),
+                                borderColor = buttonBorderColorState.value,
+                                backgroundColor = buttonBackgroundColorState.value,
+                                text = if (musicPlayerState.isLaunched) "길게 눌러 러닝 종료" else "러닝 시작",
+                                textColor = buttonTextColorState.value
+                            )
+                        }
+
+                        if (!musicPlayerState.isLaunched) {
                             FloatingActionButton(
                                 modifier = Modifier
                                     .padding(
@@ -508,7 +502,7 @@ inline fun MainScreen(
                 }
             }
 
-            if (musicPlayerState.value.isLoading) {
+            if (musicPlayerState.isLoading) {
                 LoadingScreen()
             }
         }
