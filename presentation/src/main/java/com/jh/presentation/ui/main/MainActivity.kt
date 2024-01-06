@@ -43,12 +43,6 @@ class MainActivity : BaseActivity() {
         )
     }
 
-    override fun onStart() {
-        super.onStart()
-        val sessionToken = SessionToken(this, ComponentName(this, MusicPlayerService::class.java))
-        mediaController = MediaController.Builder(this, sessionToken).buildAsync()
-    }
-
     private fun trackCadence() {
         startMusicPlayerService()
 
@@ -122,6 +116,13 @@ class MainActivity : BaseActivity() {
                 command = MusicPlayerService.COMMAND_START
             )
         )
+
+        initMediaController()
+    }
+
+    private fun initMediaController() {
+        val sessionToken = SessionToken(this, ComponentName(this, MusicPlayerService::class.java))
+        mediaController = MediaController.Builder(this, sessionToken).buildAsync()
     }
 
     private fun stopServices() {
