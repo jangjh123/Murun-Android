@@ -19,6 +19,12 @@ interface MusicDao {
     @Query("DELETE FROM Music WHERE id = :id")
     suspend fun deleteMusic(id: Int)
 
+    @Query("UPDATE Music SET newIndex = :newIndex WHERE id = :id")
+    suspend fun updateNewIndex(
+        newIndex: Int,
+        id: Int
+    )
+
     @Query("DELETE FROM Music")
     suspend fun deleteAllMusic()
 }
