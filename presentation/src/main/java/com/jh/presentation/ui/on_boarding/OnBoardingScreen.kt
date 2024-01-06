@@ -58,13 +58,7 @@ fun OnBoardingScreen(viewModel: OnBoardingViewModel = hiltViewModel()) {
         effect.collectLatest { effect ->
             when (effect) {
                 is GoToMainActivity -> {
-                    context.startActivity(
-                        MainActivity.newIntent(
-                            context = context,
-                            isRunningStarted = false
-                        )
-                    )
-
+                    context.startActivity(MainActivity.newIntent(context))
                     context.finish()
                 }
             }

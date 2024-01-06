@@ -29,7 +29,12 @@ class MusicPlayerService : MediaSessionService() {
             val binder = service as MusicLoaderServiceBinder
             musicLoaderService = binder.getServiceInstance()
             musicLoaderService.exoPlayer = exoPlayer
-            musicLoaderService.loadMusicByBpm()
+
+            if (musicPlayerState.value.isFavoriteList) {
+                musicLoaderService.loadFavoriteList()
+            } else {
+                musicLoaderService.loadMusicByBpm()
+            }
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {}
@@ -86,6 +91,10 @@ class MusicPlayerService : MediaSessionService() {
             repeatMode = REPEAT_MODE_OFF
             playWhenReady = true
         }
+
+        updateMusicPlayerState {
+            it.copy(isLaunched = true)
+        }
     }
 
     private fun skipToPrev() {
@@ -110,7 +119,11 @@ class MusicPlayerService : MediaSessionService() {
         } else if (exoPlayer.hasNextMediaItem()) {
             exoPlayer.seekToNext()
         } else {
-            musicLoaderService.loadMusicByBpm()
+            if (musicPlayerState.value.isFavoriteList) {
+                exoPlayer.seekToNext()
+            } else {
+                musicLoaderService.loadMusicByBpm()
+            }
         }
     }
 

@@ -15,6 +15,8 @@ class FavoriteActivity : BaseActivity() {
     }
 
     companion object {
+        const val RESULT_CODE_START_RUN = 100
+
         fun newIntent(context: Context): Intent {
             return Intent(context, FavoriteActivity::class.java)
         }

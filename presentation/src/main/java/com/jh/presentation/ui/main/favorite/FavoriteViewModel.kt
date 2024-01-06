@@ -110,16 +110,11 @@ class FavoriteViewModel @Inject constructor(
     private fun loadFavoriteList() {
         getFavoriteListUseCase().onEach { favoriteList ->
             withContext(mainImmediateDispatcher) {
-                println(favoriteList)
-                if (favoriteList.isNullOrEmpty()) {
-                    // todo: 예외 처리
-                } else {
-                    _state.update {
-                        it.copy(
-                            isLoading = false,
-                            favoriteList = favoriteList.sortedBy { it.newIndex }
-                        )
-                    }
+                _state.update {
+                    it.copy(
+                        isLoading = false,
+                        favoriteList = favoriteList?.sortedBy { it.newIndex } ?: emptyList()
+                    )
                 }
             }
         }.catch {
