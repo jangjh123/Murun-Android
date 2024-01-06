@@ -2,8 +2,6 @@ package com.jh.presentation.ui.main.favorite
 
 import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -53,10 +51,8 @@ import com.jh.presentation.ui.LoadingScreen
 import com.jh.presentation.ui.MurunSpacer
 import com.jh.presentation.ui.RoundedCornerButton
 import com.jh.presentation.ui.clickableWithoutRipple
-import com.jh.presentation.ui.main.MainActivity
 import com.jh.presentation.ui.main.favorite.FavoriteContract.Effect.ShowToast
 import com.jh.presentation.ui.main.favorite.FavoriteContract.Effect.StartRunning
-import com.jh.presentation.ui.main.favorite.FavoriteContract.Effect.UpdateReorderedFavoriteList
 import com.jh.presentation.ui.main.favorite.FavoriteContract.Event.OnClickDeleteMusic
 import com.jh.presentation.ui.main.favorite.FavoriteContract.Event.OnClickHideMusicOption
 import com.jh.presentation.ui.main.favorite.FavoriteContract.Event.OnClickShowMusicOption
@@ -95,10 +91,6 @@ fun FavoriteScreen(viewModel: FavoriteViewModel = hiltViewModel()) {
 
                 is ShowToast -> {
                     Toast.makeText(context, effect.text, Toast.LENGTH_SHORT).show()
-                }
-
-                is UpdateReorderedFavoriteList -> {
-
                 }
             }
         }
