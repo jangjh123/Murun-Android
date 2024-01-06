@@ -29,7 +29,5 @@ interface FavoriteContract : BaseContract<FavoriteContract.State, FavoriteContra
         object StartRunning : Effect
 
         data class ShowToast(val text: String) : Effect
-
-        data class UpdateReorderedFavoriteList(val musics: List<Music>) : Effect
     }
 }
