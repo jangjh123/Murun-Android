@@ -17,6 +17,7 @@ import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.ListenableFuture
 import com.jh.presentation.base.BaseActivity
 import com.jh.presentation.enums.RunningMode.*
+import com.jh.presentation.service.cadence_tracking.CadenceTrackingService
 import com.jh.presentation.service.music_player.MusicPlayerService
 import com.jh.presentation.service.music_player.MusicPlayerStateManager.musicPlayerState
 import com.jh.presentation.service.music_player.MusicPlayerStateManager.updateMusicPlayerState
@@ -43,17 +44,11 @@ class MainActivity : BaseActivity() {
         )
     }
 
-    override fun onStart() {
-        super.onStart()
-        val sessionToken = SessionToken(this, ComponentName(this, MusicPlayerService::class.java))
-        mediaController = MediaController.Builder(this, sessionToken).buildAsync()
-    }
-
     private fun trackCadence() {
         startMusicPlayerService()
 
         if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.ACTIVITY_RECOGNITION) == PackageManager.PERMISSION_GRANTED) {
-//            cadenceTrackingService.start(this@MainActivity)
+            startService(CadenceTrackingService.newIntent(this@MainActivity))
         } else {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 requestPermissions(arrayOf(Manifest.permission.ACTIVITY_RECOGNITION), PackageManager.PERMISSION_GRANTED)
@@ -122,12 +117,19 @@ class MainActivity : BaseActivity() {
                 command = MusicPlayerService.COMMAND_START
             )
         )
+
+        initMediaController()
+    }
+
+    private fun initMediaController() {
+        val sessionToken = SessionToken(this, ComponentName(this, MusicPlayerService::class.java))
+        mediaController = MediaController.Builder(this, sessionToken).buildAsync()
     }
 
     private fun stopServices() {
         try {
             stopService(MusicPlayerService.newIntent(this@MainActivity))
-            //            unbindService(cadenceTrackingServiceConnection)
+            stopService(CadenceTrackingService.newIntent(this@MainActivity))
             MediaController.releaseFuture(mediaController)
         } catch (e: Exception) {
             e.printStackTrace()

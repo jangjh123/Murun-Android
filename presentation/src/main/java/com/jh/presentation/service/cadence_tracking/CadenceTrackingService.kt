@@ -6,11 +6,10 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
-import android.os.Binder
-import android.os.IBinder
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import com.jh.presentation.di.DefaultDispatcher
+import com.jh.presentation.service.music_player.MusicPlayerStateManager.musicPlayerState
 import com.jh.presentation.service.music_player.MusicPlayerStateManager.updateMusicPlayerState
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineDispatcher
@@ -23,20 +22,14 @@ class CadenceTrackingService : LifecycleService(), SensorEventListener {
     @Inject
     @DefaultDispatcher
     lateinit var defaultDispatcher: CoroutineDispatcher
-
-    private lateinit var sensorManager: SensorManager
+    private val sensorManager by lazy { this@CadenceTrackingService.getSystemService(Context.SENSOR_SERVICE) as SensorManager }
     private var stepCount = 0
 
-    inner class CadenceTrackingServiceBinder : Binder() {
-        fun getServiceInstance(): CadenceTrackingService {
-            return this@CadenceTrackingService
-        }
-    }
-
-    override fun onBind(intent: Intent): IBinder {
-        super.onBind(intent)
-
-        return CadenceTrackingServiceBinder()
+    override fun onCreate() {
+        super.onCreate()
+        val sensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
+        sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL)
+        calculateCadence()
     }
 
     override fun onSensorChanged(event: SensorEvent?) {
@@ -61,20 +54,13 @@ class CadenceTrackingService : LifecycleService(), SensorEventListener {
         }
     }
 
-    fun start(context: Context) {
-        sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
-        val sensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
-        sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL)
-        calculateCadence()
-    }
-
-    fun stop() {
+    override fun onDestroy() {
         sensorManager.unregisterListener(this)
         stepCount = 0
+        super.onDestroy()
     }
 
-    override fun onUnbind(intent: Intent?): Boolean {
-        // todo : 언바인딩
-        return super.onUnbind(intent)
+    companion object {
+        fun newIntent(context: Context): Intent = Intent(context, CadenceTrackingService::class.java)
     }
 }
