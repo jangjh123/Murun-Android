@@ -444,7 +444,7 @@ inline fun MainScreen(
                                                     unfocusedIndicatorColor = Color.Transparent,
                                                     disabledIndicatorColor = Color.Transparent,
                                                 ),
-                                                enabled = musicPlayerState.runningMode == ASSIGN_CADENCE
+                                                enabled = musicPlayerState.runningMode == ASSIGN_CADENCE && !musicPlayerState.isLaunched
                                             )
                                         }
                                     }
