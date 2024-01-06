@@ -264,11 +264,7 @@ private inline fun FavoriteListSection(
         }
 
         if (lifecycleEvent.value == Lifecycle.Event.ON_PAUSE && isReordered) {
-            event(OnFavoriteListReordered(musics.value.apply {
-                forEachIndexed { index, music ->
-                    music.newIndex = index
-                }
-            }))
+            event(OnFavoriteListReordered(musics.value))
         }
 
         LazyColumn(

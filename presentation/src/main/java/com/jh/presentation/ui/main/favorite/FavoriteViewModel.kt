@@ -85,7 +85,13 @@ class FavoriteViewModel @Inject constructor(
 
     private fun onFavoriteListReordered(reorderedFavoriteList: List<Music>) {
         viewModelScope.launch(ioDispatcher) {
-            updateReorderedFavoriteListUseCase(reorderedFavoriteList)
+            updateReorderedFavoriteListUseCase(
+                reorderedFavoriteList.apply {
+                    forEachIndexed { index, music ->
+                        music.newIndex = index
+                    }
+                }
+            )
         }
     }
 
