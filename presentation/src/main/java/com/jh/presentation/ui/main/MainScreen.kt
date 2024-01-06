@@ -2,6 +2,8 @@ package com.jh.presentation.ui.main
 
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.*
@@ -43,6 +45,7 @@ import com.jh.presentation.ui.*
 import com.jh.presentation.ui.main.MainContract.Effect.AssignCadence
 import com.jh.presentation.ui.main.MainContract.Effect.ChangeRepeatMode
 import com.jh.presentation.ui.main.MainContract.Effect.GoToFavorite
+import com.jh.presentation.ui.main.MainContract.Effect.PlayFavoriteList
 import com.jh.presentation.ui.main.MainContract.Effect.PlayOrPause
 import com.jh.presentation.ui.main.MainContract.Effect.QuitRunning
 import com.jh.presentation.ui.main.MainContract.Effect.ShowToast
@@ -59,6 +62,7 @@ import com.jh.presentation.ui.main.MainContract.Event.OnClickSkipToNext
 import com.jh.presentation.ui.main.MainContract.Event.OnClickSkipToPrev
 import com.jh.presentation.ui.main.MainContract.Event.OnClickStartRunning
 import com.jh.presentation.ui.main.MainContract.Event.OnClickTrackCadence
+import com.jh.presentation.ui.main.MainContract.Event.OnGetFavoriteActivityResult
 import com.jh.presentation.ui.main.MainContract.Event.OnLongClickQuitRunning
 import com.jh.presentation.ui.main.favorite.FavoriteActivity
 import com.jh.presentation.ui.theme.*
@@ -71,6 +75,7 @@ inline fun MainScreen(
     viewModel: MainViewModel = hiltViewModel(),
     crossinline onClickTrackCadence: () -> Unit,
     crossinline onClickAssignCadence: () -> Unit,
+    crossinline onPlayFavoriteList: () -> Unit,
     crossinline onClickSkipToPrev: () -> Unit,
     crossinline onClickPlayOrPause: () -> Unit,
     crossinline onClickSkipToNext: () -> Unit,
@@ -81,11 +86,20 @@ inline fun MainScreen(
     val context = LocalContext.current as ComponentActivity
     val focusManager = LocalFocusManager.current
 
+    val favoriteListLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult(),
+        onResult = { result ->
+            if (result.resultCode == FavoriteActivity.RESULT_CODE_START_RUN) {
+                event(OnGetFavoriteActivityResult)
+            }
+        }
+    )
+
     LaunchedEffect(effect) {
         effect.collectLatest { effect ->
             when (effect) {
                 is GoToFavorite -> {
-                    context.startActivity(FavoriteActivity.newIntent(context))
+                    favoriteListLauncher.launch(FavoriteActivity.newIntent(context))
                 }
 
                 is TrackCadence -> {
@@ -94,6 +108,10 @@ inline fun MainScreen(
 
                 is AssignCadence -> {
                     onClickAssignCadence()
+                }
+
+                is PlayFavoriteList -> {
+                    onPlayFavoriteList()
                 }
 
                 is SkipToPrev -> {

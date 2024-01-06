@@ -15,6 +15,8 @@ interface MainContract : BaseContract<MainContract.State, MainContract.Event, Ma
 
         object OnClickFavorite : Event
 
+        object OnGetFavoriteActivityResult : Event
+
         object OnClickStartRunning : Event
 
         object OnLongClickQuitRunning : Event
@@ -36,6 +38,8 @@ interface MainContract : BaseContract<MainContract.State, MainContract.Event, Ma
         object TrackCadence : Effect
 
         object AssignCadence : Effect
+
+        object PlayFavoriteList : Effect
 
         object ChangeRepeatMode : Effect
 

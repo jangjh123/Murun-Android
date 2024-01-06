@@ -36,13 +36,7 @@ fun SplashScreen(viewModel: SplashViewModel = hiltViewModel()) {
         effect.collectLatest { effect ->
             when (effect) {
                 is SplashContract.Effect.SkipOnBoarding -> {
-                    context.startActivity(
-                        MainActivity.newIntent(
-                            context = context,
-                            isRunningStarted = false
-                        )
-                    )
-
+                    context.startActivity(MainActivity.newIntent(context))
                     context.finish()
                 }
 
@@ -68,7 +62,10 @@ fun SplashScreen(viewModel: SplashViewModel = hiltViewModel()) {
             .background(color = Color.White)
     ) {
 
-        Column(modifier = Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            modifier = Modifier.align(Alignment.Center),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
             Image(
                 modifier = Modifier.size(128.dp),
                 painter = painterResource(id = R.drawable.icon),

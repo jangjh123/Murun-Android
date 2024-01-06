@@ -2,6 +2,8 @@ package com.jh.presentation.ui.main.favorite
 
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -82,16 +84,13 @@ fun FavoriteScreen(viewModel: FavoriteViewModel = hiltViewModel()) {
     val (state, event, effect) = use(viewModel)
     val context = LocalContext.current as ComponentActivity
 
+
     LaunchedEffect(effect) {
         effect.collectLatest { effect ->
             when (effect) {
                 is StartRunning -> {
-                    context.startActivity(
-                        MainActivity.newIntent(
-                            context = context,
-                            isRunningStarted = true
-                        )
-                    )
+                    context.setResult(FavoriteActivity.RESULT_CODE_START_RUN)
+                    context.finish()
                 }
 
                 is ShowToast -> {

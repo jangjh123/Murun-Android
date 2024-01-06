@@ -19,6 +19,7 @@ import com.jh.presentation.base.BaseActivity
 import com.jh.presentation.enums.RunningMode.*
 import com.jh.presentation.service.music_player.MusicPlayerService
 import com.jh.presentation.service.music_player.MusicPlayerStateManager.musicPlayerState
+import com.jh.presentation.service.music_player.MusicPlayerStateManager.updateMusicPlayerState
 import com.jh.presentation.ui.*
 import com.jh.presentation.ui.theme.*
 import dagger.hilt.android.AndroidEntryPoint
@@ -33,6 +34,7 @@ class MainActivity : BaseActivity() {
         MainScreen(
             onClickTrackCadence = { trackCadence() },
             onClickAssignCadence = { assignCadence() },
+            onPlayFavoriteList = { playFavoriteList() },
             onClickSkipToPrev = { skipToPrev() },
             onClickPlayOrPause = { playOrPause() },
             onClickSkipToNext = { skipToNext() },
@@ -62,6 +64,14 @@ class MainActivity : BaseActivity() {
     }
 
     private fun assignCadence() {
+        startMusicPlayerService()
+    }
+
+    private fun playFavoriteList() {
+        updateMusicPlayerState {
+            it.copy(isFavoriteList = true)
+        }
+
         startMusicPlayerService()
     }
 
@@ -102,13 +112,6 @@ class MainActivity : BaseActivity() {
     }
 
     private fun quitRunning() {
-        startForegroundService(
-            MusicPlayerService.newIntent(
-                context = this@MainActivity,
-                command = MusicPlayerService.COMMAND_QUIT_RUNNING
-            )
-        )
-
         stopServices()
     }
 
@@ -123,9 +126,9 @@ class MainActivity : BaseActivity() {
 
     private fun stopServices() {
         try {
-            MediaController.releaseFuture(mediaController)
             stopService(MusicPlayerService.newIntent(this@MainActivity))
-//            unbindService(cadenceTrackingServiceConnection)
+            //            unbindService(cadenceTrackingServiceConnection)
+            MediaController.releaseFuture(mediaController)
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -140,15 +143,8 @@ class MainActivity : BaseActivity() {
     }
 
     companion object {
-        const val KEY_IS_RUNNING_STARTED = "isRunningStarted"
-
-        fun newIntent(
-            context: Context,
-            isRunningStarted: Boolean
-        ): Intent {
-            return Intent(context, MainActivity::class.java).apply {
-                putExtra(KEY_IS_RUNNING_STARTED, isRunningStarted)
-            }
+        fun newIntent(context: Context): Intent {
+            return Intent(context, MainActivity::class.java)
         }
     }
 }

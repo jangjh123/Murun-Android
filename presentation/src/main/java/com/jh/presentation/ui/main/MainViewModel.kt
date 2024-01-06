@@ -17,6 +17,7 @@ import com.jh.presentation.ui.main.MainContract.Effect
 import com.jh.presentation.ui.main.MainContract.Effect.AssignCadence
 import com.jh.presentation.ui.main.MainContract.Effect.ChangeRepeatMode
 import com.jh.presentation.ui.main.MainContract.Effect.GoToFavorite
+import com.jh.presentation.ui.main.MainContract.Effect.PlayFavoriteList
 import com.jh.presentation.ui.main.MainContract.Effect.PlayOrPause
 import com.jh.presentation.ui.main.MainContract.Effect.QuitRunning
 import com.jh.presentation.ui.main.MainContract.Effect.ShowToast
@@ -33,6 +34,7 @@ import com.jh.presentation.ui.main.MainContract.Event.OnClickSkipToNext
 import com.jh.presentation.ui.main.MainContract.Event.OnClickSkipToPrev
 import com.jh.presentation.ui.main.MainContract.Event.OnClickStartRunning
 import com.jh.presentation.ui.main.MainContract.Event.OnClickTrackCadence
+import com.jh.presentation.ui.main.MainContract.Event.OnGetFavoriteActivityResult
 import com.jh.presentation.ui.main.MainContract.Event.OnLongClickQuitRunning
 import com.jh.presentation.ui.main.MainContract.State
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -80,6 +82,10 @@ class MainViewModel @Inject constructor(
             onClickFavorite()
         }
 
+        is OnGetFavoriteActivityResult -> {
+            onGetFavoriteActivityResult()
+        }
+
         is OnClickStartRunning -> {
             onClickStartRunning()
         }
@@ -123,7 +129,7 @@ class MainViewModel @Inject constructor(
 
     private fun onCadenceTyped(typedCadence: String) {
         updateMusicPlayerState {
-            it.copy(cadence = if (typedCadence.length <= 3 && typedCadence.toInt() in 0..180) typedCadence.toInt() else 0)
+            it.copy(cadence = if (typedCadence.length in 1..3 && typedCadence.toInt() in 0..180) typedCadence.toInt() else 0)
         }
     }
 
@@ -133,11 +139,13 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    private fun onClickStartRunning() {
-        updateMusicPlayerState {
-            it.copy(isLaunched = true)
+    private fun onGetFavoriteActivityResult() {
+        viewModelScope.launch {
+            _effect.emit(PlayFavoriteList)
         }
+    }
 
+    private fun onClickStartRunning() {
         if (musicPlayerState.value.runningMode == TRACKING_CADENCE) {
             viewModelScope.launch {
                 _effect.emit(TrackCadence)

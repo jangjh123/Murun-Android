@@ -95,6 +95,29 @@ class MusicLoaderService : LifecycleService() {
         }.launchIn(lifecycleScope + ioDispatcher)
     }
 
+    fun loadFavoriteList() {
+        updateMusicPlayerState {
+            it.copy(isLoading = true)
+        }
+
+        getFavoriteListUseCase().onEach { result ->
+            withContext(mainImmediateDispatcher) {
+                result?.forEach { music ->
+                    addMusic(
+                        music = music,
+                        isFavoriteList = true
+                    )
+                }
+            }
+        }.catch {
+            // todo : 에러 핸들링
+        }.launchIn(lifecycleScope + ioDispatcher).invokeOnCompletion {
+            updateMusicPlayerState {
+                it.copy(isLoading = false)
+            }
+        }
+    }
+
     private suspend fun setImageToMusic(
         music: Music,
         imageUrl: String
@@ -145,19 +168,6 @@ class MusicLoaderService : LifecycleService() {
         if (!isFavoriteList) {
             exoPlayer.seekToNext()
         }
-    }
-
-    fun loadFavoriteList() {
-        getFavoriteListUseCase().onEach { result ->
-            result?.forEach { music ->
-                addMusic(
-                    music = music,
-                    isFavoriteList = true
-                )
-            }
-        }.catch {
-            // todo : 에러 핸들링
-        }.launchIn(lifecycleScope + ioDispatcher)
     }
 
     companion object {
